@@ -45,6 +45,10 @@ This repository represents the first phase of our open source initiative. It is 
 
 In this first phase we are only open sourcing the server side code.
 
+You can read more about our decision to open source the game here:
+- [Open Sourcing BitCraft Online](https://bitcraftonline.com/news/open-sourcing-bitcraft-online)
+- [BitCraft Open Sourcing Update](https://bitcraftonline.com/news/bitcraft-open-sourcing-update)
+
 ## About BitCraft
 
 BitCraft is a community-driven MMORPG where players collaborate to shape a procedurally generated world. There are no fixed classes or roles — instead, players build, craft, explore, trade,
