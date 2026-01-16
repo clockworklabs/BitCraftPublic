@@ -8,8 +8,11 @@ This License governs all non open-source aspects of BitCraft Online, including a
 ### Definitions
 
 “Licensor” means Clockwork Labs, Inc.
+
 “BitCraft” means the BitCraft Online game, universe, and related products and services.
+
 “Open Source Code” means source code licensed under the Apache License, Version 2.0.
+
 “Assets” means all non source-code materials associated with BitCraft, including but not limited to:
 - Visual art, textures, sprites, models, animations
 - Audio, music, sound effects, voice content
@@ -17,15 +20,21 @@ This License governs all non open-source aspects of BitCraft Online, including a
 - Lore, narrative text, dialogue, story elements
 - User interface text, localization files, icons
 - Any derivative or modified versions thereof
+
 “BitCraft Marks” means all trademarks, service marks, logos, names, trade dress, and branding associated with BitCraft, including but not limited to “BitCraft”, “BitCraft Online”, logos, faction names, and service names.
+
 “Network Services” means all network-based services operated by Licensor, including official servers, APIs, matchmaking, authentication, telemetry, and live game data.
+
 “You” or “Licensee” means any individual or entity exercising permissions under this License.
 
 ### Ownership and Reservation of Rights
 
 All Assets, BitCraft Marks, and Network Services are owned exclusively by Licensor and are protected by copyright, trademark, and other intellectual property laws.
+
 Except for the limited rights expressly granted in this License, no rights are granted, whether by implication, estoppel, or otherwise.
+
 To the maximum extent permitted by applicable law, You waive and agree not to assert any moral rights or similar rights in connection with the Assets.
+
 This License does not grant any patent rights.
 
 ### Relationship to Open Source Code
@@ -43,8 +52,8 @@ For the avoidance of doubt:
 
 Subject to the terms of this License, Licensor grants You a limited, non-exclusive, non-transferable, non-sublicensable, revocable, non-commercial license to:
 
-a. Use the Assets solely as integrated components of the official BitCraft client; and
-b. Modify the Assets solely for the purpose of creating non-commercial mods that function exclusively with the official BitCraft client and Network Services.
+- Use the Assets solely as integrated components of the official BitCraft client; and
+- Modify the Assets solely for the purpose of creating non-commercial mods that function exclusively with the official BitCraft client and Network Services.
 
 No other use of the Assets is permitted.
 
@@ -81,7 +90,9 @@ You may not:
 - Imply affiliation with or endorsement by Licensor.
 
 You may use BitCraft Marks solely for factual, descriptive purposes, such as: “Built using the BitCraft Open-source engine” provided such use is truthful, non-misleading, non-prominent, and does not use logos or branding.
+
 Only Licensor-operated services may be described as “Official BitCraft” services.
+
 Trademark rights exist independently of this License.
 
 ### Network Services
