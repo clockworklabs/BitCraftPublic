@@ -1,0 +1,27 @@
+NOTICE
+
+BitCraft Open Source Code
+Copyright © Clockwork Labs, Inc.
+
+This repository includes source code licensed under the Apache License, Version 2.0 (the “License”). You may use this code in compliance with the License.
+
+IMPORTANT SCOPE NOTICE
+
+The Apache License applies ONLY to source code files made available under
+that License.
+
+It does NOT apply to:
+- Art assets, audio, music, or visual content
+- World data, maps, terrain, balance, or procedural data
+- Lore, narrative text, dialogue, or UI text
+- BitCraft Online trademarks, logos, names, or branding
+- BitCraft Online network services, servers, APIs, or live systems
+
+Those materials are governed by the BitCraft Proprietary License (BITCRAFT_PROPRIETARY_LICENSE.md).
+
+For the avoidance of doubt:
+- Availability of open-source code does not grant permission to operate a BitCraft service for commercial purposes
+- Availability of open-source code does not grant permission to use BitCraft assets or branding
+- Availability of open-source code does not imply affiliation with or endorsement by Clockwork Labs
+
+This NOTICE is provided for informational purposes only and does not modify the Apache License.
