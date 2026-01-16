@@ -16,23 +16,23 @@
     </a>
 </p>
 <p align="center">
-    <a href="https://discord.com/invite/bitcraft#gh-dark-mode-only"><img height="25" src="./images/dark/social/discord.svg" alt="Discord"></a>
-    <a href="https://discord.com/invite/bitcraft#gh-light-mode-only"><img height="25" src="./images/light/social/discord.svg" alt="Discord"></a>
+    <a href="https://discord.com/invite/bitcraft#gh-dark-mode-only"><img height="25" src="./images/dark/social/Discord.svg" alt="Discord"></a>
+    <a href="https://discord.com/invite/bitcraft#gh-light-mode-only"><img height="25" src="./images/light/social/Discord.svg" alt="Discord"></a>
     &nbsp;
-    <a href="https://twitter.com/BitCraftOnline#gh-dark-mode-only"><img height="25" src="./images/dark/social/x.svg" alt="X"></a>
-    <a href="https://twitter.com/BitCraftOnline#gh-light-mode-only"><img height="25" src="./images/light/social/x.svg" alt="X"></a>
+    <a href="https://twitter.com/BitCraftOnline#gh-dark-mode-only"><img height="25" src="./images/dark/social/X.svg" alt="X"></a>
+    <a href="https://twitter.com/BitCraftOnline#gh-light-mode-only"><img height="25" src="./images/light/social/X.svg" alt="X"></a>
     &nbsp;
-    <a href="https://www.facebook.com/BitCraftOnline#gh-dark-mode-only"><img height="25" src="./images/dark/social/facebook.svg" alt="Facebook"></a>
-    <a href="https://www.facebook.com/BitCraftOnline#gh-light-mode-only"><img height="25" src="./images/light/social/facebook.svg" alt="Facebook"></a>
+    <a href="https://www.facebook.com/BitCraftOnline#gh-dark-mode-only"><img height="25" src="./images/dark/social/Facebook.svg" alt="Facebook"></a>
+    <a href="https://www.facebook.com/BitCraftOnline#gh-light-mode-only"><img height="25" src="./images/light/social/Facebook.svg" alt="Facebook"></a>
     &nbsp;
-    <a href="https://www.instagram.com/bitcraftonline/#gh-dark-mode-only"><img height="25" src="./images/dark/social/instagram.svg" alt="Instagram"></a>
-    <a href="https://www.instagram.com/bitcraftonline/#gh-light-mode-only"><img height="25" src="./images/light/social/instagram.svg" alt="Instagram"></a>
+    <a href="https://www.instagram.com/bitcraftonline/#gh-dark-mode-only"><img height="25" src="./images/dark/social/Instagram.svg" alt="Instagram"></a>
+    <a href="https://www.instagram.com/bitcraftonline/#gh-light-mode-only"><img height="25" src="./images/light/social/Instagram.svg" alt="Instagram"></a>
     &nbsp;
-    <a href="https://www.tiktok.com/@bitcraftonline#gh-dark-mode-only"><img height="25" src="./images/dark/social/tiktok.svg" alt="TikTok"></a>
-    <a href="https://www.tiktok.com/@bitcraftonline#gh-light-mode-only"><img height="25" src="./images/light/social/tiktok.svg" alt="TikTok"></a>
+    <a href="https://www.tiktok.com/@bitcraftonline#gh-dark-mode-only"><img height="25" src="./images/dark/social/TikTok.svg" alt="TikTok"></a>
+    <a href="https://www.tiktok.com/@bitcraftonline#gh-light-mode-only"><img height="25" src="./images/light/social/TikTok.svg" alt="TikTok"></a>
     &nbsp;
-    <a href="https://bsky.app/profile/bitcraftonline.bsky.social#gh-dark-mode-only"><img height="25" src="./images/dark/social/bluesky.svg" alt="BlueSky"></a>
-    <a href="https://bsky.app/profile/bitcraftonline.bsky.social#gh-light-mode-only"><img height="25" src="./images/light/social/bluesky.svg" alt="BlueSky"></a>
+    <a href="https://bsky.app/profile/bitcraftonline.bsky.social#gh-dark-mode-only"><img height="25" src="./images/dark/social/BlueSky.svg" alt="BlueSky"></a>
+    <a href="https://bsky.app/profile/bitcraftonline.bsky.social#gh-light-mode-only"><img height="25" src="./images/light/social/BlueSky.svg" alt="BlueSky"></a>
     &nbsp;
 </p>
 
