@@ -51,7 +51,7 @@ BitCraft is a community-driven MMORPG where players collaborate to shape a proce
 and govern together to shape their civilizations.
 
 - Game website: [https://bitcraftonline.com](https://bitcraftonline.com)  
-- Steam page: [https://store.steampowered.com/app/1874960/BitCraft](https://store.steampowered.com/app/1874960/BitCraft)
+- Steam page: [https://store.steampowered.com/app/3454650/BitCraft_Online/](https://store.steampowered.com/app/3454650/BitCraft_Online/)
 
 ## About This Repository
 
