@@ -55,10 +55,13 @@ and govern together to shape their civilizations.
 
 ## About This Repository
 
-This repository contains the code for running a BitCraft server. It includes game logic, state management, and server-side systems, but does not include the client or tools required to connect to the official game.
+This repository contains the code for running a BitCraft server. It includes game logic, state management, and server-side systems, but does not yet include the client or tools required to connect to the official game.
 
-The server is built using [SpacetimeDB](https://spacetimedb.com), a real-time, reactive database designed for multiplayer game development.
+The server for BitCraft is built on [SpacetimeDB](https://spacetimedb.com), a real-time, reactive, backend platform designed for multiplayer game development.
 The BitCraft server is structured as a SpacetimeDB module, all the data is stored in spacetimeDB `tables` and all the logic runs inside `reducers`.
+
+The source code for SpacetimeDB itself is also [available on GitHub](https://github.com/clockworklabs/SpacetimeDB). If you're interested in learning bout SpacetimeDB, please give the repo a star!
+
 If you're interested in exploring the server or trying to run a minimal version locally, start with the spacetimeDB documentation:
 
 - [SpacetimeDB Docs](https://spacetimedb.com/docs)
