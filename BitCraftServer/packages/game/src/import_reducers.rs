@@ -3621,6 +3621,87 @@ fn import_prospecting_desc_internal(ctx: &ReducerContext, records: Vec<Prospecti
     Ok(())
 }
 
+#[spacetimedb::reducer]
+pub fn import_quest_chain_desc(ctx: &ReducerContext, records: Vec<QuestChainDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_quest_chain_desc_internal(ctx, records)?;
+    Ok(())
+}
+fn import_quest_chain_desc_internal(ctx: &ReducerContext, records: Vec<QuestChainDesc>) -> Result<(), String> {
+    for id in ctx.db.quest_chain_desc().iter().map(|item: QuestChainDesc| item.id) {
+        ctx.db.quest_chain_desc().id().delete(&id);
+    }
+    let len: usize = records.len();
+    log::info!("Will insert {} records of type QuestChainDesc", len);
+    for record in records {
+        let id = record.id;
+        if let Err(err) = ctx.db.quest_chain_desc().try_insert(record) {
+            return Err(format!(
+                "Couldn't insert QuestChainDesc record with id {:?}. Error message: {}",
+                id, err
+            ));
+        }
+    }
+    log::info!("Inserted {} records of type QuestChainDesc", len);
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn import_stage_rewards_desc(ctx: &ReducerContext, records: Vec<StageRewardsDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_stage_rewards_desc_internal(ctx, records)?;
+    Ok(())
+}
+fn import_stage_rewards_desc_internal(ctx: &ReducerContext, records: Vec<StageRewardsDesc>) -> Result<(), String> {
+    for id in ctx.db.stage_rewards_desc().iter().map(|item: StageRewardsDesc| item.id) {
+        ctx.db.stage_rewards_desc().id().delete(&id);
+    }
+    let len: usize = records.len();
+    log::info!("Will insert {} records of type StageRewardsDesc", len);
+    for record in records {
+        let id = record.id;
+        if let Err(err) = ctx.db.stage_rewards_desc().try_insert(record) {
+            return Err(format!(
+                "Couldn't insert StageRewardsDesc record with id {:?}. Error message: {}",
+                id, err
+            ));
+        }
+    }
+    log::info!("Inserted {} records of type StageRewardsDesc", len);
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn import_quest_stage_desc(ctx: &ReducerContext, records: Vec<QuestStageDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_quest_stage_desc_internal(ctx, records)?;
+    Ok(())
+}
+fn import_quest_stage_desc_internal(ctx: &ReducerContext, records: Vec<QuestStageDesc>) -> Result<(), String> {
+    for id in ctx.db.quest_stage_desc().iter().map(|item: QuestStageDesc| item.id) {
+        ctx.db.quest_stage_desc().id().delete(&id);
+    }
+    let len: usize = records.len();
+    log::info!("Will insert {} records of type QuestStageDesc", len);
+    for record in records {
+        let id = record.id;
+        if let Err(err) = ctx.db.quest_stage_desc().try_insert(record) {
+            return Err(format!(
+                "Couldn't insert QuestStageDesc record with id {:?}. Error message: {}",
+                id, err
+            ));
+        }
+    }
+    log::info!("Inserted {} records of type QuestStageDesc", len);
+    Ok(())
+}
+
 fn collect_table<T: spacetimedb::Table>(table: &T) -> Vec<T::Row> {
     return table.iter().collect();
 }
@@ -3727,6 +3808,9 @@ pub fn commit_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     import_ability_unlock_desc_internal(ctx, collect_table(ctx.db.staged_ability_unlock_desc()))?;
     import_ability_custom_desc_internal(ctx, collect_table(ctx.db.staged_ability_custom_desc()))?;
     import_prospecting_desc_internal(ctx, collect_table(ctx.db.staged_prospecting_desc()))?;
+    import_quest_chain_desc_internal(ctx, collect_table(ctx.db.staged_quest_chain_desc()))?;
+    import_stage_rewards_desc_internal(ctx, collect_table(ctx.db.staged_stage_rewards_desc()))?;
+    import_quest_stage_desc_internal(ctx, collect_table(ctx.db.staged_quest_stage_desc()))?;
 
     import_static_data_post_processing(ctx)?;
     generate_building_function_mappings(ctx)?;

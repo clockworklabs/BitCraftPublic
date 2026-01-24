@@ -18,6 +18,7 @@ pub mod admin_find_items;
 pub mod admin_find_players_with_item;
 pub mod admin_grant_all_claims_supplies;
 pub mod admin_grant_collectibles;
+pub mod admin_manage_developers;
 pub mod admin_migrate_action_state;
 pub mod admin_migrate_trade_orders;
 pub mod admin_npc_helpers;

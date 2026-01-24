@@ -2683,6 +2683,10 @@ pub struct EmoteDescV2 {
     pub allow_while_moving: bool,
     #[default(0)]
     pub enabled_by_collectible_id: i32,
+    #[default(0)]
+    pub tool_type: i32,
+    #[default(0)]
+    pub tool_mesh_index: i32,
 }
 
 #[static_data_staging_table(empire_notification_desc)]
@@ -3537,4 +3541,89 @@ pub struct ProspectingDesc {
 
     pub icon_asset_path: String,
 
+}
+
+#[static_data_staging_table(quest_chain_desc)]
+#[spacetimedb::table(name = quest_chain_desc, public)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct QuestChainDesc {
+    #[primary_key]
+    pub id: i32,
+    pub name: String,
+    pub is_hint: bool,
+    pub stages: Vec<i32>,
+    pub requirements: Vec<QuestRequirement>,
+    pub rewards: Vec<QuestReward>,
+    pub implicit_rewards: Vec<QuestReward>, // Doesn't get awarded, but you end up getting as a result of following the quest (e.g. getting a cart on the cart quest)
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+#[sats(name = "QuestRequirement")]
+pub enum QuestRequirement {
+    PaddingNone(ColumnPad4u64),
+    QuestChain(i32),
+    Achievement(i32),
+    Collectible(i32),
+    Level(LevelRequirement),
+    ItemStack(ItemStack),
+    SecondaryKnowledge(i32),
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+#[sats(name = "QuestReward")]
+pub enum QuestReward {
+    PaddingNone(ColumnPad4u64),
+    ItemStack(ItemStack),
+    Achievement(i32),
+    Collectible(i32),
+    Experience(ExperienceStackF32),
+    SecondaryKnowledge(i32),
+}
+
+#[static_data_staging_table(stage_rewards_desc)]
+#[spacetimedb::table(name = stage_rewards_desc)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct StageRewardsDesc {
+    #[primary_key]
+    pub id : i32,
+    pub chain_desc_id : i32,
+    pub rewards: Vec<ItemStack>,
+}
+
+#[static_data_staging_table(quest_stage_desc)]
+#[spacetimedb::table(name = quest_stage_desc, public)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct QuestStageDesc {
+    #[primary_key]
+    pub id: i32,
+    pub chain_desc_id : i32,
+    pub name: String,
+    pub completion_conditions: Vec<CompletionCondition>,
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+#[sats(name = "CompletionCondition")]
+pub enum CompletionCondition {
+    PaddingNone(ColumnPad4u64),
+    ItemStack(ItemStackCompletionCondition),
+    Achievement(i32),
+    Collectible(i32),
+    Level(LevelRequirement),
+    SecondaryKnowledge(i32),
+    EquippedItem(i32)
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+pub struct ItemStackCompletionCondition {
+    pub item_stack : ItemStack,
+    pub is_consumed : bool,
+}
+
+#[derive(SpacetimeType, Clone, Debug, PartialEq)]
+pub struct ColumnPad4u64 {
+    // Not pretty, but it makes room for larger enums in the future.
+    pub pad0 : u64,
+    pub pad1 : u64,
+    pub pad2 : u64,
+    pub pad3 : u64,
 }

@@ -87,14 +87,14 @@ pub fn attack_start(ctx: &ReducerContext, request: EntityAttackRequest) -> Resul
             );
             let enemy_state = unwrap_or_err!(
                 ctx.db.enemy_state().entity_id().find(request.defender_entity_id),
-                "Cannot attack while mounted1"
+                "Cannot attack while mounted"
             );
             let enemy_desc = unwrap_or_err!(
                 ctx.db.enemy_desc().enemy_type().find(enemy_state.enemy_type as i32),
                 "Invalid enemy type"
             );
             if !enemy_desc.huntable || !deployable_desc.allow_hunting {
-                return Err("Cannot attack while mounted2".into());
+                return Err("Cannot attack while mounted".into());
             }
         }
 
@@ -107,7 +107,7 @@ pub fn attack_start(ctx: &ReducerContext, request: EntityAttackRequest) -> Resul
             attacker_id,
             PlayerActionType::Attack,
             target,
-            None,
+            Some(request.combat_action_id),
             Duration::from_secs_f32(delay),
             base_checks(
                 ctx,
@@ -491,12 +491,13 @@ fn attack_reduce(
         (cooldown_multiplier, weapon_cooldown_multiplier) =
             CharacterStatsState::get_cooldown_and_weapon_cooldown_multipliers(ctx, attacker_entity_id, is_huntable);
     }
-
-    ability_state.cooldown = ActionCooldown {
-        timestamp: now,
-        cooldown: combat_action.cooldown * weapon_cooldown_multiplier / cooldown_multiplier,
-    };
-
+    ability_state.set_combat_action_cooldown(
+        &combat_action,
+        cooldown_multiplier,
+        weapon_cooldown_multiplier,
+        ctx.timestamp,
+        false,
+    );
     ctx.db.ability_state().entity_id().update(ability_state);
 
     let is_attacking_player = attacker_type == EntityType::Player;

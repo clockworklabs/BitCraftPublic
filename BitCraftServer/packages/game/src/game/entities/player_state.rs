@@ -351,7 +351,7 @@ impl PlayerState {
                 let mut toolbar_abilities = Vec::new();
                 PlayerState::collect_stats(ctx, actor_id);
 
-                let mut i = 0;
+                let mut i = 1;
                 for combat_action in ctx.db.combat_action_desc_v3().iter() {
                     if combat_action.learned_by_player
                         && combat_action.weapon_type_requirements.contains(&weapon_type.id)
@@ -380,10 +380,13 @@ impl PlayerState {
                         let (cooldown_multiplier, weapon_cooldown_multiplier) =
                             CharacterStatsState::get_cooldown_and_weapon_cooldown_multipliers(ctx, actor_id, weapon_type.hunting);
 
-                        ability.cooldown = ActionCooldown {
-                            timestamp: game_state::unix_ms(ctx.timestamp),
-                            cooldown: combat_action.cooldown * weapon_cooldown_multiplier / cooldown_multiplier,
-                        };
+                        ability.set_combat_action_cooldown(
+                            &combat_action,
+                            cooldown_multiplier,
+                            weapon_cooldown_multiplier,
+                            ctx.timestamp,
+                            true,
+                        );
                         ctx.db.ability_state().entity_id().update(ability);
                     }
                 }
@@ -433,12 +436,13 @@ impl PlayerState {
                             let is_huntable = weapon_type.hunting;
                             let (cooldown_multiplier, weapon_cooldown_multiplier) =
                                 CharacterStatsState::get_cooldown_and_weapon_cooldown_multipliers(ctx, actor_id, is_huntable);
-
-                            ability.cooldown = ActionCooldown {
-                                timestamp: game_state::unix_ms(ctx.timestamp),
-                                cooldown: combat_action.cooldown * weapon_cooldown_multiplier / cooldown_multiplier,
-                            };
-
+                            ability.set_combat_action_cooldown(
+                                &combat_action,
+                                cooldown_multiplier,
+                                weapon_cooldown_multiplier,
+                                ctx.timestamp,
+                                true,
+                            );
                             ability.update(ctx);
                         }
                         _ => {}

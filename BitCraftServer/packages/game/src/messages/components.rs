@@ -1952,8 +1952,9 @@ pub enum AbilityType {
     Custom(i32),                // AbilityCustomDesc Id // default ability with default settings
     Prospecting(i32),           // Prospecting ID
     Equip(i32),                 // Item Id
-    DeployableDeploy(i32),      // Colectible ID
+    DeployableDeploy(i32),      // Collectible ID - likely unused, replaced by DeployableToggle
     AddToToolbelt(i32),         // Item Id
+    DeployableToggle(i32),      // Collectible ID - will call either Store or Deploy based on the collectible state
 }
 
 // Keep in sync with AbilityType
@@ -1968,8 +1969,9 @@ pub enum AbilityTypeEnum {
     Custom,
     Prospecting,
     Equip,
-    DeployableDeploy,
+    DeployableDeploy,       // - likely unused, replaced by DeployableToggle
     AddToToolbelt,
+    DeployableToggle,
 }
 
 #[spacetimedb::table(name = action_bar_state, public,
@@ -2043,4 +2045,18 @@ pub struct CrumbTrailContributionSpentState {
     pub entity_id: u64,
     pub player_entity_id: u64,
     pub crumb_trail_entity_id: u64,
+}
+
+#[spacetimedb::table(name = quest_chain_state, public,
+    index(name = player_entity_id, btree(columns = [player_entity_id])))]
+#[derive(Clone, Debug)]
+pub struct QuestChainState {
+    #[primary_key]
+    pub entity_id: u64,
+    pub player_entity_id: u64,
+    pub quest_chain_desc_id: i32,
+    pub stage_id: i32,
+    pub is_active: bool,
+    pub completed: bool,
+    pub stage_rewards_awarded: Vec<i32>,
 }

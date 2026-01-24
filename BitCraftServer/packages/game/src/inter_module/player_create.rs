@@ -520,6 +520,9 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
     active_buff_state.pause_all_buffs(ctx);
     ctx.db.active_buff_state().entity_id().update(active_buff_state);
 
+    // Auto attack on slot 0
+    player::ability_set::reduce(ctx, entity_id, 0, 0, AbilityType::AutoAttack)?;
+
     //add sword to toolbelt
     if let Some(mut toolbelt) = InventoryState::get_player_toolbelt(ctx, entity_id) {
         toolbelt.set_at(
@@ -537,7 +540,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
 
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV3::OnRegionPlayerCreated(OnRegionPlayerCreatedMsg {
+        crate::messages::inter_module::MessageContentsV4::OnRegionPlayerCreated(OnRegionPlayerCreatedMsg {
             player_entity_id: entity_id,
         }),
         crate::inter_module::InterModuleDestination::Global,

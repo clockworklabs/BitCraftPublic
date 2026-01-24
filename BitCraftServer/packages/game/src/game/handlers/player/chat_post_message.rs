@@ -115,7 +115,7 @@ pub fn reduce(
             target_id: target_id,
             channel_id: channel_id as i32,
             //language_code: Some(language_code) //I18N
-            username: i18n::dont_reformat(format!("{}/{}", language_code, player_state.username(ctx))),
+            username: i18n::dont_reformat(format!("{}/{}", language_code, player_state.username(ctx))), //I18N
         })
         .is_err()
     {

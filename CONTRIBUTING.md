@@ -4,8 +4,6 @@ Thank you for your interest in contributing to **BitCraftPublic**, the server-si
 We’re excited to open up our technology to the community, and we welcome contributions that improve its correctness, stability, and usability.
 That said, to keep things manageable and aligned with our development goals, we have a few ground rules outlined below.
 
----
-
 ## How it works
 
 This repo contains the code of the BitCraftServer, which we update every time we do a release. As part of our
@@ -30,8 +28,9 @@ We are currently accepting **server-side contributions** that fall into the foll
 - Safer defaults or config improvements
 
 **Security Improvements**
-- Vulnerability fixes or safety checks
-- Input validation or sandboxing fixes
+
+To ensure that exploits are addressed quickly and not abused by other players, we ask that you submit them to us privately using 
+[**this form**](https://docs.google.com/forms/d/e/1FAIpQLSdlQMdxjTmUScKeVL9T-rs7lZOU4VrYl80ida0Kb0d38Nah8w/viewform?usp=sharing&ouid=112232658922648279400).
 
 ## What We're Not Accepting (Yet)
 
@@ -48,8 +47,6 @@ To keep the scope narrow and our workflows stable, **please avoid the following*
 **Speculative Work**
 - Please avoid "just in case" PRs — changes must be motivated by a real problem
 
----
-
 ## Contribution Checklist
 
 Before opening a pull request:
@@ -61,8 +58,6 @@ Before opening a pull request:
 - Ensure your code builds by running `spacetime build`
 - Add or update comments where needed
 - Use consistent formatting (use `rustfmt`)
-
----
 
 ## How We Handle Contributions
 
@@ -78,8 +73,6 @@ If we accept your change:
 - We may **re-implement it internally**, or
 - Cherry-pick it into our internal mono-repo, from which the next public release will include it
 
----
-
 ## Legal & Licensing
 
 By submitting a pull request, you agree that your contribution:
@@ -88,11 +81,7 @@ By submitting a pull request, you agree that your contribution:
 - Is submitted under the license of this repository (see `LICENSE` file)
 - May be modified, redistributed, or used as part of BitCraft
 
----
-
 ## 🙏 Thank You!
 
 Whether you're fixing a bug, improving performance, or just helping us refine the system — thank you!
 Open sourcing BitCraft is a big experiment in openness, and we're grateful you're part of it.
-
----

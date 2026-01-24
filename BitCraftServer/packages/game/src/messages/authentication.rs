@@ -1,9 +1,7 @@
-use std::str::FromStr;
-
 use bitcraft_macro::shared_table;
 use spacetimedb::{Identity, ReducerContext, Table};
 
-use crate::{game::handlers::authentication::has_role, messages::components::user_state};
+use crate::game::handlers::authentication::has_role;
 
 #[derive(spacetimedb::SpacetimeType, Clone, Copy, PartialEq, Debug)]
 #[repr(i32)]
@@ -100,54 +98,5 @@ impl ServerIdentity {
             }
             None => Err("Server isn't initialized.".into()),
         }
-    }
-}
-
-#[spacetimedb::reducer]
-pub fn insert_developer_identity(
-    ctx: &ReducerContext,
-    identity: String,
-    developer_name: String,
-    service_name: String,
-    email: String,
-    is_external: bool,
-) -> Result<(), String> {
-    let identity = Identity::from_str(&identity).unwrap();
-    if let Some(user_state) = ctx.db.user_state().identity().find(identity) {
-        return Err(format!(
-            "The provided identity is already in use for player entity_id: {}. You muse provide a new identity.",
-            user_state.entity_id
-        )
-        .into());
-    }
-    if let Some(developer) = ctx.db.developer().identity().find(identity) {
-        return Err(format!(
-            "The provided identity is already in use for developer: {}.",
-            developer.developer_name
-        )
-        .into());
-    }
-
-    ctx.db.developer().insert(Developer {
-        identity,
-        developer_name,
-        service_name,
-        email,
-        is_external,
-    });
-
-    Ok(())
-}
-
-#[spacetimedb::reducer]
-pub fn delete_developer_identity(ctx: &ReducerContext, identity: String) -> Result<(), String> {
-    let identity = Identity::from_str(&identity).map_err(|e| format!("Invalid identity: {e}"))?;
-
-    match ctx.db.developer().identity().find(identity) {
-        Some(developer) => {
-            ctx.db.developer().delete(developer);
-            Ok(())
-        }
-        None => Err("Developer not found".to_string()),
     }
 }

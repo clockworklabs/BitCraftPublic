@@ -17,7 +17,7 @@ use crate::{
         components::*,
         empire_shared::{empire_node_siege_state, EmpirePermission, EmpirePlayerDataState},
         game_util::{DimensionType, ItemType},
-        inter_module::{GlobalDeleteEmpireBuildingMsg, MessageContentsV3},
+        inter_module::{GlobalDeleteEmpireBuildingMsg, MessageContentsV4},
         static_data::{DeconstructionRecipeDesc, ToolDesc},
     },
     parameters_desc_v2, unwrap_or_err, unwrap_or_return, BuildingCategory, ItemListDesc,
@@ -124,10 +124,14 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
         return Err("You don't have permission to interact with this building".into());
     }
 
-    // Premium buildings can only be deconstructed by owners or co-owners
-    if let Some(claim) = ctx.db.claim_state().entity_id().find(building.claim_entity_id) {
-        if building_desc.has_category(ctx, BuildingCategory::PremiumBuilding) && !claim.has_co_owner_permissions(ctx, actor_id) {
-            return Err("This building can only be deconstructed by the claim owner or co-owners".into());
+    if building_desc.has_category(ctx, BuildingCategory::PremiumBuilding) {
+        if let Some(claim) = ctx.db.claim_state().entity_id().find(building.claim_entity_id) {
+            if building_desc.has_category(ctx, BuildingCategory::PremiumBuilding) && !claim.has_co_owner_permissions(ctx, actor_id) {
+                return Err("Premium buildings can only be deconstructed by the claim owner or co-owners".into());
+            }
+        }
+        if !PermissionState::can_interact_with_building(ctx, actor_id, &building, Permission::CoOwner) {
+            return Err("Premium buildings can only be deconstructed by owner or co-owners".into());
         }
     }
 
@@ -195,7 +199,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
             }
             send_inter_module_message(
                 ctx,
-                MessageContentsV3::GlobalDeleteEmpireBuilding(GlobalDeleteEmpireBuildingMsg {
+                MessageContentsV4::GlobalDeleteEmpireBuilding(GlobalDeleteEmpireBuildingMsg {
                     player_entity_id: actor_id,
                     building_entity_id,
                 }),

@@ -1,10 +1,10 @@
-use spacetimedb::{ReducerContext, Table};
+use spacetimedb::{ReducerContext, Table, Timestamp};
 
 use crate::{
     game::game_state,
     messages::{
         components::{ability_state, action_bar_state, combat_state, AbilityType, ActionBarState, PlayerState},
-        static_data::{combat_action_desc_v3, weapon_desc},
+        static_data::{combat_action_desc_v3, weapon_desc, CombatActionDescV3},
     },
     AbilityState, ActionCooldown,
 };
@@ -144,5 +144,26 @@ impl AbilityState {
                 ctx.db.ability_state().entity_id().delete(ability_state.entity_id);
             }
         }
+    }
+
+    pub fn set_combat_action_cooldown(
+        &mut self,
+        combat_action: &CombatActionDescV3,
+        cooldown_multiplier: f32,
+        weapon_cooldown_multiplier: f32,
+        timestamp: Timestamp,
+        include_lead_in: bool,
+    ) {
+        let raw_cooldown = combat_action.cooldown * weapon_cooldown_multiplier;
+        let post_lead_in_cooldown = raw_cooldown - combat_action.lead_in_time;
+        // We need to take off the lead-in time from the equation if this resolves during the attack segment, since the attack reducer is called after the lead-in
+        // (We can't apply the cooldowns in the start of the attack animation since the action can still be cancelled by moving until it lands)
+        let mut modified_cooldown = if include_lead_in { combat_action.lead_in_time } else { 0.0 };
+        modified_cooldown += post_lead_in_cooldown / cooldown_multiplier;
+
+        self.cooldown = ActionCooldown {
+            timestamp: game_state::unix_ms(timestamp),
+            cooldown: modified_cooldown,
+        };
     }
 }

@@ -103,6 +103,7 @@ use crate::progressive_action_state;
 use crate::project_site_state;
 use crate::prospecting_state;
 use crate::public_progressive_action_state;
+use crate::quest_chain_state;
 use crate::rent_state;
 use crate::resource_health_state;
 use crate::resource_state;
@@ -319,6 +320,7 @@ pub fn clear_entity(ctx: &ReducerContext, entity_id: u64) {
    ctx.db.project_site_state().entity_id().delete(entity_id);
    ctx.db.prospecting_state().entity_id().delete(entity_id);
    ctx.db.public_progressive_action_state().entity_id().delete(entity_id);
+   ctx.db.quest_chain_state().entity_id().delete(entity_id);
    ctx.db.rent_state().entity_id().delete(entity_id);
    ctx.db.resource_health_state().entity_id().delete(entity_id);
    ctx.db.resource_state().entity_id().delete(entity_id);

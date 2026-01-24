@@ -5,5 +5,6 @@ pub mod migrate_auto_attacks;
 pub mod migrate_character_stats;
 pub mod migrate_claim_tech;
 pub mod migrate_grant_default_collectibles;
+pub mod migrate_onboarding;
 pub mod migrate_player_settings;
 pub mod migration_static_data;

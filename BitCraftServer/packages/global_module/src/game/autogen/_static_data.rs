@@ -230,6 +230,12 @@ pub fn clear_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     for r in ctx.db.staged_prospecting_desc().iter() {
         ctx.db.staged_prospecting_desc().delete(r);
     }
+    for r in ctx.db.staged_quest_chain_desc().iter() {
+        ctx.db.staged_quest_chain_desc().delete(r);
+    }
+    for r in ctx.db.staged_quest_stage_desc().iter() {
+        ctx.db.staged_quest_stage_desc().delete(r);
+    }
     for r in ctx.db.staged_reserved_name_desc().iter() {
         ctx.db.staged_reserved_name_desc().delete(r);
     }
@@ -250,6 +256,9 @@ pub fn clear_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     }
     for r in ctx.db.staged_skill_desc().iter() {
         ctx.db.staged_skill_desc().delete(r);
+    }
+    for r in ctx.db.staged_stage_rewards_desc().iter() {
+        ctx.db.staged_stage_rewards_desc().delete(r);
     }
     for r in ctx.db.staged_targeting_matrix_desc().iter() {
         ctx.db.staged_targeting_matrix_desc().delete(r);
@@ -1311,6 +1320,34 @@ pub fn stage_prospecting_desc(ctx: &ReducerContext, records: Vec<ProspectingDesc
 }
 
 #[spacetimedb::reducer]
+pub fn stage_quest_chain_desc(ctx: &ReducerContext, records: Vec<QuestChainDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    for r in records {
+        if let Err(e) = ctx.db.staged_quest_chain_desc().try_insert(r.clone()) {
+            spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn stage_quest_stage_desc(ctx: &ReducerContext, records: Vec<QuestStageDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    for r in records {
+        if let Err(e) = ctx.db.staged_quest_stage_desc().try_insert(r.clone()) {
+            spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
 pub fn stage_reserved_name_desc(ctx: &ReducerContext, records: Vec<ReservedNameDesc>) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender, Role::Admin) {
         return Err("Invalid permissions".into());
@@ -1401,6 +1438,20 @@ pub fn stage_skill_desc(ctx: &ReducerContext, records: Vec<SkillDesc>) -> Result
     }
     for r in records {
         if let Err(e) = ctx.db.staged_skill_desc().try_insert(r.clone()) {
+            spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn stage_stage_rewards_desc(ctx: &ReducerContext, records: Vec<StageRewardsDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    for r in records {
+        if let Err(e) = ctx.db.staged_stage_rewards_desc().try_insert(r.clone()) {
             spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
             return Err(e.to_string());
         }
@@ -1782,6 +1833,12 @@ pub fn validate_staged_data(ctx: &ReducerContext) -> Result<(), String> {
     if ctx.db.staged_prospecting_desc().count() == 0 {
         return Err("Staged data for ProspectingDesc is empty, aborting.".into());
     }
+    if ctx.db.staged_quest_chain_desc().count() == 0 {
+        return Err("Staged data for QuestChainDesc is empty, aborting.".into());
+    }
+    if ctx.db.staged_quest_stage_desc().count() == 0 {
+        return Err("Staged data for QuestStageDesc is empty, aborting.".into());
+    }
     if ctx.db.staged_reserved_name_desc().count() == 0 {
         return Err("Staged data for ReservedNameDesc is empty, aborting.".into());
     }
@@ -1802,6 +1859,9 @@ pub fn validate_staged_data(ctx: &ReducerContext) -> Result<(), String> {
     }
     if ctx.db.staged_skill_desc().count() == 0 {
         return Err("Staged data for SkillDesc is empty, aborting.".into());
+    }
+    if ctx.db.staged_stage_rewards_desc().count() == 0 {
+        return Err("Staged data for StageRewardsDesc is empty, aborting.".into());
     }
     if ctx.db.staged_targeting_matrix_desc().count() == 0 {
         return Err("Staged data for TargetingMatrixDesc is empty, aborting.".into());

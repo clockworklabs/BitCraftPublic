@@ -1,3 +1,4 @@
+use crate::game::claim_helper;
 use crate::game::reducer_helpers::player_action_helpers;
 use crate::game::terrain_chunk::TerrainChunkCache;
 use crate::messages::components::PlayerActionState;
@@ -174,7 +175,9 @@ fn reduce(
 
     // Delete existing paving
     if let Some(paving) = existing_paving {
-        PavedTileState::refund_paving(ctx, &paving, &mut item_inventory); //Refund materials
+        if claim_helper::get_claim_on_tile(ctx, target_coord).is_some() {
+            PavedTileState::refund_paving(ctx, &paving, &mut item_inventory); //Refund materials
+        }
         PavedTileState::delete_paving(ctx, &paving.entity_id);
     }
 

@@ -52,6 +52,7 @@ pub mod player_vote_conclude;
 pub mod pocket_swap_contents;
 pub mod portal_enter;
 pub mod prospect;
+pub mod quests;
 pub mod report_entity;
 pub mod report_player;
 pub mod retrieve_lost_item;

@@ -123,7 +123,7 @@ impl DirectMessageState {
             timestamp: self.timestamp,
             owner_entity_id: self.sender_entity_id,
             //language_code: self.language_code //I18N
-            username: i18n::dont_reformat(format!("{}/{}", self.language_code.unwrap_or("".to_string()), self.username)),
+            username: i18n::dont_reformat(format!("{}/{}", self.language_code.unwrap_or("".to_string()), self.username)), //I18N
         }
     }
 }

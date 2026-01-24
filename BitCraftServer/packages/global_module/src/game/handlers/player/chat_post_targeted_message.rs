@@ -108,7 +108,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, text: String, target_entity_i
             target_id: target_entity_id,
             channel_id: 0,
             //language_code: Some(language_code) //I18N
-            username: i18n::dont_reformat(format!("{}/{}", language_code, username)),
+            username: i18n::dont_reformat(format!("{language_code}/{username}")), //I18N
         })
         .is_err()
     {

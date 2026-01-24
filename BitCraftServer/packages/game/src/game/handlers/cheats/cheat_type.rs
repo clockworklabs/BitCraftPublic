@@ -43,6 +43,10 @@ pub enum CheatType {
     CheatKill,
     CheatGrantTeleportEnergy,
     CheatClaimDeleteWalls,
+    CheatSkipQuest,
+    CheatRestartQuest,
+    CheatAdvanceQuestToHandIn,
+    CheatSkipQuestStage,
 }
 
 pub fn can_run_cheat(ctx: &ReducerContext, identity: &Identity, cheat_type: CheatType) -> bool {
@@ -100,5 +104,9 @@ pub fn can_run_cheat(ctx: &ReducerContext, identity: &Identity, cheat_type: Chea
         CheatType::CheatClaimTakeOwnership => role as i32 >= Role::Gm as i32,
         CheatType::CheatKill => role as i32 >= Role::Gm as i32,
         CheatType::CheatClaimDeleteWalls => role as i32 >= Role::Gm as i32,
+        CheatType::CheatSkipQuest => role as i32 >= Role::Gm as i32,
+        CheatType::CheatRestartQuest => role as i32 >= Role::Gm as i32,
+        CheatType::CheatAdvanceQuestToHandIn => role as i32 >= Role::Gm as i32,
+        CheatType::CheatSkipQuestStage => role as i32 >= Role::Gm as i32,
     }
 }
