@@ -49,7 +49,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
 
         // These indices will be used to find the inventory index.
         // The Item and Cargo Inventories for buildings are created based on the order of the inventory building features.
-        // When finding the indicees, ignore non-inventory building features (eg. BarterStall).
+        // When finding the indices, ignore non-inventory building features (eg. BarterStall).
         // Note: There can be a building feature that serves as both of the item and cargo inventories (eg. Bank).
         let description = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
         item_index = description

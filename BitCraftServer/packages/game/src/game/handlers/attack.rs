@@ -792,7 +792,7 @@ fn base_checks(
         None => {
             if attacker_type == EntityType::Player {
                 // Player abilities are set on the toolbar or added on weapon change (auto-cast).
-                // We can't create a new ability_state on the fly for a plyer.
+                // We can't create a new ability_state on the fly for a player.
                 return Err("You don't know this ability".into());
             }
             // Enemy ability_states are created on the fly when they attack, if not already known.
