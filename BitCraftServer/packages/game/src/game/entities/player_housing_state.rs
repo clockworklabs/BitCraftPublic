@@ -136,7 +136,7 @@ impl PlayerHousingState {
                 if ctx.db.player_state().entity_id().find(mobile.entity_id).is_some()
                     || ctx.db.deployable_state().entity_id().find(mobile.entity_id).is_some()
                 {
-                    // ignore players and ddeployables as they will be warped outside
+                    // ignore players and deployables as they will be warped outside
                 } else {
                     // found a non-player mobile entity in the house, therefore it's not empty
                     return false;
@@ -285,7 +285,7 @@ impl PlayerHousingState {
     }
 
     pub fn expel_players_and_entities(&self, ctx: &ReducerContext, reason: ServerTeleportReason) -> Vec<u64> {
-        //Expells players and deployables. Deletes item piles
+        // Expels players and deployables. Deletes item piles
         let portal_state = ctx.db.portal_state().entity_id().find(self.exit_portal_entity_id).unwrap();
 
         // Teleport players outside

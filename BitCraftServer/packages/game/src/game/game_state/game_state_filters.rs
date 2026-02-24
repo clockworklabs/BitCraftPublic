@@ -410,7 +410,7 @@ pub fn teleport_waystone(
         "Building does not exist."
     );
 
-    //verify building to is charter stone
+    // verify building to is charter stone
     if !building_to.has_category(ctx, Waystone) {
         return Err("Building is not a charter stone.".into());
     }
@@ -429,12 +429,12 @@ pub fn teleport_waystone(
         "Building does not exist."
     );
 
-    //verify building from is charter stone
+    // verify building from is charter stone
     if !building_from.has_category(ctx, Waystone) {
         return Err("Building is not a charter stone.".into());
     }
 
-    //verify from charter stone is nearby
+    // verify from charter stone is nearby
     let location_state_from = unwrap_or_err!(
         ctx.db.location_state().entity_id().find(&building_entity_id_from),
         "Charter stone does not exist."
@@ -450,13 +450,13 @@ pub fn teleport_waystone(
         }
     }
 
-    //verify charter stone to location exists
+    // verify charter stone to location exists
     let location_state_to = unwrap_or_err!(
         ctx.db.location_state().entity_id().find(&building_entity_id_to),
         "Charter stone does not exist."
     );
 
-    //find adjacent coordinate
+    // find adjacent coordinate
     let teleport_to_adjacent = SmallHexTile::coordinates_in_radius(location_state_to.coordinates(), 1);
     let coords_to = teleport_to_adjacent[0];
 

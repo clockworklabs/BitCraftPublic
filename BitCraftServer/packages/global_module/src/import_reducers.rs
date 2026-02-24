@@ -232,7 +232,7 @@ fn import_buff_type_desc_internal(ctx: &ReducerContext, records: Vec<BuffTypeDes
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuffTypeDesc", len);
     for record in records {
-        //Make sure buffs with special logic are defined coorectly
+        // Make sure buffs with special logic are defined correctly
         fn validate_id(record: &BuffTypeDesc, category: BuffCategory) {
             if record.id != category as i32 {
                 panic!(
@@ -3020,14 +3020,14 @@ fn import_gate_desc_internal(ctx: &ReducerContext, records: Vec<GateDesc>) -> Re
         ctx.db.gate_desc().building_id().delete(&id);
     }
     let len: usize = records.len();
-    log::info!("Will insert {} records of type WallDesc", len);
+    log::info!("Will insert {} records of type GateDesc", len);
     for record in records {
         let id = record.building_id;
         if let Err(err) = ctx.db.gate_desc().try_insert(record) {
-            return Err(format!("Couldn't insert WallDesc record with id {id}. Error message: {err}"));
+            return Err(format!("Couldn't insert GateDesc record with id {id}. Error message: {err}"));
         }
     }
-    log::info!("Inserted {} records of type WallDesc", len);
+    log::info!("Inserted {} records of type GateDesc", len);
     Ok(())
 }
 

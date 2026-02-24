@@ -85,7 +85,7 @@ impl PlayerState {
                 .unwrap()
         };
 
-        //DAB Note: temp hack to identify what's causing players to move out of bounds
+        // DAB Note: temp hack to identify what's causing players to move out of bounds
         if let Some(dimension_desc_start) = &dimension_desc_start {
             if (previous_chunk.x < dimension_desc_start.dimension_position_large_x as i32)
                 | (previous_chunk.z < dimension_desc_start.dimension_position_large_z as i32)
@@ -481,7 +481,7 @@ impl PlayerState {
         let prev_weapon = ctx.db.weapon_desc().item_id().find(&previous_item_id);
         let new_weapon = ctx.db.weapon_desc().item_id().find(&new_item_id);
         if prev_weapon.is_some() && new_weapon.is_some() {
-            //In order to prevent resetting cooldowns when swapping weapons, we do this for same weapon types now
+            // In order to prevent resetting cooldowns when swapping weapons, we do this for same weapon types now
             Self::on_removed_from_toolbelt(ctx, actor_id, previous_item_id);
             Self::on_added_to_toolbelt(ctx, actor_id, new_item_id);
         } else if !(prev_weapon.is_none() && new_weapon.is_none()) {
