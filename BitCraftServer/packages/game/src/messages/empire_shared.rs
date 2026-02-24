@@ -13,7 +13,7 @@ pub enum EmpirePermission {
     BuildWatchtower = 2,
     InviteSettlementToEmpire = 3, // DAB Note: Remove post alpha-2
     FlagWatchtowerToSiege = 4,
-    AproveEmpireSubmissions = 5,
+    ApproveEmpireSubmissions = 5,
     PromoteLesserRanks = 6,
     MarkAreaForExpansion = 7,
     CraftHexiteCapsule = 8,

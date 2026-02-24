@@ -60,7 +60,7 @@ This repository contains the code for running a BitCraft server. It includes gam
 The server for BitCraft is built on [SpacetimeDB](https://spacetimedb.com), a real-time, reactive, backend platform designed for multiplayer game development.
 The BitCraft server is structured as a SpacetimeDB module, all the data is stored in spacetimeDB `tables` and all the logic runs inside `reducers`.
 
-The source code for SpacetimeDB itself is also [available on GitHub](https://github.com/clockworklabs/SpacetimeDB). If you're interested in learning bout SpacetimeDB, please give the repo a star!
+The source code for SpacetimeDB itself is also [available on GitHub](https://github.com/clockworklabs/SpacetimeDB). If you're interested in learning about SpacetimeDB, please give the repo a star!
 
 If you're interested in exploring the server or trying to run a minimal version locally, start with the spacetimeDB documentation:
 
