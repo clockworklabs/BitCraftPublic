@@ -79,7 +79,7 @@ pub fn initialize(ctx: &ReducerContext) -> Result<(), String> {
         .globals()
         .try_insert(Globals {
             version: 0,
-            entity_pk_counter: 1, //0 == overworld dimension description
+            entity_pk_counter: 1, // 0 == overworld dimension description
             dimension_counter: 1,
             region_index: 0,
         })

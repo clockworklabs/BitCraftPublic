@@ -750,7 +750,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                 }
             }
 
-            // Remove any lakes from the list that don't meet the minimum circumference criterium
+            // Remove any lakes from the list that don't meet the minimum circumference criterion
             fn filter_lakes(lakes: &mut Vec<Lake>) {
                 for i in (0..lakes.len()).rev() {
                     let lake = &lakes[i];
@@ -1189,7 +1189,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
     fn set_grass_density(world_definition: &WorldDefinition, graph: &mut HexGraph<TerrainNode>) {
         let biomes_map = &world_definition.biomes_map;
 
-        // expend the terrain node biomes (single u8 contained in a u32) into the four highest multiplier biomes in a u32
+        // expand the terrain node biomes (single u8 contained in a u32) into the four highest multiplier biomes in a u32
         // the distinction is only used for grass density + biome blending
 
         for i in 0..graph.count() {
