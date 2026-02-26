@@ -18,3 +18,9 @@ pub const HASH_GRID_SCALE: f32 = 0.25;
 
 pub const FLOAT_COORD_PRECISION: u32 = 3;
 pub const FLOAT_COORD_PRECISION_MUL: i32 = 10i32.pow(FLOAT_COORD_PRECISION);
+
+// Returned when comparing coordinates across DIFFERENT dimensions.
+// Represents an unreachable distance rather than a real geometric value.
+// Use MAX / 10 instead of MAX to avoid integer overflows.
+pub const UNREACHABLE_DISTANCE_I32: i32 = i32::MAX / 10;
+pub const UNREACHABLE_DISTANCE_F32: f32 = f32::INFINITY;

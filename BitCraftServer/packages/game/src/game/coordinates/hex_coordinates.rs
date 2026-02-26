@@ -185,8 +185,16 @@ impl HexCoordinates {
     }
 
     pub fn distance_to(&self, other: HexCoordinates) -> i32 {
-        return ((other.x - self.x).abs() + (other.y() - self.y()).abs() + (other.z - self.z).abs()) / 2;
+    // Positions in different dimensions should never interact.
+    // Return UNREACHABLE_DISTANCE so any distance checks (distance < range) safely fail
+    if self.dimension != other.dimension {
+        return UNREACHABLE_DISTANCE_I32;
     }
+
+    return ((other.x - self.x).abs()
+        + (other.y() - self.y()).abs()
+        + (other.z - self.z).abs()) / 2;
+}
 
     pub fn get_terrain_coordinates(&self) -> [HexCoordinates; 3] {
         // There technically are two types of corner cells based
