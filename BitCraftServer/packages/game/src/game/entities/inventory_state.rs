@@ -403,17 +403,21 @@ impl InventoryState {
     }
 
     pub fn has(&self, item_stacks: &Vec<ItemStack>) -> bool {
-        if item_stacks.len() == 0 {
+        if item_stacks.is_empty() {
             return true;
         }
 
         let merged_stacks = ItemStack::merge_multiple(item_stacks);
+
         for stack in merged_stacks {
             let mut required = stack.quantity;
+
             for p in self.pockets.iter() {
                 required -= match &p.contents {
                     Some(c) => {
-                        if c.item_id == stack.item_id {
+                        // Need to check both item ID and type to ensure we're matching the correct item/cargo
+                        // If durability is ever re-added as a game mechanic, should also be considered here
+                        if c.item_id == stack.item_id && c.item_type == stack.item_type {
                             c.quantity
                         } else {
                             0
