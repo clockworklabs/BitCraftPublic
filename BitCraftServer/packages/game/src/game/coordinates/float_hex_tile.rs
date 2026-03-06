@@ -75,9 +75,17 @@ impl FloatHexTile {
         -self.x - self.z
     }
 
-    pub fn distance_to(&self, other: FloatHexTile) -> f32 {
-        return (((other.x - self.x).abs() + (other.y() - self.y()).abs() + (other.z - self.z).abs()) / 2) as f32
-            / FLOAT_COORD_PRECISION_MUL as f32;
+    pub fn distance_to(&self, other: &FloatHexTile) -> f32 {
+    // Positions in different dimensions should never interact.
+    // Return UNREACHABLE_DISTANCE so any distance checks (distance < range) safely fail
+    if self.dimension != other.dimension {
+        return UNREACHABLE_DISTANCE_F32;
+    }
+
+    return ((((other.x - self.x).abs()
+        + (other.y() - self.y()).abs()
+        + (other.z - self.z).abs()) / 2) as f32)
+        / FLOAT_COORD_PRECISION_MUL as f32;
     }
 
     pub fn to_world_position(&self) -> Vector2 {
