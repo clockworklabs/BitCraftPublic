@@ -164,3 +164,10 @@ pub fn validate_swap(source_inventory_type: &InventoryType, target_inventory_typ
 
     return Ok(());
 }
+
+pub fn validate_drop(source_inventory_type: &InventoryType) -> Result<(), String> {
+    if *source_inventory_type == InventoryType::Dropped {
+        return Err("Cannot drop items from a dropped inventory".into());
+    }
+    return Ok(());
+}
