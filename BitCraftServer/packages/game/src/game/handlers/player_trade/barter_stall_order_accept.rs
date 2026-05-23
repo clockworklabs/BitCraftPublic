@@ -278,7 +278,8 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                             let _ = item_inventory.remove(&coin_item);
                         } else {
                             // pay partly from the treasury
-                            removed_from_treasury = (coin_item[0].quantity - barter_coins) as u32;
+                            // Use removed_coins directly for clarity; coin_item[0].quantity is the same value here.
+                            removed_from_treasury = (removed_coins - barter_coins) as u32;
                             // and partly from the storage
                             coin_item[0].quantity = barter_coins;
                             let _ = item_inventory.remove(&coin_item);
@@ -289,11 +290,13 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
 
                     if removed_from_treasury > 0 {
                         let mut claim_local = claim.as_ref().unwrap().local_state(ctx);
-                        if claim_local.treasury < removed_coins as u32 {
+                        // Only check the portion that must come from the treasury.
+                        // Some coins may have already been removed from the stall inventory.
+                        if claim_local.treasury < removed_from_treasury {
                             return Err("Vendor does not have enough funds for this transaction".into());
                         }
-                        // pay from the treasury
-                        claim_local.treasury -= removed_coins as u32;
+                        // pay only the shortfall from the treasury
+                        claim_local.treasury -= removed_from_treasury;
                         ctx.db.claim_local_state().entity_id().update(claim_local);
                     }
                 }
