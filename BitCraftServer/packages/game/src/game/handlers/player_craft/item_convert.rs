@@ -4,6 +4,7 @@ use std::time::Duration;
 use spacetimedb::ReducerContext;
 
 use crate::game::game_state;
+use crate::game::handlers::server::player_clear_action_state;
 use crate::game::reducer_helpers::player_action_helpers;
 use crate::game::terrain_chunk::TerrainChunkCache;
 use crate::{
@@ -51,11 +52,17 @@ pub fn item_convert_start(ctx: &ReducerContext, request: PlayerItemConvertReques
 pub fn item_convert(ctx: &ReducerContext, request: PlayerItemConvertRequest) -> Result<(), String> {
     let actor_id = game_state::actor_id(&ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
-    player_action_helpers::schedule_clear_player_action(
-        actor_id,
-        PlayerActionType::ConvertItems.get_layer(ctx),
-        reduce(ctx, actor_id, &request, false),
-    )
+    let layer = PlayerActionType::ConvertItems.get_layer(ctx);
+    match reduce(ctx, actor_id, &request, false) {
+        Ok(()) => player_clear_action_state::reduce(
+            ctx,
+            actor_id,
+            PlayerActionType::None,
+            layer,
+            PlayerActionResult::Success,
+        ),
+        Err(error) => player_action_helpers::schedule_clear_player_action_on_err(actor_id, layer, Err(error)),
+    }
 }
 
 fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerItemConvertRequest, dry_run: bool) -> Result<(), String> {
