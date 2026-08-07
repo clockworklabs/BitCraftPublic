@@ -212,12 +212,35 @@ impl ActiveBuffState {
     }
 
     pub fn restart_all_buffs(&mut self, ctx: &ReducerContext) {
+        let mut resumed_timed_buffs = Vec::new();
+
         for active_buff in &mut self.active_buffs {
             if let Some(buff_description) = ctx.db.buff_desc().id().find(&active_buff.buff_id) {
                 if buff_description.online_timestamp {
                     let mut timestamp = active_buff.buff_start_timestamp.clone();
                     timestamp.restart(ctx.timestamp);
                     active_buff.buff_start_timestamp = timestamp;
+
+                    if active_buff.buff_duration >= 0 {
+                        resumed_timed_buffs.push(active_buff.buff_id);
+                    }
+                }
+            }
+        }
+
+        if ctx.db.player_state().entity_id().find(self.entity_id).is_some() {
+            for buff_id in resumed_timed_buffs {
+                let remaining_duration = self.buff_remaining_time(buff_id, ctx.timestamp);
+                if remaining_duration > 0 {
+                    ctx.db
+                        .collect_stats_timer()
+                        .try_insert(CollectStatsTimer {
+                            scheduled_id: 0,
+                            scheduled_at: now_plus_secs_f32(remaining_duration as f32 + 0.5, ctx.timestamp),
+                            entity_id: self.entity_id,
+                        })
+                        .ok()
+                        .unwrap();
                 }
             }
         }

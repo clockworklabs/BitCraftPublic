@@ -63,7 +63,7 @@ pub fn empire_donate_item(ctx: &ReducerContext, request: EmpireDonateItemRequest
 
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::EmpireDonateItem(EmpireDonateItemMsg {
+        crate::messages::inter_module::MessageContentsV5::EmpireDonateItem(EmpireDonateItemMsg {
             player_entity_id: actor_id,
             item_id: item_stack.item_id,
             count: item_stack.quantity as u32,

@@ -37,7 +37,7 @@ fn cheat_empire_siege_cancel(ctx: &ReducerContext, siege_node_entity_id: u64) ->
         ctx.db.empire_siege_engine_state().entity_id().delete(&siege_engine.entity_id);
         send_inter_module_message(
             ctx,
-            crate::messages::inter_module::MessageContentsV4::RegionDestroySiegeEngine(
+            crate::messages::inter_module::MessageContentsV5::RegionDestroySiegeEngine(
                 crate::messages::inter_module::RegionDestroySiegeEngineMsg {
                     deployable_entity_id: siege_engine.entity_id,
                 },

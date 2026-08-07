@@ -72,7 +72,7 @@ pub fn blueprint_place(
             let terrain_chunk = unwrap_or_err!(cache.get_from_chunk_coordinates(ctx, chunk_coord), "Invalid terrain chunk");
             let chunk_index = terrain_chunk.chunk_index;
             let oc = OffsetCoordinatesLarge::from(coord);
-            let mut terrain_cell = terrain_chunk.get_entity(&oc);
+            let mut terrain_cell = unwrap_or_err!(terrain_chunk.get_entity(&oc), "Invalid terrain chunk");
             terrain_cell.elevation = elevation + elevation_offset;
             terrain_cell.water_level = water_level + elevation_offset;
             if (terrain_cell.water_body_type == SurfaceType::Ground as u8) != is_ground {

@@ -104,7 +104,18 @@ pub fn player_complete_task(ctx: &ReducerContext, request: PlayerCompleteTaskReq
     );
 
     task.completed = true;
-    ctx.db.traveler_task_state().entity_id().update(task);
+    ctx.db.traveler_task_state().entity_id().update(task.clone());
+
+    let requests = TravelerTaskState::generate_npc_requests_hashmap(ctx);
+    TravelerTaskState::replace_completed_task(
+        ctx,
+        actor_id,
+        task.entity_id,
+        task.traveler_id,
+        task.task_id,
+        1,
+        &requests,
+    );
 
     player_action_helpers::post_reducer_update_cargo(ctx, actor_id);
 

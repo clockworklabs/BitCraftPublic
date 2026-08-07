@@ -50,7 +50,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, sender: u8, msg: Rec
         if msg.deployable_entity_id != 0 {
             send_inter_module_message(
                 ctx,
-                crate::messages::inter_module::MessageContentsV4::OnDeployableRecovered(
+                crate::messages::inter_module::MessageContentsV5::OnDeployableRecovered(
                     OnDeployableRecoveredMsgV2 {
                         player_entity_id: msg.player_entity_id,
                         deployable_entity_id: deployable.entity_id,

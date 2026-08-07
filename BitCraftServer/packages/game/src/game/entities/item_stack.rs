@@ -2,11 +2,11 @@ use spacetimedb::ReducerContext;
 
 use crate::{
     collectible_desc,
-    game::discovery::Discovery,
+    game::{discovery::Discovery, entities::food},
     item_desc, knowledge_scroll_desc,
     messages::{
         game_util::{InputItemStack, ItemStack, ItemType},
-        static_data::ItemListDesc,
+        static_data::{food_desc, ItemListDesc},
     },
     vault_state, TradeOrderState,
 };
@@ -179,6 +179,12 @@ impl ItemStack {
                         discovery.acquire_secondary(ctx, scroll.secondary_knowledge_id);
                     }
                     self.quantity = 0; // this will consume all instances of this item but those stacks should only have 1 anyways
+                }
+            } else if let Some(food_desc) = ctx.db.food_desc().item_id().find(&self.item_id) {
+                if food_desc.auto_consume {
+                    food::consume(ctx, player_entity_id, &food_desc, self.quantity)
+                        .expect("Auto-consume food failed to apply its effects or outputs");
+                    self.quantity = 0;
                 }
             }
         }

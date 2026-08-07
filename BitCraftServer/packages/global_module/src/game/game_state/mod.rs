@@ -3,7 +3,7 @@ use spacetimedb::{log, ReducerContext, Table, Timestamp};
 use crate::{
     location_state,
     messages::{
-        components::{signed_in_player_state, LocationState, MobileEntityState},
+        components::{active_connection_state, signed_in_player_state, LocationState, MobileEntityState},
         generic::globals,
         global::user_region_state,
     },
@@ -77,6 +77,12 @@ pub fn actor_id(ctx: &ReducerContext, must_be_signed_in: bool) -> Result<u64, St
 pub fn ensure_signed_in(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
     if ctx.db.signed_in_player_state().entity_id().find(&entity_id).is_none() {
         return Err("Not signed in".into());
+    }
+    // Only the newest connection may act; None means a non-client caller.
+    if let (Some(connection_id), Some(active)) = (ctx.connection_id, ctx.db.active_connection_state().entity_id().find(&entity_id)) {
+        if connection_id != active.connection_id {
+            return Err("Stale connection".into());
+        }
     }
     return Ok(());
 }

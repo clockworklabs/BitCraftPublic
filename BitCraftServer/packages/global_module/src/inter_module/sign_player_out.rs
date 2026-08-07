@@ -11,7 +11,7 @@ pub fn send_message(ctx: &ReducerContext, player_identity: Identity) -> Result<(
     let region = unwrap_or_err!(ctx.db.user_region_state().identity().find(player_identity), "User region not found").region_id;
     send_inter_module_message(
         ctx,
-        MessageContentsV4::SignPlayerOut(SignPlayerOutMsg {
+        MessageContentsV5::SignPlayerOut(SignPlayerOutMsg {
             player_identity: player_identity,
         }),
         InterModuleDestination::Region(region),

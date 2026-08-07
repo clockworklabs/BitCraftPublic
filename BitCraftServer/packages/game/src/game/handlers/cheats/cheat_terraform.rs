@@ -16,8 +16,10 @@ pub fn cheat_terraform(ctx: &ReducerContext, x: i32, z: i32, dimension: u32, del
     let mut terrain_cache = TerrainChunkCache::empty();
     // The terrain coordinates in the request are already scaled (LargeHexTile).
     let chunk_index = TerrainChunkState::chunk_index_from_coords(&ChunkCoordinates::from_terrain_coordinates(terrain_coordinates.into()));
-    let mut terrain_cell =
-        unwrap_or_err!(terrain_cache.filter_by_chunk_index(ctx, chunk_index), "Invalid terrain chunk").get_entity(&offset_coordinates);
+    let mut terrain_cell = unwrap_or_err!(
+        unwrap_or_err!(terrain_cache.filter_by_chunk_index(ctx, chunk_index), "Invalid terrain chunk").get_entity(&offset_coordinates),
+        "Invalid terrain chunk"
+    );
 
     let delta = delta as i16;
     if delta < 0 {

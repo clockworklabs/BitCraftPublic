@@ -11,7 +11,7 @@ use crate::{
         authentication::Role,
         components::*,
         global::user_region_state,
-        inter_module::{MessageContentsV4, OnPlayerNameSetMsg},
+        inter_module::{MessageContentsV5, OnPlayerNameSetMsg},
         static_data::reserved_name_desc,
     },
     unwrap_or_err,
@@ -77,7 +77,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, username: String) -> Result<
     };
     send_inter_module_message(
         ctx,
-        MessageContentsV4::OnPlayerNameSetRequest(msg),
+        MessageContentsV5::OnPlayerNameSetRequest(msg),
         InterModuleDestination::Region(player_region),
     );
 

@@ -60,7 +60,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64, t: SmallHex
         ctx.db.terrain_chunk_state().chunk_index().find(&chunk_index),
         "Invalid terrain chunk"
     );
-    let terrain_cell = terrain_chunk.get_entity(&parent_large_tile.into());
+    let terrain_cell = unwrap_or_err!(terrain_chunk.get_entity(&parent_large_tile.into()), "Invalid terrain chunk");
     if terrain_cell.biome_percentage(Biome::SafeMeadows) > 0f32 {
         return Err("Cannot claim land in this biome".into());
     }

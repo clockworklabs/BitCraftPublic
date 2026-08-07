@@ -62,7 +62,7 @@ pub fn empire_queue_supplies(ctx: &ReducerContext, request: EmpireQueueSuppliesR
 
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::EmpireQueueSupplies(EmpireQueueSuppliesMsg {
+        crate::messages::inter_module::MessageContentsV5::EmpireQueueSupplies(EmpireQueueSuppliesMsg {
             player_entity_id: actor_id,
             building_entity_id: request.building_entity_id,
             claim_entity_id: claim.entity_id,

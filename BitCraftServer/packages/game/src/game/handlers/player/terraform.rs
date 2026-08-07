@@ -127,7 +127,7 @@ fn reduce(
     let terrain_chunk = unwrap_or_err!(cache.filter_by_chunk_index(ctx, chunk_index), "Invalid terrain chunk");
 
     let offset_coordinates = terrain_coordinates;
-    let mut terrain_cell = terrain_chunk.get_entity(&offset_coordinates);
+    let mut terrain_cell = unwrap_or_err!(terrain_chunk.get_entity(&offset_coordinates), "Invalid terrain chunk");
 
     let building_entity_id = unwrap_or_err!(
         game_state_filters::building_id_at_coordinates(ctx, &game_state_filters::coordinates_any(ctx, actor_id)),

@@ -7,17 +7,30 @@ use spacetimedb::ReducerContext;
 use crate::{
     game::{
         discovery::Discovery,
+        entities::buff,
         game_state::{self, game_state_filters},
         reducer_helpers::player_action_helpers,
+        terrain_chunk::TerrainChunkCache,
     },
     messages::{
         action_request::PlayerPlaceableInteractRequest,
         components::*,
         game_util::{ItemStack, ItemType},
-        static_data::*,
+        static_data::{PlaceableSelfBuffChance, *},
     },
     unwrap_or_err, InventoryState,
 };
+
+fn apply_self_buffs(ctx: &ReducerContext, actor_id: u64, self_buffs: &[PlaceableSelfBuffChance]) -> Result<(), String> {
+    for self_buff in self_buffs {
+        let roll = ctx.rng().gen_range(0.0..=1.0);
+        if roll <= self_buff.chance {
+            buff::activate(ctx, actor_id, self_buff.buff_id, self_buff.duration, None)?;
+        }
+    }
+
+    Ok(())
+}
 
 fn format_missing_input_message(ctx: &ReducerContext, required_stack: &ItemStack) -> String {
     let item_name = match required_stack.item_type {
@@ -126,12 +139,21 @@ fn reduce(
         return Err("Invalid operation".into());
     }
 
+    let actor_coords = game_state_filters::coordinates_float(ctx, actor_id);
+    let mut terrain_cache = TerrainChunkCache::empty();
+    let terrain_source = unwrap_or_err!(
+        terrain_cache.get_terrain_cell(ctx, &actor_coords.parent_large_tile()),
+        "Invalid location"
+    );
+    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(&actor_id).is_none() {
+        return Err("Cannot interact while swimming".into());
+    }
+
     let placeable_location = unwrap_or_err!(
         ctx.db.location_state().entity_id().find(&placeable.entity_id),
         "Placeable is missing a location"
     );
     let placeable_coordinates = placeable_location.coordinates();
-    let actor_coords = game_state_filters::coordinates_float(ctx, actor_id);
 
     // include 1 extra range as tolerance
     if actor_coords.distance_to(placeable_coordinates.into()) > recipe.range as f32 + 1.0 {
@@ -257,17 +279,24 @@ fn reduce(
                 ExperienceState::add_experience_f32(ctx, actor_id, experience.skill_id, experience.quantity * experience_damage_output);
             }
 
+            if damage_output > 0.0 {
+                if let Some(self_buffs) = &recipe.self_buffs {
+                    apply_self_buffs(ctx, actor_id, self_buffs)?;
+                }
+            }
+
             health.add_health_delta(-damage_output, ctx.timestamp);
             if health.health <= 0.0 {
                 placeable.despawn(ctx);
-                PlaceableState::produce_offspawn(
-                    ctx,
-                    placeable.owner_entity_id,
-                    placeable_coordinates,
-                    placeable.direction_index,
-                    recipe.on_destroy_spawned_placeable_id,
-                    recipe.on_destroy_spawned_placeable_chance,
-                )?;
+                if let Some(outcome) = PlaceableState::pick_growth_outcome(ctx, recipe.on_destroy_outcomes) {
+                    PlaceableState::spawn_growth_outcome_with_fallback(
+                        ctx,
+                        placeable.owner_entity_id,
+                        placeable_coordinates,
+                        placeable.direction_index,
+                        &outcome,
+                    )?;
+                }
                 PlayerActionState::success(
                     ctx,
                     actor_id,

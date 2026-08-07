@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bitcraft_macro::feature_gate;
-use spacetimedb::{ReducerContext, Table};
+use spacetimedb::{rand::Rng, ReducerContext, Table};
 
 use crate::{
     game::{
@@ -9,6 +9,7 @@ use crate::{
         coordinates::*,
         dimensions,
         discovery::Discovery,
+        entities::buff,
         game_state::{self, game_state_filters},
         reducer_helpers::player_action_helpers,
         terrain_chunk::TerrainChunkCache,
@@ -17,12 +18,22 @@ use crate::{
         action_request::PlayerPlaceablePlaceRequest,
         components::*,
         game_util::{ItemType, LevelRequirement},
-        static_data::*,
+        static_data::{PlaceableSelfBuffChance, *},
     },
     unwrap_or_err, InventoryState,
 };
 
 const PLACEABLE_PLACEMENT_RANGE: f32 = 1.0;
+
+fn apply_self_buffs(ctx: &ReducerContext, actor_id: u64, self_buffs: &[PlaceableSelfBuffChance]) -> Result<(), String> {
+    for self_buff in self_buffs {
+        if ctx.rng().gen_range(0.0..=1.0) <= self_buff.chance {
+            buff::activate(ctx, actor_id, self_buff.buff_id, self_buff.duration, None)?;
+        }
+    }
+
+    Ok(())
+}
 
 fn event_delay_recipe_id(
     ctx: &ReducerContext,
@@ -82,18 +93,23 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: PlayerPlaceablePlaceRequ
         PlayerActionState::validate_action_timing(ctx, actor_id, PlayerActionType::PlacePlaceable, request.timestamp)?;
     }
 
-    if ctx.db.mounting_state().entity_id().find(&actor_id).is_some() {
-        return Err("Can't place a placeable while in a deployable.".into());
-    }
-
     let recipe = unwrap_or_err!(
         ctx.db.placeable_placement_desc().id().find(&request.placeable_placement_id),
         "Unknown placeable placement recipe"
     );
     let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(&recipe.placed_placeable_id), "Unknown placeable");
 
-    let coordinates = SmallHexTile::from(request.coordinates);
     let actor_coords = game_state_filters::coordinates_float(ctx, actor_id);
+    let mut terrain_cache = TerrainChunkCache::empty();
+    let terrain_source = unwrap_or_err!(
+        terrain_cache.get_terrain_cell(ctx, &actor_coords.parent_large_tile()),
+        "Invalid location"
+    );
+    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(&actor_id).is_none() {
+        return Err("Cannot place while swimming".into());
+    }
+
+    let coordinates = SmallHexTile::from(request.coordinates);
     // include 1 extra range as tolerance
     if actor_coords.distance_to(coordinates.into()) > PLACEABLE_PLACEMENT_RANGE + 1.0 {
         return Err("Too far".into());
@@ -106,8 +122,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: PlayerPlaceablePlaceRequ
         ToolDesc::get_required_tool(ctx, actor_id, &recipe.tool_requirements[0])?;
     }
 
-    let mut terrain_cache = TerrainChunkCache::empty();
-    validate_location_rules(ctx, &mut terrain_cache, coordinates, &recipe)?;
+    validate_location_rules(ctx, &mut terrain_cache, coordinates, &recipe, &placeable_desc)?;
     validate_other_placeable_distance_rules(ctx, coordinates, actor_id, &recipe)?;
     validate_group_rules(ctx, coordinates, actor_id, recipe.placed_placeable_id, &recipe, request, dry_run)?;
     validate_building_distance_rules(ctx, coordinates, &recipe)?;
@@ -138,6 +153,9 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: PlayerPlaceablePlaceRequ
         }
 
         PlaceableState::spawn(ctx, placeable_desc.id, actor_id, coordinates, request.facing_direction)?;
+        if let Some(self_buffs) = &recipe.self_buffs {
+            apply_self_buffs(ctx, actor_id, self_buffs)?;
+        }
     }
 
     Ok(())
@@ -198,6 +216,7 @@ fn validate_location_rules(
     terrain_cache: &mut TerrainChunkCache,
     coordinates: SmallHexTile,
     recipe: &PlaceablePlacementDesc,
+    placeable_desc: &PlaceableDesc,
 ) -> Result<(), String> {
     let terrain = unwrap_or_err!(
         terrain_cache.get_terrain_cell(ctx, &coordinates.parent_large_tile()),
@@ -208,32 +227,7 @@ fn validate_location_rules(
         return Err("Can't be placed in this biome".into());
     }
 
-    let is_submerged = terrain.is_submerged();
-    if is_submerged {
-        if !recipe.place_on_water {
-            return Err("This placeable must be placed on land".into());
-        }
-
-        let water_depth = terrain.water_depth() as i32;
-        if water_depth < recipe.water_depth_min {
-            return Err("The water level is too shallow.".into());
-        }
-        if water_depth > recipe.water_depth_max {
-            return Err("The water level is too deep.".into());
-        }
-    } else {
-        if !recipe.place_on_land {
-            return Err("This placeable must be placed in water".into());
-        }
-
-        let elevation = terrain.elevation as i32;
-        if elevation < recipe.land_elevation_min {
-            return Err("This placeable can't be placed that low".into());
-        }
-        if elevation > recipe.land_elevation_max {
-            return Err("This placeable can't be placed that high".into());
-        }
-    }
+    PlaceableState::validate_spawn_terrain(terrain_cache, ctx, coordinates, placeable_desc)?;
 
     if recipe.required_paving_tier >= 0 {
         let valid = match PavedTileState::get_at_location(ctx, &coordinates) {

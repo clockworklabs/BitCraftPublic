@@ -9,7 +9,7 @@ use crate::{
             player_lowercase_username_state, player_username_state, previous_player_username_state, user_state,
             PlayerLowercaseUsernameState, PlayerUsernameState,
         },
-        inter_module::{MessageContentsV4, OnPlayerNameSetMsg},
+        inter_module::{MessageContentsV5, OnPlayerNameSetMsg},
     },
     unwrap_or_err,
 };
@@ -74,7 +74,7 @@ pub fn admin_rename_player_entity(ctx: &ReducerContext, entity_id: u64, new_name
     let player_region = game_state::player_region(ctx, entity_id)?;
     send_inter_module_message(
         ctx,
-        MessageContentsV4::OnPlayerNameSetRequest(msg),
+        MessageContentsV5::OnPlayerNameSetRequest(msg),
         InterModuleDestination::Region(player_region),
     );
 

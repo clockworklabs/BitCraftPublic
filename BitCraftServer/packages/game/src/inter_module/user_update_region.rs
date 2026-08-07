@@ -3,7 +3,7 @@ use spacetimedb::{Identity, ReducerContext};
 use crate::{
     messages::{
         generic::globals,
-        inter_module::{MessageContentsV4, UserUpdateRegionMsg},
+        inter_module::{MessageContentsV5, UserUpdateRegionMsg},
     },
     unwrap_or_err,
 };
@@ -16,7 +16,7 @@ pub fn send_message(ctx: &ReducerContext, identity: Identity) -> Result<(), Stri
 
     send_inter_module_message(
         ctx,
-        MessageContentsV4::UserUpdateRegionRequest(msg),
+        MessageContentsV5::UserUpdateRegionRequest(msg),
         super::InterModuleDestination::Global,
     );
 

@@ -151,7 +151,7 @@ pub fn send_message(
 ) {
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::EmpireStartSiege(EmpireStartSiegeMsg {
+        crate::messages::inter_module::MessageContentsV5::EmpireStartSiege(EmpireStartSiegeMsg {
             building_coord: game_state_filters::coordinates(ctx, building_entity_id).into(),
             player_entity_id,
             building_entity_id,

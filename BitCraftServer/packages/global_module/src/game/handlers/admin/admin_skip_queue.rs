@@ -51,7 +51,7 @@ fn reduce(ctx: &ReducerContext, identity: Identity) -> Result<(), String> {
     let user_region = unwrap_or_err!(ctx.db.user_region_state().identity().find(identity), "User not found");
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::PlayerSkipQueue(crate::messages::inter_module::PlayerSkipQueueMsg {
+        crate::messages::inter_module::MessageContentsV5::PlayerSkipQueue(crate::messages::inter_module::PlayerSkipQueueMsg {
             player_identity: identity,
         }),
         crate::inter_module::InterModuleDestination::Region(user_region.region_id),

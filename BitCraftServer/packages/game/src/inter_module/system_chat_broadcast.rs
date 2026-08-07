@@ -2,7 +2,7 @@ use spacetimedb::{log, ReducerContext};
 
 use crate::messages::{
     authentication::ServerIdentity,
-    inter_module::{AdminBroadcastMessageMsg, MessageContentsV4},
+    inter_module::{AdminBroadcastMessageMsg, MessageContentsV5},
 };
 
 use super::send_inter_module_message;
@@ -19,7 +19,7 @@ pub struct SystemChatBroadcastTimer {
 pub fn send_message(ctx: &ReducerContext, message: String) {
     send_inter_module_message(
         ctx,
-        MessageContentsV4::AdminBroadcastMessage(AdminBroadcastMessageMsg {
+        MessageContentsV5::AdminBroadcastMessage(AdminBroadcastMessageMsg {
             title: "".into(),
             message,
             sign_out: false,

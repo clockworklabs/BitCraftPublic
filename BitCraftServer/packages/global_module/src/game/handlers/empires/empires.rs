@@ -6,7 +6,7 @@ use crate::inter_module::send_inter_module_message;
 use crate::messages::authentication::Role;
 use crate::messages::components::*;
 use crate::messages::global::{player_shard_state, user_region_state, PlayerVoteState, PlayerVoteType};
-use crate::messages::inter_module::{MessageContentsV4, OnEmpireBuildingDeletedMsg, OnPlayerLeftEmpireMsg};
+use crate::messages::inter_module::{MessageContentsV5, OnEmpireBuildingDeletedMsg, OnPlayerLeftEmpireMsg};
 use crate::messages::static_data::*;
 use crate::{empire_territory_desc, parameters_desc, unwrap_or_err};
 use bitcraft_macro::feature_gate;
@@ -142,7 +142,7 @@ pub fn empire_player_leave_impl(ctx: &ReducerContext, empire_entity_id: u64) -> 
     let region = unwrap_or_err!(ctx.db.user_region_state().identity().find(ctx.sender), "Region not found").region_id;
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::OnPlayerLeftEmpire(OnPlayerLeftEmpireMsg {
+        crate::messages::inter_module::MessageContentsV5::OnPlayerLeftEmpire(OnPlayerLeftEmpireMsg {
             player_entity_id: actor_id,
             empire_entity_id,
         }),
@@ -1051,7 +1051,7 @@ pub fn delete_empire_building(ctx: &ReducerContext, player_entity_id: u64, build
         let region = game_state::region_index_from_entity_id(building_entity_id);
         send_inter_module_message(
             ctx,
-            MessageContentsV4::OnEmpireBuildingDeleted(OnEmpireBuildingDeletedMsg {
+            MessageContentsV5::OnEmpireBuildingDeleted(OnEmpireBuildingDeletedMsg {
                 player_entity_id,
                 building_entity_id,
                 ignore_portals: false,

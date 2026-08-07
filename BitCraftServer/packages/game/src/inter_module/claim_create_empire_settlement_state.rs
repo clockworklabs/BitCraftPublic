@@ -2,7 +2,7 @@ use spacetimedb::ReducerContext;
 
 use crate::{
     game::coordinates::OffsetCoordinatesSmall,
-    messages::inter_module::{ClaimCreateEmpireSettlementMsg, MessageContentsV4},
+    messages::inter_module::{ClaimCreateEmpireSettlementMsg, MessageContentsV5},
 };
 
 use super::send_inter_module_message;
@@ -16,7 +16,7 @@ pub fn send_message(ctx: &ReducerContext, claim_entity_id: u64, building_entity_
 
     send_inter_module_message(
         ctx,
-        MessageContentsV4::ClaimCreateEmpireSettlementState(msg),
+        MessageContentsV5::ClaimCreateEmpireSettlementState(msg),
         super::InterModuleDestination::Global,
     );
 }

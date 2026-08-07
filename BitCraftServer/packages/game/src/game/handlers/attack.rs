@@ -652,8 +652,18 @@ fn attack_impact_reduce(
                             .unwrap();
                         let max_nodes = crumb_trail.crumb_radiuses.len();
                         let prospecting_desc = ctx.db.prospecting_desc().id().find(prospecting.prospecting_id).unwrap();
-                        let max_contribution_nodes = (prospecting_desc.pct_nodes_for_max_contribution * max_nodes as f32).round() as i32;
-                        exp_contribution_multiplier = (prospecting.completed_steps as f32 / max_contribution_nodes as f32).min(1.0);
+                        if max_nodes == 0 {
+                            exp_contribution_multiplier = 1.0;
+                        } else {
+                            let max_contribution_nodes =
+                                (prospecting_desc.pct_nodes_for_max_contribution * max_nodes as f32).round() as i32;
+                            if max_contribution_nodes <= 0 {
+                                exp_contribution_multiplier = 1.0;
+                            } else {
+                                exp_contribution_multiplier =
+                                    (prospecting.completed_steps as f32 / max_contribution_nodes as f32).min(1.0);
+                            }
+                        }
                         if prospecting.completed_steps != prospecting.total_steps - 1 {
                             prospecting.ongoing_step = prospecting.total_steps - 1;
                         }

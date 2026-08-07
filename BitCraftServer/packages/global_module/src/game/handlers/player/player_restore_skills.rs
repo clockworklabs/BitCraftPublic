@@ -6,7 +6,7 @@ use crate::{
         authentication::Role,
         components::{previous_player_skills_state, user_state, NotificationSeverity, PlayerNotificationEvent},
         global::user_region_state,
-        inter_module::{MessageContentsV4, RestoreSkillsMsg},
+        inter_module::{MessageContentsV5, RestoreSkillsMsg},
     },
     unwrap_or_err,
 };
@@ -34,7 +34,7 @@ pub fn player_restore_skills(ctx: &ReducerContext, player_entity_id: u64) -> Res
         };
         send_inter_module_message(
             ctx,
-            MessageContentsV4::RestoreSkills(msg),
+            MessageContentsV5::RestoreSkills(msg),
             InterModuleDestination::Region(region_id),
         );
     } else {

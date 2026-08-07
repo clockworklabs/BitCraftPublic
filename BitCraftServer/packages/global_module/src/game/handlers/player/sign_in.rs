@@ -48,6 +48,20 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
 #[spacetimedb::reducer(client_connected)]
 #[feature_gate]
 pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
+    // Newest connection wins. Updated on every connect so a stale connection's
+    // disconnect can be told apart from the active one's.
+    if let (Some(user), Some(connection_id)) = (ctx.db.user_state().identity().find(&ctx.sender), ctx.connection_id) {
+        let active = ActiveConnectionState {
+            entity_id: user.entity_id,
+            connection_id,
+        };
+        if ctx.db.active_connection_state().entity_id().find(user.entity_id).is_some() {
+            ctx.db.active_connection_state().entity_id().update(active);
+        } else {
+            ctx.db.active_connection_state().insert(active);
+        }
+    }
+
     if let Some(developer) = ctx.db.developer().identity().find(ctx.sender) {
         log::info!(
             "Developer identity connected for developer: {}, service: {}",
@@ -72,6 +86,16 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer(client_disconnected)]
 pub fn identity_disconnected(ctx: &ReducerContext) {
     if let Some(user) = ctx.db.user_state().identity().find(&ctx.sender) {
+        if let Some(active) = ctx.db.active_connection_state().entity_id().find(user.entity_id) {
+            // Stale: the identity already opened a newer connection, i.e. the player
+            // reconnected before this disconnect was processed. Signing out now would
+            // end the live session.
+            if ctx.connection_id != Some(active.connection_id) {
+                log::info!("Stale connection disconnected for {:?}", ctx.sender.to_hex());
+                return;
+            }
+            ctx.db.active_connection_state().entity_id().delete(user.entity_id);
+        }
         ctx.db.signed_in_player_state().entity_id().delete(user.entity_id);
     }
 }

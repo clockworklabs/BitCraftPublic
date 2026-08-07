@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use spacetimedb::rand::Rng;
 use spacetimedb::{log, ReducerContext, Table};
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
         authentication::ServerIdentity,
         components::{PlaceableState, ResourceState},
     },
-    parameters_desc, placeable_growth_desc, placeable_state, resource_desc, resource_growth_recipe_desc, resource_state,
+    parameters_desc, placeable_growth_desc, placeable_state, resource_growth_recipe_desc, resource_state,
 };
 
 #[spacetimedb::table(name = growth_loop_timer, scheduled(growth_agent_loop, at = scheduled_at))]
@@ -87,18 +88,26 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
 
             let recipe = ctx.db.resource_growth_recipe_desc().id().find(&grown.growth_recipe_id).unwrap();
             let target_resource_id = recipe.grown_resource_id;
-            if target_resource_id != 0 {
-                ResourceState::spawn(
+            let should_spawn = if recipe.grown_resource_chance >= 1.0 {
+                true
+            } else if recipe.grown_resource_chance <= 0.0 {
+                false
+            } else {
+                ctx.rng().gen_range(0.0..=1.0) <= recipe.grown_resource_chance
+            };
+
+            if target_resource_id != 0
+                && should_spawn
+                && !ResourceState::spawn_in_radius_band_with_fallback(
                     ctx,
-                    None,
                     target_resource_id,
                     coordinates,
                     direction,
-                    ctx.db.resource_desc().id().find(&target_resource_id).unwrap().max_health,
-                    false,
-                    false,
+                    recipe.grown_resource_min_radius,
+                    recipe.grown_resource_max_radius,
                 )
-                .unwrap();
+            {
+                log::error!("Unable to grow resource {} into {}", grown.entity_id, target_resource_id);
             }
         } else if let Some(placeable) = ctx.db.placeable_state().entity_id().find(&grown.entity_id) {
             let loc = match ctx.db.location_state().entity_id().find(&grown.entity_id) {
@@ -114,16 +123,15 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
             placeable.despawn(ctx);
 
             let recipe = ctx.db.placeable_growth_desc().id().find(&grown.growth_recipe_id).unwrap();
-            let target_placeable_id = PlaceableState::pick_growth_outcome(ctx, &recipe.outcomes);
-            if target_placeable_id != 0 {
-                if let Err(err) = PlaceableState::spawn(
+            if let Some(outcome) = PlaceableState::pick_growth_outcome(ctx, recipe.outcomes_v2) {
+                if let Err(err) = PlaceableState::spawn_growth_outcome_with_fallback(
                     ctx,
-                    target_placeable_id,
                     owner_entity_id,
                     coordinates,
                     direction,
+                    &outcome,
                 ) {
-                    log::error!("Unable to grow placeable {} into {}: {}", grown.entity_id, target_placeable_id, err);
+                    log::error!("Unable to grow placeable {} into {}: {}", grown.entity_id, outcome.placeable_id, err);
                 }
             }
         }

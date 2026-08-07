@@ -103,6 +103,17 @@ fn crumb_tail_cleanup_agent_loop(ctx: &ReducerContext, _timer: CrumbTrailCleanup
 }
 
 pub fn delete_crumb_trail(ctx: &ReducerContext, crumb_trail: &CrumbTrailState) {
+    ctx.db.prospecting_state().crumb_trail_entity_id().delete(crumb_trail.entity_id);
+    ctx.db
+        .crumb_trail_contribution_spent_state()
+        .crumb_trail_entity_id()
+        .delete(crumb_trail.entity_id);
+    ctx.db
+        .crumb_trail_contribution_lock_state()
+        .crumb_trail_entity_id()
+        .delete(crumb_trail.entity_id);
+    ctx.db.crumb_trail_state().entity_id().delete(crumb_trail.entity_id);
+
     // despawn prizes
     for prize in &crumb_trail.prize_entity_ids {
         if let Some(resource) = ctx.db.resource_state().entity_id().find(prize) {
@@ -112,16 +123,27 @@ pub fn delete_crumb_trail(ctx: &ReducerContext, crumb_trail: &CrumbTrailState) {
             delete_entity(ctx, *prize);
         }
     }
-    ctx.db.prospecting_state().crumb_trail_entity_id().delete(crumb_trail.entity_id);
-    ctx.db
-        .crumb_trail_contribution_spent_state()
-        .crumb_trail_entity_id()
-        .delete(crumb_trail.entity_id);
+}
 
-    ctx.db
-        .crumb_trail_contribution_lock_state()
-        .crumb_trail_entity_id()
-        .delete(crumb_trail.entity_id);
+pub fn clean_up_if_final_prize_resource_deleted(ctx: &ReducerContext, prize_entity_id: u64) {
+    let Some(contribution_lock) = ctx.db.crumb_trail_contribution_lock_state().entity_id().find(&prize_entity_id) else {
+        return;
+    };
 
-    ctx.db.crumb_trail_state().entity_id().delete(crumb_trail.entity_id);
+    let Some(crumb_trail) = ctx
+        .db
+        .crumb_trail_state()
+        .entity_id()
+        .find(&contribution_lock.crumb_trail_entity_id)
+    else {
+        return;
+    };
+
+    if !crumb_trail
+        .prize_entity_ids
+        .iter()
+        .any(|entity_id| ctx.db.resource_state().entity_id().find(entity_id).is_some())
+    {
+        delete_crumb_trail(ctx, &crumb_trail);
+    }
 }

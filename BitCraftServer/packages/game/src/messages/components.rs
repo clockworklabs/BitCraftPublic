@@ -1,6 +1,6 @@
 use bitcraft_macro::*;
 use spacetimedb::SpacetimeType;
-use spacetimedb::{Identity, Timestamp};
+use spacetimedb::{ConnectionId, Identity, Timestamp};
 
 use crate::messages::game_util::{ActiveBuff, ExperienceStack, ExperienceStackF32, ItemStack, Pocket, TradePocket};
 use crate::messages::static_data::EquipmentSlot;
@@ -798,7 +798,7 @@ pub struct PlayerState {
     pub time_signed_in: i32,
     pub sign_in_timestamp: i32,
     pub signed_in: bool, // Keeping this attribute for optimization even if the value could be found by filtering SignedInPlayerState by entityId
-    pub traveler_tasks_expiration: i32,
+    pub traveler_tasks_expiration: i32, // [FINAL RELEASE] Obsolete, replaced by TravelerTaskCreditState
 }
 
 #[spacetimedb::table(name = player_username_state, public)]
@@ -1559,6 +1559,17 @@ pub struct SignedInPlayerState {
     pub entity_id: u64,
 }
 
+// The newest connection opened by a player's identity.  reducer calls
+// from any other connection are rejected as stale.
+// Disconnects from stale connections are ignored.
+#[spacetimedb::table(name = active_connection_state)]
+#[derive(Clone, Debug)]
+pub struct ActiveConnectionState {
+    #[primary_key]
+    pub entity_id: u64,
+    pub connection_id: ConnectionId,
+}
+
 #[spacetimedb::table(name = unclaimed_shards_state)]
 #[derive(Clone, Debug)]
 pub struct UnclaimedShardsState {
@@ -1717,6 +1728,19 @@ pub struct TravelerTaskState {
     pub traveler_id: i32,
     pub task_id: i32,
     pub completed: bool,
+}
+
+#[spacetimedb::table(name = traveler_task_credit_state, public,
+    index(name = player_entity_id, btree(columns = [player_entity_id])),
+    index(name = player_and_traveler_id, btree(columns = [player_entity_id, traveler_id])))]
+#[derive(Clone, Debug)]
+pub struct TravelerTaskCreditState {
+    #[primary_key]
+    pub entity_id: u64,
+    pub player_entity_id: u64,
+    pub traveler_id: i32,
+    pub credits: u32,
+    pub last_reset: i32,
 }
 
 #[spacetimedb::table(name = sell_order_state, public, 

@@ -2,7 +2,7 @@ use spacetimedb::ReducerContext;
 
 use crate::messages::{
     components::{claim_state, BuildingNicknameState, ClaimState, NotificationSeverity, PlayerNotificationEvent},
-    inter_module::{ClaimSetNameMsg, MessageContentsV4},
+    inter_module::{ClaimSetNameMsg, MessageContentsV5},
 };
 
 use super::send_inter_module_message;
@@ -10,7 +10,7 @@ use super::send_inter_module_message;
 pub fn send_message(ctx: &ReducerContext, player_entity_id: u64, claim_entity_id: u64, new_name: String) {
     send_inter_module_message(
         ctx,
-        MessageContentsV4::ClaimSetName(ClaimSetNameMsg {
+        MessageContentsV5::ClaimSetName(ClaimSetNameMsg {
             player_entity_id,
             claim_entity_id,
             new_name,

@@ -37,7 +37,7 @@ fn reduce(
     let terrain_chunk = unwrap_or_err!(cache.filter_by_chunk_index(ctx, chunk_index), "Invalid terrain chunk");
 
     let offset_coordinates = terrain_coordinates;
-    let terrain_cell = terrain_chunk.get_entity(&offset_coordinates);
+    let terrain_cell = unwrap_or_err!(terrain_chunk.get_entity(&offset_coordinates), "Invalid terrain chunk");
     if terrain_cell.water_level > request.final_height_target {
         return Err("Can't dig below water level".into());
     }

@@ -36,7 +36,7 @@ pub fn empire_withdraw_item(ctx: &ReducerContext, item_id: i32, item_type: ItemT
 
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::EmpireWithdrawItem(EmpireWithdrawItemMsg {
+        crate::messages::inter_module::MessageContentsV5::EmpireWithdrawItem(EmpireWithdrawItemMsg {
             player_entity_id: actor_id,
             item_id: item_id,
             count: amount,

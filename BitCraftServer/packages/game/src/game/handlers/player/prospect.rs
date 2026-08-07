@@ -84,6 +84,14 @@ fn reveal_reward_for_zero_crumb_trail(
     ctx.db.crumb_trail_exposed_state().crumb_trail_entity_id().update(exposed);
 }
 
+fn contribution_for_uncovered_breadcrumb(prospecting_desc: &ProspectingDesc, current_contribution: i32) -> i32 {
+    let mut contribution = current_contribution + prospecting_desc.contribution_per_visited_bread_crumb;
+    if prospecting_desc.single_contribution_only {
+        contribution = contribution.min(1);
+    }
+    contribution
+}
+
 fn reduce(
     ctx: &ReducerContext,
     terrain_cache: &mut TerrainChunkCache,
@@ -225,6 +233,10 @@ fn reduce(
             log!("* Joining existing CrumbTrail {{0}}|~{}", trail.entity_id);
         } else {
             if let Some(mut new_trail) = CrumbTrailState::create(ctx, player_location, prospecting_id) {
+                let mut contribution = 0;
+                if new_trail.crumb_locations.is_empty() {
+                    contribution = contribution_for_uncovered_breadcrumb(&prospecting_desc, contribution);
+                }
                 player_prospecting = Some(ProspectingState {
                     entity_id: actor_id,
                     prospecting_id,
@@ -234,7 +246,7 @@ fn reduce(
                     total_steps: (new_trail.crumb_locations.len() + 1) as i32,
                     next_crumb_angle: Vec::new(), // this will be updated below
                     last_prospection_timestamp: ctx.timestamp,
-                    contribution: 0,
+                    contribution,
                     to_next_node: 0.0, // this will be updated below
                 });
 
@@ -343,10 +355,8 @@ fn reduce(
                 ctx.db.crumb_trail_exposed_state().crumb_trail_entity_id().update(exposed);
             }
             player_prospecting.completed_steps += 1;
-            player_prospecting.contribution += prospecting_desc.contribution_per_visited_bread_crumb;
-            if prospecting_desc.single_contribution_only {
-                player_prospecting.contribution = player_prospecting.contribution.min(1);
-            }
+            player_prospecting.contribution =
+                contribution_for_uncovered_breadcrumb(&prospecting_desc, player_prospecting.contribution);
             player_prospecting.ongoing_step += 1; //crumb_trail.active_step;           // for now, fast-track to the end but don't skip any step
             updated_trail = true;
 
@@ -354,6 +364,19 @@ fn reduce(
             let quantity = prospecting_desc.experience_per_node.quantity;
             if quantity > 0.0 {
                 ExperienceState::add_experience_f32(ctx, actor_id, prospecting_desc.experience_per_node.skill_id, quantity);
+            }
+
+            if let Some(step_item_stacks) = &prospecting_desc.step_item_stacks {
+                InventoryState::deposit_to_player_inventory_and_nearby_deployables(
+                    ctx,
+                    actor_id,
+                    step_item_stacks,
+                    |x| x.distance_to(player_location),
+                    true,
+                    || vec![player_location],
+                    false,
+                )?;
+                post_reducer_update_cargo(ctx, actor_id);
             }
         }
     }

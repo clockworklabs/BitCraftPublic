@@ -19,7 +19,7 @@ use crate::messages::world_gen::WorldGenWorldDefinition;
 use bitcraft_macro::shared_table_reducer;
 use game::dimensions;
 use game::handlers::authentication::is_authenticated;
-use game::handlers::player::sign_out::{sign_out, sign_out_internal};
+use game::handlers::player::sign_out::sign_out;
 use game::reducer_helpers::building_helpers::{
     create_building_claim, create_building_component, create_building_footprint, create_building_spawns,
 };
@@ -131,6 +131,8 @@ pub fn initialize(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer(client_connected)]
 #[shared_table_reducer]
 pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
+    record_active_connection(ctx);
+
     if let Some(developer) = ctx.db.developer().identity().find(ctx.sender) {
         log::info!(
             "Developer identity connected for developer: {}, service: {}",
@@ -149,20 +151,44 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
         return Err("Unauthorized".into());
     }
 
-    if let Some(user) = ctx.db.user_state().identity().find(ctx.sender) {
-        if ctx.db.signed_in_player_state().entity_id().find(user.entity_id).is_some() {
-            // if an identity connects that's already signed in, sign them out first
-            sign_out_internal(ctx, ctx.sender, true);
-        }
-
+    if ctx.db.user_state().identity().find(ctx.sender).is_some() {
+        // Reconnecting while signed in keeps the session; sign_in is idempotent.
         return Ok(());
     }
 
     Err("Identity with no user or permission is disallowed from connecting".into())
 }
 
+// Newest connection wins. Updated on every connect so a stale connection's
+// disconnect can be told apart from the active one's.
+fn record_active_connection(ctx: &ReducerContext) {
+    if let (Some(user), Some(connection_id)) = (ctx.db.user_state().identity().find(ctx.sender), ctx.connection_id) {
+        let active = ActiveConnectionState {
+            entity_id: user.entity_id,
+            connection_id,
+        };
+        if ctx.db.active_connection_state().entity_id().find(user.entity_id).is_some() {
+            ctx.db.active_connection_state().entity_id().update(active);
+        } else {
+            ctx.db.active_connection_state().insert(active);
+        }
+    }
+}
+
 #[spacetimedb::reducer(client_disconnected)]
 pub fn identity_disconnected(ctx: &ReducerContext) {
+    if let Some(user) = ctx.db.user_state().identity().find(ctx.sender) {
+        if let Some(active) = ctx.db.active_connection_state().entity_id().find(user.entity_id) {
+            // Stale: the identity already opened a newer connection, i.e. the player
+            // reconnected before this disconnect was processed. Signing out now would
+            // end the live session.
+            if ctx.connection_id != Some(active.connection_id) {
+                log::info!("(sign_out) Stale connection disconnected for {:?}", ctx.sender.to_hex());
+                return;
+            }
+            ctx.db.active_connection_state().entity_id().delete(user.entity_id);
+        }
+    }
     sign_out(ctx);
 }
 

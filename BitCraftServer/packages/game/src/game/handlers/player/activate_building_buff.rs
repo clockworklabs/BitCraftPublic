@@ -117,7 +117,7 @@ pub fn activate_building_buff(ctx: &ReducerContext, building_entity_id: u64) -> 
 
         send_inter_module_message(
             ctx,
-            crate::messages::inter_module::MessageContentsV4::EmpireAddCurrency(EmpireAddCurrencyMsg {
+            crate::messages::inter_module::MessageContentsV5::EmpireAddCurrency(EmpireAddCurrencyMsg {
                 empire_entity_id,
                 amount: building_buff.empire_currency_cost as u32,
             }),

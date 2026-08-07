@@ -32,7 +32,7 @@ use crate::{
             empire_chunk_state, empire_node_state, empire_player_data_state, empire_settlement_state, empire_state, EmpireOwnerType,
         },
         game_util::ItemStack,
-        inter_module::{DeleteEmpireMsg, GlobalDeleteEmpireBuildingMsg, MessageContentsV4, NpcPlaceWatchtowersMsg, NpcWatchtowerPlacement},
+        inter_module::{DeleteEmpireMsg, GlobalDeleteEmpireBuildingMsg, MessageContentsV5, NpcPlaceWatchtowersMsg, NpcWatchtowerPlacement},
         static_data::{distant_visible_entity_desc, EntityType},
     },
     parameters_desc, unwrap_or_err, BuildingCategory, BuildingDesc, BuildingInteractionLevel, BuildingSpawnDesc, ClaimState, ClaimType,
@@ -432,7 +432,7 @@ pub fn delete_building(
     if let Some(empire) = ctx.db.empire_state().capital_building_entity_id().find(&building.entity_id) {
         send_inter_module_message(
             ctx,
-            crate::messages::inter_module::MessageContentsV4::DeleteEmpire(DeleteEmpireMsg {
+            crate::messages::inter_module::MessageContentsV5::DeleteEmpire(DeleteEmpireMsg {
                 empire_entity_id: empire.entity_id,
             }),
             crate::inter_module::InterModuleDestination::Global,
@@ -567,7 +567,7 @@ pub fn delete_building(
     {
         send_inter_module_message(
             ctx,
-            crate::messages::inter_module::MessageContentsV4::GlobalDeleteEmpireBuilding(GlobalDeleteEmpireBuildingMsg {
+            crate::messages::inter_module::MessageContentsV5::GlobalDeleteEmpireBuilding(GlobalDeleteEmpireBuildingMsg {
                 player_entity_id: actor_id,
                 building_entity_id: entity_id,
             }),
@@ -828,7 +828,7 @@ pub fn setup_npc_watchtower_state(
 
     send_inter_module_message(
         ctx,
-        MessageContentsV4::NpcPlaceWatchtowers(NpcPlaceWatchtowersMsg {
+        MessageContentsV5::NpcPlaceWatchtowers(NpcPlaceWatchtowersMsg {
             watchtowers: vec![NpcWatchtowerPlacement {
                 building_entity_id: entity_id,
                 location: location.into(),

@@ -52,7 +52,8 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
     }
 
     if ctx.db.signed_in_player_state().entity_id().find(actor_id).is_some() {
-        return Err("Already signed in".into());
+        // Reconnect of an already signed-in player; the session continues.
+        return Ok(());
     }
 
     let user = unwrap_or_err!(ctx.db.user_state().identity().find(&ctx.sender), "No user found");
@@ -102,7 +103,8 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
     player.signed_in = true;
     player.session_start_timestamp = game_state::unix(ctx.timestamp);
     player.sign_in_timestamp = game_state::unix(ctx.timestamp);
-    player.refresh_traveler_tasks(ctx);
+
+    TravelerTaskCreditState::refresh_player_credits(ctx, actor_id);
 
     let mut inventory = unwrap_or_err!(InventoryState::get_player_inventory(ctx, actor_id), "Player has no inventory");
 

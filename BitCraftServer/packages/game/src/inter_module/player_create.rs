@@ -19,7 +19,7 @@ use crate::{
     messages::{
         components::*,
         game_util::{ActiveBuff, ExperienceStack, OnlineTimestamp},
-        static_data::{CollectibleDesc, EquipmentSlot},
+        static_data::CollectibleDesc,
     },
     unwrap_or_err,
 };
@@ -280,56 +280,13 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
     // [FINAL RELEASE]
     let equipment = EquipmentState {
         entity_id,
-        equipment_slots: vec![
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::MainHand, // Obsolete for now
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::OffHand, // Obsolete for now
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::HeadArtifact, // Seems to be where the Heart artifact is stored
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::TorsoArtifact, // Seems unused
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::HandArtifact, // Ring artifacts
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::FeetArtifact, // Seems unused
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::HeadClothing,
-            },
-            EquipmentSlot {
-                item: Some(ItemStack::new(ctx, torso_equipment_id, ItemType::Item, 1)),
-                primary: EquipmentSlotType::TorsoClothing,
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::HandClothing,
-            },
-            EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::BeltClothing,
-            },
-            EquipmentSlot {
-                item: Some(ItemStack::new(ctx, leg_equipment_id, ItemType::Item, 1)),
-                primary: EquipmentSlotType::LegClothing,
-            },
-            EquipmentSlot {
-                item: Some(ItemStack::new(ctx, feet_equipment_id, ItemType::Item, 1)),
-                primary: EquipmentSlotType::FeetClothing,
-            },
-        ],
+        equipment_slots: {
+            let mut slots = EquipmentSlot::default_equipment_slots();
+            slots[EquipmentSlotType::TorsoClothing as usize].item = Some(ItemStack::new(ctx, torso_equipment_id, ItemType::Item, 1));
+            slots[EquipmentSlotType::LegClothing as usize].item = Some(ItemStack::new(ctx, leg_equipment_id, ItemType::Item, 1));
+            slots[EquipmentSlotType::FeetClothing as usize].item = Some(ItemStack::new(ctx, feet_equipment_id, ItemType::Item, 1));
+            slots
+        },
     };
 
     //toolbet
@@ -548,9 +505,11 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
     // Eat Mushroom Skewer Action to ease-in tutorial goods
     player::ability_set::reduce(ctx, entity_id, 0, 11, AbilityType::Eat(1170001))?;
 
+    TravelerTaskState::generate_initial_tasks(ctx, entity_id);
+
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::OnRegionPlayerCreated(OnRegionPlayerCreatedMsg {
+        crate::messages::inter_module::MessageContentsV5::OnRegionPlayerCreated(OnRegionPlayerCreatedMsg {
             player_entity_id: entity_id,
         }),
         crate::inter_module::InterModuleDestination::Global,

@@ -48,7 +48,7 @@ pub fn empire_collect_hexite_capsule(ctx: &ReducerContext, request: EmpireCollec
 
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::EmpireCollectHexiteCapsule(EmpireCollectHexiteCapsuleMsg {
+        crate::messages::inter_module::MessageContentsV5::EmpireCollectHexiteCapsule(EmpireCollectHexiteCapsuleMsg {
             building_entity_id: request.building_entity_id,
             player_entity_id: actor_id,
         }),

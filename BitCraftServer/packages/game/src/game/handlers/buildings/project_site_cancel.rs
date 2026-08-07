@@ -1,5 +1,6 @@
 use bitcraft_macro::feature_gate;
 use crate::game::reducer_helpers::footprint_helpers;
+use crate::game::entities::growth_timer::delete_resource_growth_timer;
 use crate::game::{game_state, permission_helper};
 use crate::messages::action_request::PlayerProjectSiteCancelRequest;
 use crate::messages::components::*;
@@ -35,6 +36,7 @@ pub fn project_site_cancel(ctx: &ReducerContext, request: PlayerProjectSiteCance
     ctx.db.project_site_state().entity_id().delete(&request.owner_entity_id);
     ctx.db.auto_claim_state().entity_id().delete(&request.owner_entity_id);
     ctx.db.growth_state().entity_id().delete(&request.owner_entity_id);
+    delete_resource_growth_timer(ctx, request.owner_entity_id);
 
     Ok(())
 }

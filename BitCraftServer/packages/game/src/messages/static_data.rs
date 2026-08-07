@@ -153,6 +153,30 @@ pub enum EquipmentSlotType {
     LegClothing,
     FeetClothing,
     None,
+    ForestryCharm,
+    ForestryInstrument,
+    CarpentryCharm,
+    CarpentryInstrument,
+    MasonryCharm,
+    MasonryInstrument,
+    MiningCharm,
+    MiningInstrument,
+    SmithingCharm,
+    SmithingInstrument,
+    LeatherworkingCharm,
+    LeatherworkingInstrument,
+    HuntingCharm,
+    HuntingInstrument,
+    TailoringCharm,
+    TailoringInstrument,
+    FarmingCharm,
+    FarmingInstrument,
+    FishingCharm,
+    FishingInstrument,
+    ForagingCharm,
+    ForagingInstrument,
+    ScholarCharm,
+    ScholarInstrument,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
@@ -552,6 +576,20 @@ pub struct ResourceDesc {
     pub on_destroy_yield_resource_max_radius: i32,
     #[default(0)]
     pub light_radius: i32,
+    #[default(false)]
+    pub spawns_on_land: bool,
+    #[default(0)]
+    pub land_elevation_min: i32,
+    #[default(0)]
+    pub land_elevation_max: i32,
+    #[default(false)]
+    pub spawns_in_water: bool,
+    #[default(0)]
+    pub water_depth_min: i32,
+    #[default(0)]
+    pub water_depth_max: i32,
+    #[default(0)]
+    pub max_elevation_delta: i32,
 }
 
 #[static_data_staging_table(placeable_desc)]
@@ -569,6 +607,18 @@ pub struct PlaceableDesc {
     pub icon_asset_name: String,
     pub max_health: i32,
     pub visible_to_others: bool,
+    #[default(true)]
+    pub spawns_on_land: bool,
+    #[default(0)]
+    pub land_elevation_min: i32,
+    #[default(1000)]
+    pub land_elevation_max: i32,
+    #[default(false)]
+    pub spawns_in_water: bool,
+    #[default(0)]
+    pub water_depth_min: i32,
+    #[default(1000)]
+    pub water_depth_max: i32,
 }
 
 #[static_data_staging_table(placeable_group_desc)]
@@ -586,6 +636,14 @@ pub struct PlaceableGroupDesc {
 pub struct PlaceableGrowthOutcome {
     pub probability: f32,
     pub placeable_id: i32,
+}
+
+#[derive(SpacetimeType, Clone, PartialEq, Debug)]
+pub struct PlaceableGrowthOutcomeV2 {
+    pub probability: f32,
+    pub placeable_id: i32,
+    pub radius_min: i32,
+    pub radius_max: i32,
 }
 
 #[derive(SpacetimeType, Clone, PartialEq, Debug)]
@@ -607,6 +665,8 @@ pub struct PlaceableGrowthDesc {
     pub time: Vec<f32>,
     pub outcomes: Vec<PlaceableGrowthOutcome>,
     pub show_time_left: bool,
+    #[default(None::<Vec<PlaceableGrowthOutcomeV2>>)]
+    pub outcomes_v2: Option<Vec<PlaceableGrowthOutcomeV2>>,
 }
 
 #[static_data_staging_table(placeable_placement_desc)]
@@ -623,11 +683,17 @@ pub struct PlaceablePlacementDesc {
     pub required_knowledges: Vec<i32>,
     pub blocking_knowledges: Vec<i32>,
     pub required_biomes: Vec<Biome>,
+    #[default(false)]
     pub place_on_land: bool,
+    #[default(0)]
     pub land_elevation_min: i32,
+    #[default(0)]
     pub land_elevation_max: i32,
+    #[default(false)]
     pub place_on_water: bool,
+    #[default(0)]
     pub water_depth_min: i32,
+    #[default(0)]
     pub water_depth_max: i32,
     pub required_paving_tier: i32,
     pub required_interior_tier: i32,
@@ -639,6 +705,8 @@ pub struct PlaceablePlacementDesc {
     pub max_distance_to_buildings: i32,
     pub buildings: Vec<i32>,
     pub recipe_performance_id: i32,
+    #[default(None::<Vec<PlaceableSelfBuffChance>>)]
+    pub self_buffs: Option<Vec<PlaceableSelfBuffChance>>,
 }
 
 #[static_data_staging_table(placeable_interaction_desc)]
@@ -663,8 +731,12 @@ pub struct PlaceableInteractionDesc {
     pub allow_use_hands: bool,
     pub power_multiplier: f32,
     pub recipe_performance_id: i32,
-    pub on_destroy_spawned_placeable_id: i32,
-    pub on_destroy_spawned_placeable_chance: f32,
+    pub on_destroy_spawned_placeable_id: i32, //DEPRECATED, REPLACED BY on_destroy_outcomes
+    pub on_destroy_spawned_placeable_chance: f32, //DEPRECATED, REPLACED BY on_destroy_outcomes
+    #[default(None::<Vec<PlaceableGrowthOutcomeV2>>)]
+    pub on_destroy_outcomes: Option<Vec<PlaceableGrowthOutcomeV2>>,
+    #[default(None::<Vec<PlaceableSelfBuffChance>>)]
+    pub self_buffs: Option<Vec<PlaceableSelfBuffChance>>,
 }
 
 #[static_data_staging_table(cargo_desc)]
@@ -1051,6 +1123,12 @@ pub struct ResourceGrowthRecipeDesc {
     pub resource_id: i32,
     pub time: Vec<f32>,
     pub grown_resource_id: i32,
+    #[default(1.0f32)]
+    pub grown_resource_chance: f32,
+    #[default(0)]
+    pub grown_resource_min_radius: i32,
+    #[default(0)]
+    pub grown_resource_max_radius: i32,
 }
 
 #[static_data_staging_table(extraction_recipe_desc)]
@@ -1083,6 +1161,8 @@ pub struct ExtractionRecipeDesc {
     pub empire_permission_required: Option<EmpirePermission>,
     #[default(None::<Vec<ExtractionSpawnedPlaceable>>)]
     pub spawned_placeables: Option<Vec<ExtractionSpawnedPlaceable>>,
+    #[default(None::<Vec<PlaceableSelfBuffChance>>)]
+    pub self_buffs: Option<Vec<PlaceableSelfBuffChance>>,
 }
 
 #[static_data_staging_table(deconstruction_recipe_desc)]
@@ -1228,6 +1308,10 @@ pub struct ParametersDesc {
     pub prospecting_herd_immunity_secs: u32,
     #[default(0.0f32)]
     pub rp_walk_speed: f32,
+    #[default(None::<Vec<TravelerWeeklyTaskCredits>>)]
+    pub traveler_task_weekly_credits: Option<Vec<TravelerWeeklyTaskCredits>>,
+    #[default(0)]
+    pub traveler_task_reroll_credit_cost: i32,
 }
 
 #[spacetimedb::table(name = parameters_player_move_desc)]
@@ -1252,6 +1336,12 @@ pub struct PrivateParametersDesc {
 pub struct MoveValidationParamsDesc {
     pub strike_count_before_move_validation_failure: i32,
     pub strike_counter_time_window_sec: i32,
+}
+
+#[derive(SpacetimeType, Clone, PartialEq, Debug)]
+pub struct TravelerWeeklyTaskCredits {
+    pub traveler_type: NpcType,
+    pub weekly_task_credits: i32,
 }
 
 #[static_data_staging_table(clothing_desc)]
@@ -1322,6 +1412,14 @@ pub struct BuffEffect {
     pub duration: Option<i32>,
 }
 
+#[derive(SpacetimeType)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct PlaceableSelfBuffChance {
+    pub buff_id: i32,
+    pub chance: f32,
+    pub duration: Option<i32>,
+}
+
 #[static_data_staging_table(buff_desc)]
 #[spacetimedb::table(name = buff_desc, public, index(name = buff_type_id, btree(columns = [buff_type_id])))]
 // Index on `buff_type` so that `ActiveBuffState::active_buff_of_type`
@@ -1383,6 +1481,10 @@ pub struct FoodDesc {
     pub teleportation_energy: f32,
     pub consumable_while_in_combat: bool,
     pub buffs: Vec<BuffEffect>,
+    #[default(false)]
+    pub auto_consume: bool,
+    #[default(None::<Vec<ItemStack>>)]
+    pub output_item_stacks: Option<Vec<ItemStack>>,
 }
 
 #[static_data_staging_table(enemy_desc)]
@@ -2114,7 +2216,6 @@ pub struct EquipmentSlot {
     pub item: Option<ItemStack>,
     pub primary: EquipmentSlotType,
 }
-
 #[static_data_staging_table(biome_desc)]
 #[spacetimedb::table(name = biome_desc, public, index(name = disallow_player_build, btree(columns = [disallow_player_build])))]
 #[derive(Clone, PartialEq, Debug)]
@@ -2507,6 +2608,9 @@ pub struct ProspectingDesc {
 
     #[default(false)]
     pub single_contribution_only: bool,
+
+    #[default(None::<Vec<ItemStack>>)]
+    pub step_item_stacks: Option<Vec<ItemStack>>,
 }
 
 #[static_data_staging_table(equipment_preset_knowledge_desc)]

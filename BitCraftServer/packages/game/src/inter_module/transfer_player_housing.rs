@@ -5,7 +5,7 @@ use crate::{
     messages::{
         action_request::ServerTeleportReason,
         components::*,
-        inter_module::{MessageContentsV4, TransferPlayerHousingMsg},
+        inter_module::{MessageContentsV5, TransferPlayerHousingMsg},
         static_data::{collectible_desc, CollectibleType},
     },
     unwrap_or_err,
@@ -18,7 +18,7 @@ pub fn send_message(ctx: &ReducerContext, player_housing_entity_id: u64, new_ent
     if let Some(player_housing) = ctx.db.player_housing_state().entity_id().find(player_housing_entity_id) {
         send_inter_module_message(
             ctx,
-            MessageContentsV4::TransferPlayerHousingRequest(TransferPlayerHousingMsg {
+            MessageContentsV5::TransferPlayerHousingRequest(TransferPlayerHousingMsg {
                 player_entity_id: player_housing_entity_id,
                 new_entrance_building_entity_id,
                 network_entity_id: player_housing.network_entity_id,

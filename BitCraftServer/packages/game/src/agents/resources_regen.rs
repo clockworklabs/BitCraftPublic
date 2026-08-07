@@ -5,6 +5,7 @@ use spacetimedb::rand::Rng;
 use spacetimedb::{log, ReducerContext, Table};
 
 use crate::game::coordinates::*;
+use crate::game::game_state::game_state_filters;
 use crate::game::terrain_chunk::TerrainChunkCache;
 use crate::game::unity_helpers::vector2::Vector2;
 use crate::game::world_gen::resources_log::{resources_log, ResourceClumpInfo};
@@ -517,22 +518,9 @@ pub fn try_spawn_resource_no_clump_info(
         i32,          /*direction*/
     )>,
 ) -> bool {
-    let terrain_coordinates = hex_coordinates.parent_large_tile();
-    let terrain = match terrain_cache.get_terrain_cell(ctx, &terrain_coordinates) {
-        Some(t) => t,
-        None => return false,
-    };
-    let water_level = terrain.water_level;
-    let elevation = terrain.elevation;
-
-    if spawns_on_land {
-        if water_level > elevation {
-            return false;
-        }
-    } else {
-        if water_level < elevation {
-            return false;
-        }
+    let is_submerged = game_state_filters::is_submerged(ctx, terrain_cache, hex_coordinates);
+    if spawns_on_land && is_submerged || !spawns_on_land && !is_submerged {
+        return false;
     }
 
     try_spawn_resource_no_node_validation(
@@ -750,6 +738,58 @@ fn is_valid_resource_node_options(
     false
 }
 
+pub fn is_valid_single_resource_spawn(
+    ctx: &ReducerContext,
+    terrain_cache: &mut TerrainChunkCache,
+    resource_desc: &ResourceDesc,
+    center_coordinates: SmallHexTile,
+    direction_index: i32,
+) -> bool {
+    let terrain = match terrain_cache.get_terrain_cell(ctx, &center_coordinates.parent_large_tile()) {
+        Some(t) => t,
+        None => return false,
+    };
+
+    if !is_valid_land_or_water(
+        resource_desc.spawns_on_land,
+        resource_desc.land_elevation_min as i16,
+        resource_desc.land_elevation_max as i16,
+        resource_desc.spawns_in_water,
+        resource_desc.water_depth_min as i16,
+        resource_desc.water_depth_max as i16,
+        terrain.elevation,
+        terrain.water_level,
+    ) {
+        return false;
+    }
+
+    let footprint = if resource_desc.footprint.is_empty() {
+        vec![FootprintTile {
+            x: 0,
+            z: 0,
+            footprint_type: FootprintType::Hitbox,
+        }]
+    } else {
+        resource_desc
+            .footprint
+            .iter()
+            .filter(|tile| tile.footprint_type != FootprintType::Perimeter)
+            .cloned()
+            .collect()
+    };
+
+    let mut occupied_tiles = LazyMemoOccupiedTiles::default();
+    is_valid_single_resource_footprint(
+        ctx,
+        terrain_cache,
+        center_coordinates,
+        &footprint,
+        HexDirection::from(direction_index),
+        resource_desc.max_elevation_delta,
+        &mut occupied_tiles,
+    )
+}
+
 fn is_valid_land_or_water(
     spawns_on_land: bool,
     land_elevation_min: i16,
@@ -832,6 +872,79 @@ fn is_valid_resource_footprint(
     }
 
     return true;
+}
+
+fn is_valid_single_resource_footprint(
+    ctx: &ReducerContext,
+    terrain_cache: &mut TerrainChunkCache,
+    center_coordinates: SmallHexTile,
+    footprint_no_perimiter: &Vec<FootprintTile>,
+    direction: HexDirection,
+    max_elevation_delta: i32,
+    occupied_tiles_hashes: &mut impl OccupiedTiles,
+) -> bool {
+    let mut min_elevation = i16::MAX;
+    let mut max_elevation = i16::MIN;
+
+    for delta in footprint_no_perimiter {
+        let footprint_coordinates = (SmallHexTile {
+            x: center_coordinates.x + delta.x,
+            z: center_coordinates.z + delta.z,
+            dimension: center_coordinates.dimension,
+        })
+        .rotate_around(&center_coordinates, (direction as i32) / 2);
+
+        if occupied_tiles_hashes.is_tile_occupied(ctx, footprint_coordinates.hashcode()) {
+            return false;
+        }
+
+        for loc in LocationState::select_all(ctx, &footprint_coordinates) {
+            let entity_id = loc.entity_id;
+
+            if let Some(fp) = ctx.db.footprint_tile_state().entity_id().find(&entity_id) {
+                if ((fp.footprint_type == FootprintType::Hitbox) | (fp.footprint_type == FootprintType::Walkable))
+                    && ctx.db.building_state().entity_id().find(&fp.owner_entity_id).is_some()
+                {
+                    return false;
+                }
+                if ctx.db.resource_state().entity_id().find(fp.owner_entity_id).is_some() {
+                    return false;
+                }
+            }
+
+            if ctx.db.paved_tile_state().entity_id().find(&entity_id).is_some() {
+                return false;
+            }
+        }
+
+        let footprint_terrain = match terrain_cache.get_terrain_cell(ctx, &footprint_coordinates.parent_large_tile()) {
+            Some(t) => t,
+            None => return false,
+        };
+
+        let footprint_elevation = footprint_terrain.elevation;
+        if footprint_elevation == -1 {
+            return false;
+        }
+
+        let elevations: [i16; 3] = footprint_coordinates
+            .get_terrain_coordinates()
+            .map(|c| terrain_cache.get_terrain_cell(ctx, &c).unwrap_or_default().elevation);
+        let min = *elevations.iter().min().unwrap();
+        let max = *elevations.iter().max().unwrap();
+        min_elevation = min_elevation.min(min);
+        max_elevation = max_elevation.max(max);
+
+        if min_elevation == -1 {
+            return false;
+        }
+
+        if max_elevation - min_elevation > max_elevation_delta as i16 {
+            return false;
+        }
+    }
+
+    true
 }
 
 fn is_valid_cell(

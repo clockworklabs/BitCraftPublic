@@ -46,10 +46,10 @@ pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -
 
     let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(&item_id), "Item is not equipable");
 
-    let preset_index = if equipment_info.slots[0] == EquipmentSlotType::HeadArtifact {
-        0
-    } else {
+    let preset_index = if EquipmentSlot::equipment_preset_slots().contains(&equipment_info.slots[0]) {
         request.preset_index
+    } else {
+        0
     };
 
     if equipment_info.slots[0] == EquipmentSlotType::MainHand || equipment_info.slots[0] == EquipmentSlotType::OffHand {
@@ -95,16 +95,16 @@ pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -
 
     let mut to_remove: HashSet<i32> = HashSet::new();
     for slot in equipment_info.slots.iter() {
-        let slot = *slot as usize;
-        let equipment_slot = &equipment_slots[slot];
+        let equipment_slot = unwrap_or_err!(
+            equipment_slots.iter_mut().find(|x| x.primary == *slot),
+            "Unknown equipment slot '{{0}}'|~{:?}",
+            *slot
+        );
         if equipment_slot.item_id() > 0 {
             to_remove.insert(equipment_slot.item_id());
         }
         // Only equip ONE item if the source is a stack
-        equipment_slots[slot] = EquipmentSlot {
-            item: Some(ItemStack::new(ctx, item_id, ItemType::Item, 1)),
-            primary: equipment_info.slots[0],
-        };
+        equipment_slot.item = Some(ItemStack::new(ctx, item_id, ItemType::Item, 1));
     }
 
     for id in to_remove.iter() {
@@ -116,13 +116,9 @@ pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -
     }
 
     if to_remove.len() > 0 {
-        for i in 0..equipment_slots.len() {
-            let slot = &equipment_slots[i];
+        for slot in equipment_slots.iter_mut() {
             if to_remove.contains(&slot.item_id()) && slot.item_id() != item_id {
-                equipment_slots[i] = EquipmentSlot {
-                    item: None,
-                    primary: EquipmentSlotType::None,
-                };
+                slot.item = None;
             }
         }
     }

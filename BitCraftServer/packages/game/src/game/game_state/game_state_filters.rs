@@ -125,6 +125,15 @@ pub fn has_hitbox_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -> 
     return false;
 }
 
+pub fn has_blocking_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -> bool {
+    for footprint in FootprintTileState::get_at_location(ctx, &coordinates) {
+        if footprint.footprint_type == FootprintType::Hitbox || footprint.footprint_type == FootprintType::Walkable {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn get_hitbox_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -> Option<FootprintTileState> {
     for footprint in FootprintTileState::get_at_location(ctx, &coordinates) {
         if footprint.footprint_type == FootprintType::Hitbox {

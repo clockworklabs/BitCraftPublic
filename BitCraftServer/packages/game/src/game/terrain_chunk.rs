@@ -86,7 +86,7 @@ impl TerrainChunkCache {
     /// If this state is not available in the cache, it will first be loaded into it.
     pub fn get_terrain_cell(&mut self, ctx: &ReducerContext, coords: &LargeHexTile) -> Option<TerrainCell> {
         let chunk = self.get_from_chunk_coordinates(ctx, ChunkCoordinates::from(coords))?;
-        Some(chunk.get_entity(&coords.to_offset_coordinates()))
+        chunk.get_entity(&coords.to_offset_coordinates())
     }
 }
 
@@ -117,19 +117,31 @@ impl TerrainChunkState {
         return coords.chunk_index();
     }
 
-    pub fn get_entity(&self, offset: &OffsetCoordinatesLarge) -> TerrainCell {
+    pub fn get_entity(&self, offset: &OffsetCoordinatesLarge) -> Option<TerrainCell> {
         let OffsetCoordinatesLarge { x, z, dimension } = offset;
         let local_x = x % TerrainChunkState::WIDTH as i32;
         let local_z = z % TerrainChunkState::HEIGHT as i32;
-        self.get_entity_local(local_x, local_z, *dimension)
+        self.try_get_entity_local(local_x, local_z, *dimension)
     }
 
     pub fn get_entity_static(ctx: &ReducerContext, coord: &LargeHexTile) -> Option<TerrainCell> {
         let index = Self::chunk_index_from_coords(&coord.chunk_coordinates());
         if let Some(chunk) = ctx.db.terrain_chunk_state().chunk_index().find(&index) {
-            return Some(chunk.get_entity(&coord.to_offset_coordinates()));
+            return chunk.get_entity(&coord.to_offset_coordinates());
         }
         None
+    }
+
+    pub fn try_get_entity_local(&self, local_x: i32, local_z: i32, dimension: u32) -> Option<TerrainCell> {
+        if local_x < 0
+            || local_z < 0
+            || local_x >= TerrainChunkState::WIDTH as i32
+            || local_z >= TerrainChunkState::HEIGHT as i32
+        {
+            return None;
+        }
+
+        Some(self.get_entity_local(local_x, local_z, dimension))
     }
 
     pub fn get_entity_local(&self, local_x: i32, local_z: i32, dimension: u32) -> TerrainCell {

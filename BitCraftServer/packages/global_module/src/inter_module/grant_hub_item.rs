@@ -4,7 +4,7 @@ use crate::messages::{
     components::{user_state, NotificationSeverity, PlayerNotificationEvent},
     generic::HubItemType,
     global::{granted_hub_item_state, player_shard_state},
-    inter_module::{GrantHubItemMsg, MessageContentsV4},
+    inter_module::{GrantHubItemMsg, MessageContentsV5},
     static_data::premium_item_desc,
 };
 
@@ -27,7 +27,7 @@ pub fn send_message(
 
     send_inter_module_message(
         ctx,
-        MessageContentsV4::GrantHubItem(msg),
+        MessageContentsV5::GrantHubItem(msg),
         super::InterModuleDestination::Region(region_id),
     );
 

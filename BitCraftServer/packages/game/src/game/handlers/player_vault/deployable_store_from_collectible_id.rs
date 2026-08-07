@@ -57,7 +57,7 @@ pub fn deployable_store_from_collectible_id(ctx: &ReducerContext, collectible_id
     //We don't know which region the deployable is on, so we just blast messages to all regions and see if one of them succeeds
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::RecoverDeployable(crate::messages::inter_module::RecoverDeployableMsg {
+        crate::messages::inter_module::MessageContentsV5::RecoverDeployable(crate::messages::inter_module::RecoverDeployableMsg {
             player_entity_id: actor_id,
             deployable_entity_id: 0,
             deployable_desc_id: collectible_id,

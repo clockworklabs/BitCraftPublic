@@ -116,7 +116,7 @@ pub fn empire_resupply_node_reduce(
     let supplies_count = ctx.db.empire_supplies_desc().cargo_id().find(&cargo_id).unwrap().energy;
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::EmpireResupplyNode(EmpireResupplyNodeMsg {
+        crate::messages::inter_module::MessageContentsV5::EmpireResupplyNode(EmpireResupplyNodeMsg {
             building_entity_id,
             supplies_count,
             player_entity_id: actor_id,

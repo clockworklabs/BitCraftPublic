@@ -643,7 +643,7 @@ fn spawn_interior_building(ctx: &ReducerContext, spawn: &InteriorSpawnDesc, loca
     entity_id
 }
 
-fn spawn_interior_resource(
+pub(crate) fn spawn_interior_resource(
     ctx: &ReducerContext,
     spawn: &InteriorSpawnDesc,
     location: OffsetCoordinatesSmall,

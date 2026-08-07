@@ -46,6 +46,7 @@ pub mod player_housing_request_access;
 pub mod player_housing_update;
 pub mod player_move;
 pub mod player_region_crossover;
+pub mod player_reroll_traveler_task;
 pub mod player_respawn;
 pub mod player_settings_state_update;
 pub mod player_teleport_home;

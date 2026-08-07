@@ -23,10 +23,14 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
         return Err("Obsolete - you can no longer equip main hand and offhand tools".into());
     }
 
-    let preset_index = if request.slot == EquipmentSlotType::HeadArtifact as i32 {
-        0
-    } else {
+    let slot_type = EquipmentSlot::all_equipment_slots()
+        .get(request.slot as usize)
+        .copied()
+        .unwrap_or(EquipmentSlotType::None);
+    let preset_index = if EquipmentSlot::equipment_preset_slots().contains(&slot_type) {
         request.preset_index
+    } else {
+        0
     };
 
     let mut equipment = ctx.db.equipment_state().entity_id().find(&actor_id).unwrap();
@@ -55,13 +59,9 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
 
     // Reset all slots taken up by this item
     let remove_slot = equipment_slot.primary;
-    for i in 0..equipment_slots.len() {
-        let slot = &equipment_slots[i];
+    for slot in equipment_slots.iter_mut() {
         if slot.primary == remove_slot {
-            equipment_slots[i] = EquipmentSlot {
-                item: None,
-                primary: EquipmentSlotType::None,
-            }
+            slot.item = None;
         }
     }
 

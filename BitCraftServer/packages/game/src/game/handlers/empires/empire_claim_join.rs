@@ -42,7 +42,7 @@ pub fn empire_claim_join(ctx: &ReducerContext, building_entity_id: u64, empire_e
 
     send_inter_module_message(
         ctx,
-        crate::messages::inter_module::MessageContentsV4::EmpireClaimJoin(EmpireClaimJoinMsg {
+        crate::messages::inter_module::MessageContentsV5::EmpireClaimJoin(EmpireClaimJoinMsg {
             player_entity_id: actor_id,
             claim_entity_id: claim.entity_id,
             claim_building_entity_id: building_entity_id,

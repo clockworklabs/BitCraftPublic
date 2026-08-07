@@ -8,7 +8,7 @@ use crate::{
         coordinates::*,
         dimensions,
         discovery::Discovery,
-        entities::{building_state::InventoryState, terrain_cell::TerrainCell},
+        entities::{buff, building_state::InventoryState, terrain_cell::TerrainCell},
         game_state::{
             self,
             game_state_filters::{self, coordinates_float, has_hitbox_footprint},
@@ -31,6 +31,16 @@ use crate::{
 };
 
 use spacetimedb::{log, ReducerContext, Table};
+
+fn apply_self_buffs(ctx: &ReducerContext, actor_id: u64, self_buffs: &[PlaceableSelfBuffChance]) -> Result<(), String> {
+    for self_buff in self_buffs {
+        if ctx.rng().gen_range(0.0..=1.0) <= self_buff.chance {
+            buff::activate(ctx, actor_id, self_buff.buff_id, self_buff.duration, None)?;
+        }
+    }
+
+    Ok(())
+}
 
 fn format_missing_input_message(ctx: &ReducerContext, required_stack: &ItemStack) -> String {
     let item_name = match required_stack.item_type {
@@ -482,6 +492,12 @@ fn reduce(
                                 spawned_placeable.radius_max,
                             );
                         }
+                    }
+                }
+
+                if !request.clear_from_claim {
+                    if let Some(self_buffs) = &recipe.self_buffs {
+                        apply_self_buffs(ctx, actor_id, self_buffs)?;
                     }
                 }
             }

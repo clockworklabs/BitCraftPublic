@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use spacetimedb::{log, ReducerContext, Table};
 
-use crate::agents::traveler_task_agent;
 use crate::game::coordinates::{ChunkCoordinates, FloatHexTile, OffsetCoordinatesFloat};
 use crate::game::discovery::Discovery;
 use crate::game::game_state::{self, unix_ms};
@@ -11,7 +10,6 @@ use crate::game::{claim_helper, coordinates::*, dimensions};
 use crate::messages::components::{
     ability_state, building_state, rez_sick_long_term_state, AbilityState, AbilityType, ActionCooldown, ActiveBuffState,
     CharacterStatsState, InteriorPlayerCountState, InventoryState, MobileEntityState, PlayerActionState, PlayerState, StaminaState,
-    TravelerTaskState,
 };
 use crate::messages::game_util::{ActiveBuff, ExperienceStack, ItemStack, LevelRequirement};
 use crate::messages::static_data::*;
@@ -556,20 +554,5 @@ impl PlayerState {
             .entity_id()
             .find(&player_entity_id)
             .map(|u| u.username);
-    }
-
-    pub fn refresh_traveler_tasks(&mut self, ctx: &ReducerContext) {
-        let next_task_refresh = traveler_task_agent::next_tick(ctx);
-        if self.traveler_tasks_expiration >= next_task_refresh {
-            // The current tasks are still active; nothing to refresh
-            return;
-        }
-        self.traveler_tasks_expiration = next_task_refresh;
-
-        TravelerTaskState::delete_all_for_player(ctx, self.entity_id);
-        // Need to create new tasks for the player
-        let requests = TravelerTaskState::generate_npc_requests_hashmap(ctx);
-        let tasks_per_npc = ctx.db.parameters_desc().version().find(0).unwrap().traveler_tasks_per_npc;
-        TravelerTaskState::generate_all_for_player(ctx, self.entity_id, &requests, tasks_per_npc, next_task_refresh);
     }
 }

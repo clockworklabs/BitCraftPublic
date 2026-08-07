@@ -1,6 +1,6 @@
 use crate::{
     building_desc, building_state, game::handlers::authentication::has_role, light_source_state, messages::authentication::Role,
-    LightSourceState,
+    unwrap_or_err, LightSourceState,
 };
 use spacetimedb::{log, ReducerContext, Table};
 
@@ -11,7 +11,11 @@ pub fn admin_update_light_source_states(ctx: &ReducerContext) -> Result<(), Stri
     }
 
     for building in ctx.db.building_state().iter() {
-        let building_desc = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+        let building_desc = unwrap_or_err!(
+            ctx.db.building_desc().id().find(&building.building_description_id),
+            "Unknown BuildingDesc with id {}",
+            building.building_description_id
+        );
 
         // If already exist, update or delete.
         if let Some(mut light) = ctx.db.light_source_state().entity_id().find(&building.entity_id) {

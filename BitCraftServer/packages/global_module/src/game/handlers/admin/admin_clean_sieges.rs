@@ -54,7 +54,7 @@ pub fn admin_clean_sieges(ctx: &ReducerContext) -> Result<(), String> {
                 ctx.db.empire_siege_engine_state().entity_id().delete(siege_engine.entity_id);
                 send_inter_module_message(
                     ctx,
-                    crate::messages::inter_module::MessageContentsV4::RegionDestroySiegeEngine(RegionDestroySiegeEngineMsg {
+                    crate::messages::inter_module::MessageContentsV5::RegionDestroySiegeEngine(RegionDestroySiegeEngineMsg {
                         deployable_entity_id: siege_engine.entity_id,
                     }),
                     crate::inter_module::InterModuleDestination::Region(game_state::region_index_from_entity_id(

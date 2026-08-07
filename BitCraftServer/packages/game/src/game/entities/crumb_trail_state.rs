@@ -4,23 +4,13 @@ use glam::Vec2;
 use spacetimedb::{log, rand::Rng, ReducerContext, Table};
 
 use crate::{
-    agents::resources_regen::*,
-    game::{
-        coordinates::{FloatHexTile, SmallHexTile},
-        dimensions, game_state,
-        terrain_chunk::TerrainChunkCache,
-        unity_helpers::vector2::Vector2,
-    },
-    messages::{
+    agents::resources_regen::*, game::{
+        coordinates::{FloatHexTile, SmallHexTile}, dimensions, game_state::{self, game_state_filters}, terrain_chunk::TerrainChunkCache, unity_helpers::vector2::Vector2,
+    }, messages::{
         components::{
-            crumb_trail_contribution_lock_state, herd_state, CrumbTrailContributionLockState, CrumbTrailState, HerdState, ResourceState,
-        },
-        generic::resource_count,
-        static_data::{prospecting_desc, resource_clump_desc, resource_desc, ProspectingDesc, ResourceDesc},
-        util::{OffsetCoordinatesSmallMessage, SmallHexTileMessage},
-        world_gen::WorldGenVector2,
-    },
-    utils::iter_utils::GroupByAndCount,
+            CrumbTrailContributionLockState, CrumbTrailState, HerdState, ResourceState, crumb_trail_contribution_lock_state, herd_state,
+        }, generic::resource_count, static_data::{ProspectingDesc, ResourceDesc, prospecting_desc, resource_clump_desc, resource_desc}, util::{OffsetCoordinatesSmallMessage, SmallHexTileMessage}, world_gen::WorldGenVector2,
+    }, utils::iter_utils::GroupByAndCount,
 };
 
 impl CrumbTrailState {
@@ -181,7 +171,8 @@ impl CrumbTrailState {
             // Check if the new location water/ground state and biome are adequate
             if let Some(terrain_cell) = terrain_cache.get_terrain_cell(ctx, &coord.parent_large_tile()) {
                 Self::extra_debug_log(format!("terrain cell biome: {{0}}|~{}", terrain_cell.biome()).as_str());
-                if terrain_cell.is_submerged() {
+                let is_submerged = game_state_filters::is_submerged(ctx, &mut terrain_cache, coord);
+                if is_submerged {
                     if !is_prize_node && !prospecting_desc.allow_aquatic_bread_crumb {
                         // denied, crumb is over water and that's not allowed
                         Self::extra_debug_log("denied, on water");
@@ -200,7 +191,7 @@ impl CrumbTrailState {
                 if is_prize_node {
                     if prospecting_desc.enemy_ai_desc_id != 0 {
                         // Any additional herd-only checks come here
-                        if terrain_cell.is_submerged() {
+                        if is_submerged {
                             // denied, prize is over water and we don't have aquatic herds yet
                             Self::extra_debug_log("denied, herd on water");
                             continue;
