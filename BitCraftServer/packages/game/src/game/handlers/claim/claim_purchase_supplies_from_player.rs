@@ -35,6 +35,9 @@ pub fn claim_purchase_supplies_from_player(ctx: &ReducerContext, request: ClaimP
     if claim_local.supplies >= supplies_threshold {
         return Err("Claim is not purchasing supplies at this point".into());
     }
+    if claim_local.supplies >= max_supplies {
+        return Err("Claim is already fully supplied.".into());
+    }
 
     let player_coord = game_state_filters::coordinates_any(ctx, actor_id);
     let mut inventory = unwrap_or_err!(
