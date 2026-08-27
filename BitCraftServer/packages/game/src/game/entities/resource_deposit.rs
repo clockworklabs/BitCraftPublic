@@ -224,7 +224,10 @@ impl ResourceState {
         ctx.db.light_source_state().entity_id().delete(&self.entity_id);
         delete_footprint(ctx, self.entity_id);
         AttachedHerdsState::delete(ctx, self.entity_id);
-        delete_entity(ctx, self.entity_id);
+        ctx.db.distant_visible_entity().entity_id().delete(&self.entity_id);
+        ctx.db.growth_state().entity_id().delete(&self.entity_id);
+        ctx.db.resource_health_state().entity_id().delete(&self.entity_id);
+        ctx.db.location_state().entity_id().delete(&self.entity_id);
         true
     }
 
@@ -274,43 +277,33 @@ impl ResourceState {
             .parameters_desc()
             .version()
             .find(&0)
-            .map(|params| params.auto_respawn_attempts.max(0) as usize)
-            .unwrap_or(0);
+            .map(|params| params.auto_respawn_attempts.max(0) as usize);
         let mut terrain_cache = TerrainChunkCache::empty();
 
-        let mut spawn_candidates = if min_radius == 0 && max_radius == 0 {
-            vec![center]
-        } else {
-            SmallHexTile::shuffled_coordinates_between_radius(center, min_radius, max_radius, &mut ctx.rng())
-        };
-        if max_attempts > 0 && spawn_candidates.len() > max_attempts {
-            spawn_candidates.truncate(max_attempts);
-        }
-        if min_radius != 0 || max_radius != 0 {
-            spawn_candidates.push(center);
+        if min_radius == 0 && max_radius == 0 {
+            return Self::spawn(ctx, None, resource_id, center, direction_index, resource_health, false, false).is_ok();
         }
 
-        for candidate in spawn_candidates.drain(..) {
-            if candidate != center && !resources_regen::is_valid_single_resource_spawn(ctx, &mut terrain_cache, &resource_desc, candidate, direction_index) {
+        let mut attempts = SmallHexTile::tile_count_between_radius(min_radius, max_radius);
+        if let Some(max_attempts) = max_attempts {
+            attempts = attempts.min(max_attempts as u64);
+        }
+        let mut sampled = HashSet::new();
+
+        for _ in 0..attempts {
+            let candidate = SmallHexTile::random_tile_between_radius(ctx, center, min_radius, max_radius, &mut sampled);
+            if candidate != center
+                && !resources_regen::is_valid_single_resource_spawn(ctx, &mut terrain_cache, &resource_desc, candidate, direction_index)
+            {
                 continue;
             }
 
-            if Self::spawn(
-                ctx,
-                None,
-                resource_id,
-                candidate,
-                direction_index,
-                resource_health,
-                false,
-                false,
-            )
-            .is_ok()
-            {
+            if Self::spawn(ctx, None, resource_id, candidate, direction_index, resource_health, false, false).is_ok() {
                 return true;
             }
         }
-        false
+
+        Self::spawn(ctx, None, resource_id, center, direction_index, resource_health, false, false).is_ok()
     }
 
     pub fn schedule_resource_spawn(ctx: &ReducerContext, resource_id: i32, coordinates: SmallHexTileMessage, direction_index: i32) {
@@ -482,5 +475,4 @@ impl ResourceState {
             });
         }
     }
-
 }

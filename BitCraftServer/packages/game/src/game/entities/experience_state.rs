@@ -1,8 +1,9 @@
 use spacetimedb::{ReducerContext, Table};
 
+use crate::game::discovery::Discovery;
 use crate::messages::components::{partial_experience_state, ExperienceState, PartialExperienceState};
 use crate::messages::game_util::{ExperienceStack, ExperienceStackF32};
-use crate::messages::static_data::{skill_desc, AchievementDesc};
+use crate::messages::static_data::{skill_desc, skill_level_knowledge_desc, AchievementDesc};
 use crate::{experience_state, CharacterStatsState, SkillType};
 
 impl ExperienceState {
@@ -87,6 +88,8 @@ impl ExperienceState {
         if let Some(mut exp) = ctx.db.experience_state().entity_id().find(&entity_id) {
             for stack in &mut exp.experience_stacks {
                 if stack.skill_id == skill_id {
+                    let old_level = ExperienceStack::level_for_experience(stack.quantity);
+
                     // prevent an unlikely i32 overrun
                     if stack.quantity > i32::MAX - quantity {
                         stack.quantity = i32::MAX;
@@ -98,12 +101,28 @@ impl ExperienceState {
                     let desc = ctx.db.skill_desc().id().find(skill_id).unwrap();
                     let max_xp = ExperienceStack::experience_for_level(desc.max_level);
                     stack.quantity = stack.quantity.min(max_xp);
+                    let new_level = ExperienceStack::level_for_experience(stack.quantity);
 
                     ctx.db.experience_state().entity_id().update(exp);
+                    Self::grant_skill_level_knowledge(ctx, entity_id, skill_id, old_level, new_level);
                     AchievementDesc::evaluate_all(entity_id);
                     break;
                 }
             }
         }
+    }
+
+    pub fn grant_skill_level_knowledge(ctx: &ReducerContext, entity_id: u64, skill_id: i32, old_level: i32, new_level: i32) {
+        if new_level <= old_level {
+            return;
+        }
+
+        let mut discovery = Discovery::new(entity_id);
+        for level in old_level + 1..=new_level {
+            for reward in ctx.db.skill_level_knowledge_desc().skill_level().filter((skill_id, level)) {
+                discovery.acquire_secondary(ctx, reward.secondary_knowledge_id);
+            }
+        }
+        discovery.commit(ctx);
     }
 }

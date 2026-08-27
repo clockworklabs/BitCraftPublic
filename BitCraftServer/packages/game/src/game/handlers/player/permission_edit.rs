@@ -38,6 +38,15 @@ pub fn permission_edit(ctx: &ReducerContext, request: PlayerPermissionEditReques
             return Err("Only owners and co-owners can edit permissions".into());
         }
 
+        if let Some(requested_permission) = request.permission {
+            if requested_permission == Permission::Owner {
+                return Err("Owner permission cannot be granted".into());
+            }
+            if requested_permission != Permission::OverrideNoAccess && (requested_permission as i32) >= (permission as i32) {
+                return Err("You cannot grant a permission equal to or higher than your own".into());
+            }
+        }
+
         // Editing the player housing edits all dimensions within
         let ordained_entities = if let Some(player_housing) = ctx.db.player_housing_state().entity_id().find(request.ordained_entity_id) {
             player_housing.get_permission_entities(ctx)

@@ -14,6 +14,7 @@ pub mod admin_create_player_report;
 pub mod admin_delete_all_items_of_type;
 pub mod admin_despawn_overworld_enemies;
 pub mod admin_dungeon_update_portals;
+pub mod admin_expel_players;
 pub mod admin_find_items;
 pub mod admin_find_players_with_item;
 pub mod admin_fix_small_ferralith_cave;

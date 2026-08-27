@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use spacetimedb::rand::Rng;
 use spacetimedb::{ReducerContext, Table};
 
@@ -84,13 +86,19 @@ impl PlaceableState {
         let min_radius = min_radius.max(0);
         let max_radius = max_radius.max(min_radius);
 
-        let candidates = if min_radius == 0 && max_radius == 0 {
-            vec![center]
-        } else {
-            SmallHexTile::shuffled_coordinates_between_radius(center, min_radius, max_radius, &mut ctx.rng())
-        };
+        if min_radius == 0 && max_radius == 0 {
+            if Self::is_valid_spawn_tile(ctx, &mut terrain_cache, &placeable_desc, owner_entity_id, center) {
+                Self::spawn(ctx, placeable_id, owner_entity_id, center, direction_index)?;
+                return Ok(true);
+            }
 
-        for coordinates in candidates {
+            return Ok(false);
+        }
+
+        let mut sampled = HashSet::new();
+        for _ in 0..SmallHexTile::tile_count_between_radius(min_radius, max_radius) {
+            let coordinates = SmallHexTile::random_tile_between_radius(ctx, center, min_radius, max_radius, &mut sampled);
+
             if !Self::is_valid_spawn_tile(ctx, &mut terrain_cache, &placeable_desc, owner_entity_id, coordinates) {
                 continue;
             }

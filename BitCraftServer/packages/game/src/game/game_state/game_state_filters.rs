@@ -3,9 +3,12 @@ use spacetimedb::{ReducerContext, Table};
 
 use crate::game::coordinates::region_coordinates::RegionCoordinates;
 use crate::game::{reducer_helpers, PLAYER_MIN_SWIM_DEPTH};
-use crate::messages::generic::world_region_state;
 use crate::messages::static_data::BuildingCategory::Waystone;
 use crate::messages::util::MovementSpeed;
+use crate::messages::{
+    authentication::Role,
+    generic::{region_control_info, world_region_state},
+};
 use crate::utils::from_ctx::FromCtx;
 use crate::{
     game::{
@@ -405,6 +408,23 @@ pub fn teleport_home(ctx: &ReducerContext, actor_id: u64, from_death: bool) -> R
     let teleport_location = player.teleport_location;
 
     let teleport_location_float = OffsetCoordinatesFloat::from(teleport_location.location);
+
+    if teleport_location_float.dimension == dimensions::OVERWORLD {
+        let region = ctx.db.world_region_state().iter().next().unwrap();
+        let destination_region =
+            RegionCoordinates::from_ctx(ctx, FloatHexTile::from(teleport_location_float)).to_region_index(region.region_count_sqrt);
+        let identity = ctx.db.user_state().entity_id().find(actor_id).unwrap().identity;
+        let region_initialized = match ctx.db.region_control_info().region_id().find(destination_region) {
+            Some(control) => {
+                control.initialized & (control.allow_players || crate::game::handlers::authentication::has_role(ctx, &identity, Role::Gm))
+            }
+            None => false,
+        };
+
+        if !region_initialized {
+            return Err("Cannot transfer to specified region".into());
+        }
+    }
 
     // Innerlight buff
     let mut active_buff_state = unwrap_or_err!(ctx.db.active_buff_state().entity_id().find(&actor_id), "Player has no buff state");

@@ -1,4 +1,5 @@
 use hex_direction::HexDirection;
+use spacetimedb::ReducerContext;
 
 use super::hex_coordinates::HexCoordinates;
 
@@ -7,6 +8,7 @@ use crate::game::unity_helpers::vector2::Vector2;
 use crate::FootprintType;
 use spacetimedb::rand::seq::SliceRandom;
 use spacetimedb::rand::Rng;
+use std::collections::HashSet;
 use std::convert::From;
 use std::fmt::Display;
 use std::hash::Hash;
@@ -368,5 +370,38 @@ impl SmallHexTile {
             }
         }
         return true;
+    }
+
+    pub fn tile_count_in_radius(radius: i32) -> u64 {
+        if radius < 0 {
+            return 0;
+        }
+
+        let radius = radius as u64;
+        1 + 3 * radius * (radius + 1)
+    }
+
+    pub fn tile_count_between_radius(min_radius: i32, max_radius: i32) -> u64 {
+        Self::tile_count_in_radius(max_radius) - Self::tile_count_in_radius(min_radius - 1)
+    }
+
+    pub fn random_tile_between_radius(
+        ctx: &ReducerContext,
+        center: SmallHexTile,
+        min_radius: i32,
+        max_radius: i32,
+        sampled: &mut HashSet<SmallHexTile>,
+    ) -> SmallHexTile {
+        loop {
+            let candidate = SmallHexTile {
+                x: center.x + ctx.rng().gen_range(-max_radius..=max_radius),
+                z: center.z + ctx.rng().gen_range(-max_radius..=max_radius),
+                dimension: center.dimension,
+            };
+            let distance = center.distance_to(candidate);
+            if distance >= min_radius && distance <= max_radius && sampled.insert(candidate) {
+                return candidate;
+            }
+        }
     }
 }

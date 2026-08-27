@@ -339,6 +339,10 @@ pub fn reduce(
             f32::ceil(experience_per_progress.quantity * experience_actions_count as f32) as i32,
         );
 
+        if actions_count > 0 {
+            EquipmentState::try_activate_profession_hit_buffs(ctx, actor_id, skill)?;
+        }
+
         if project_site.progress >= actions_required {
             let mut owner_id = project_site.owner_id;
             if let Some(dimension_network) = DimensionNetworkState::get(ctx, target_coords.dimension) {

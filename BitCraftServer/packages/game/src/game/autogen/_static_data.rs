@@ -287,6 +287,9 @@ pub fn clear_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     for r in ctx.db.staged_skill_desc().iter() {
         ctx.db.staged_skill_desc().delete(r);
     }
+    for r in ctx.db.staged_skill_level_knowledge_desc().iter() {
+        ctx.db.staged_skill_level_knowledge_desc().delete(r);
+    }
     for r in ctx.db.staged_stage_rewards_desc().iter() {
         ctx.db.staged_stage_rewards_desc().delete(r);
     }
@@ -1619,6 +1622,20 @@ pub fn stage_skill_desc(ctx: &ReducerContext, records: Vec<SkillDesc>) -> Result
 }
 
 #[spacetimedb::reducer]
+pub fn stage_skill_level_knowledge_desc(ctx: &ReducerContext, records: Vec<SkillLevelKnowledgeDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    for r in records {
+        if let Err(e) = ctx.db.staged_skill_level_knowledge_desc().try_insert(r.clone()) {
+            spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
 pub fn stage_stage_rewards_desc(ctx: &ReducerContext, records: Vec<StageRewardsDesc>) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender, Role::Admin) {
         return Err("Invalid permissions".into());
@@ -2076,6 +2093,9 @@ pub fn validate_staged_data(ctx: &ReducerContext) -> Result<(), String> {
     }
     if ctx.db.staged_skill_desc().count() == 0 {
         return Err("Staged data for SkillDesc is empty, aborting.".into());
+    }
+    if ctx.db.staged_skill_level_knowledge_desc().count() == 0 {
+        return Err("Staged data for SkillLevelKnowledgeDesc is empty, aborting.".into());
     }
     if ctx.db.staged_stage_rewards_desc().count() == 0 {
         return Err("Staged data for StageRewardsDesc is empty, aborting.".into());

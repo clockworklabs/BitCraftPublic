@@ -9,4 +9,5 @@ pub mod migrate_grant_default_collectibles;
 pub mod migrate_missing_equipment_slot_types;
 pub mod migrate_onboarding;
 pub mod migrate_player_settings;
+pub mod migrate_skill_level_knowledge;
 pub mod migration_static_data;

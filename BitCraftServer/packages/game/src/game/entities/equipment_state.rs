@@ -1,12 +1,51 @@
 use std::collections::HashMap;
 
+use spacetimedb::rand::Rng;
 use spacetimedb::ReducerContext;
 
-use crate::messages::components::{equipment_preset_state, EquipmentState};
+use crate::game::entities::buff;
+use crate::messages::components::{equipment_preset_state, equipment_state, EquipmentState};
 use crate::messages::static_data::*;
 use crate::InventoryState;
 
 impl EquipmentState {
+    fn active_worn_equipment_item_ids(&self, ctx: &ReducerContext) -> Vec<i32> {
+        let active_preset = ctx
+            .db
+            .equipment_preset_state()
+            .player_entity_id()
+            .filter(self.entity_id)
+            .find(|preset| preset.active);
+
+        let equipment_slots = if let Some(preset) = active_preset {
+            EquipmentSlot::all_equipment_slots()
+                .iter()
+                .enumerate()
+                .map(|(slot_index, slot_type)| {
+                    if EquipmentSlot::equipment_preset_slots().contains(slot_type) {
+                        preset.equipment_slots[slot_index].clone()
+                    } else {
+                        self.equipment_slots[slot_index].clone()
+                    }
+                })
+                .collect()
+        } else {
+            self.equipment_slots.clone()
+        };
+
+        EquipmentSlot::all_equipment_slots()
+            .iter()
+            .zip(equipment_slots.iter())
+            .filter_map(|(slot_type, equipment_slot)| {
+                if equipment_slot.item_id() > 0 && equipment_slot.primary == *slot_type {
+                    Some(equipment_slot.item_id())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     pub fn collect_stats(&self, ctx: &ReducerContext, bonuses: &mut HashMap<CharacterStatType, (f32, f32)>) {
         let active_preset = ctx
             .db
@@ -65,6 +104,42 @@ impl EquipmentState {
                 }
             }
         }
+    }
+
+    pub fn try_activate_profession_hit_buffs(
+        ctx: &ReducerContext,
+        player_entity_id: u64,
+        action_skill: Option<SkillType>,
+    ) -> Result<(), String> {
+        let Some(equipment_state) = ctx.db.equipment_state().entity_id().find(&player_entity_id) else {
+            return Ok(());
+        };
+
+        for item_id in equipment_state.active_worn_equipment_item_ids(ctx) {
+            let Some(equipment) = ctx.db.equipment_desc().item_id().find(&item_id) else {
+                continue;
+            };
+
+            if equipment.equipment_buff_id == 0 || equipment.equipment_buff_chance_per_hit <= 0.0 {
+                continue;
+            }
+
+            if equipment.equipment_buff_skill_id != SkillType::ANY as i32 {
+                let Some(action_skill) = action_skill else {
+                    continue;
+                };
+
+                if equipment.equipment_buff_skill_id != action_skill as i32 {
+                    continue;
+                }
+            }
+
+            if ctx.rng().gen_range(0.0..=1.0) <= equipment.equipment_buff_chance_per_hit {
+                buff::activate(ctx, player_entity_id, equipment.equipment_buff_id, None, None)?;
+            }
+        }
+
+        Ok(())
     }
 
     /*

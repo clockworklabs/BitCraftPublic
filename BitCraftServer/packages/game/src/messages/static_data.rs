@@ -133,6 +133,7 @@ pub enum ClothingMask {
     HairFront,
     HairBottom,
     HairFull,
+    Bald,
 }
 
 // [FINAL RELEASE] Get rid of Artifacts (except for Head) and possibly Main/OffHand
@@ -1391,7 +1392,13 @@ pub struct EquipmentDesc {
     pub stats: Vec<CsvStatEntry>,
     pub required_achievements: Vec<i32>, // Maps to AchievementDesc.id
     pub required_knowledges: Vec<i32>, // Maps to Secondary Knowledge Ids
-    pub show_in_progression: bool
+    pub show_in_progression: bool,
+    #[default(0)]
+    pub equipment_buff_id: i32,
+    #[default(0.0f32)]
+    pub equipment_buff_chance_per_hit: f32,
+    #[default(1)]
+    pub equipment_buff_skill_id: i32,
 }
 
 #[static_data_staging_table(buff_type_desc)]
@@ -1923,6 +1930,17 @@ pub struct SecondaryKnowledgeDesc {
     #[primary_key]
     pub id: i32,
     pub name: String,
+}
+
+#[static_data_staging_table(skill_level_knowledge_desc)]
+#[spacetimedb::table(name = skill_level_knowledge_desc, public, index(name = skill_id, btree(columns = [skill_id])), index(name = skill_level, btree(columns = [skill_id, level])))]
+#[derive(Clone, PartialEq, Debug)]
+pub struct SkillLevelKnowledgeDesc {
+    #[primary_key]
+    pub id: i32,
+    pub skill_id: i32,
+    pub level: i32,
+    pub secondary_knowledge_id: i32,
 }
 
 #[static_data_staging_table(item_conversion_recipe_desc)]

@@ -259,6 +259,11 @@ fn reduce(
                 ctx.db.health_state().entity_id().find(&placeable.entity_id),
                 "Placeable is missing health"
             );
+            let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(&placeable.placeable_id), "Unknown placeable");
+
+            // Static data may lower max health while this placeable still has its old health.
+            // Clamp first so this interaction's damage is applied to the new effective health.
+            health.health = health.health.clamp(0.0, placeable_desc.max_health as f32);
 
             damage_output = health.health.min(damage);
             experience_damage_output = health.health.min(base_damage);
@@ -283,6 +288,8 @@ fn reduce(
                 if let Some(self_buffs) = &recipe.self_buffs {
                     apply_self_buffs(ctx, actor_id, self_buffs)?;
                 }
+
+                EquipmentState::try_activate_profession_hit_buffs(ctx, actor_id, recipe.get_skill_type())?;
             }
 
             health.add_health_delta(-damage_output, ctx.timestamp);

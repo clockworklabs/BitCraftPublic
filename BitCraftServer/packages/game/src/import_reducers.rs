@@ -2847,6 +2847,33 @@ fn import_secondary_knowledge_desc_internal(ctx: &ReducerContext, records: Vec<S
 }
 
 #[spacetimedb::reducer]
+pub fn import_skill_level_knowledge_desc(ctx: &ReducerContext, records: Vec<SkillLevelKnowledgeDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender, Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_skill_level_knowledge_desc_internal(ctx, records)?;
+    Ok(())
+}
+
+fn import_skill_level_knowledge_desc_internal(ctx: &ReducerContext, records: Vec<SkillLevelKnowledgeDesc>) -> Result<(), String> {
+    for id in ctx.db.skill_level_knowledge_desc().iter().map(|item| item.id) {
+        ctx.db.skill_level_knowledge_desc().id().delete(&id);
+    }
+    let len: usize = records.len();
+    log::info!("Will insert {} records of type SkillLevelKnowledgeDesc", len);
+    for record in records {
+        let id = record.id;
+        if let Err(err) = ctx.db.skill_level_knowledge_desc().try_insert(record) {
+            return Err(format!(
+                "Couldn't insert SkillLevelKnowledgeDesc record with id {id}. Error message: {err}"
+            ));
+        }
+    }
+    log::info!("Inserted {} records of type SkillLevelKnowledgeDesc", len);
+    Ok(())
+}
+
+#[spacetimedb::reducer]
 pub fn import_server_identity(ctx: &ReducerContext, records: Vec<ServerIdentity>) {
     if !has_role(ctx, &ctx.sender, Role::Admin) {
         log::error!("Invalid permissions");
@@ -4306,6 +4333,7 @@ pub fn commit_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     import_parameters_desc_internal(ctx, collect_table(ctx.db.staged_parameters_desc()))?;
     import_private_parameters_desc_internal(ctx, collect_table(ctx.db.staged_private_parameters_desc()))?;
     import_secondary_knowledge_desc_internal(ctx, collect_table(ctx.db.staged_secondary_knowledge_desc()))?;
+    import_skill_level_knowledge_desc_internal(ctx, collect_table(ctx.db.staged_skill_level_knowledge_desc()))?;
     import_weapon_type_desc_internal(ctx, collect_table(ctx.db.staged_weapon_type_desc()))?;
     import_skill_desc_internal(ctx, collect_table(ctx.db.staged_skill_desc()))?;
     import_targeting_matrix_desc_internal(ctx, collect_table(ctx.db.staged_targeting_matrix_desc()))?;

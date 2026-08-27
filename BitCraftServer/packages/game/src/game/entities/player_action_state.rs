@@ -122,6 +122,10 @@ impl PlayerActionState {
 
         move_validation_helpers::validate_move_timestamp(player_action.start_time, timestamp, ctx.timestamp)?;
 
+        if player_action.duration == 0 {
+            return Ok(());
+        }
+
         let elapsed_normalized = (timestamp - player_action.start_time) as f32 / player_action.duration as f32;
         if elapsed_normalized >= 0.95f32 {
             return Ok(());

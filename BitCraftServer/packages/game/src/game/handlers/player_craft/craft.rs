@@ -476,6 +476,10 @@ pub fn reduce(
                         claim_helper::mint_hex_coins(ctx, building.claim_entity_id, quantity as u32);
                     }
                 }
+
+                if actions_count > 0 {
+                    EquipmentState::try_activate_profession_hit_buffs(ctx, actor_id, skill)?;
+                }
             }
             progressive_action.last_crit_outcome = crit_multiplier.ceil() as i32;
             progressive_action.progress += actions_count;
