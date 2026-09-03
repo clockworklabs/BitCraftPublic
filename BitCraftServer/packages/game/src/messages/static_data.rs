@@ -591,6 +591,8 @@ pub struct ResourceDesc {
     pub water_depth_max: i32,
     #[default(0)]
     pub max_elevation_delta: i32,
+    #[default(None::<Vec<ResourceDestroyBuildingOutcome>>)]
+    pub on_destroy_building_outcomes: Option<Vec<ResourceDestroyBuildingOutcome>>,
 }
 
 #[static_data_staging_table(placeable_desc)]
@@ -651,6 +653,14 @@ pub struct PlaceableGrowthOutcomeV2 {
 pub struct ExtractionSpawnedPlaceable {
     pub placeable_id: i32,
     pub chance: f32,
+    pub radius_min: i32,
+    pub radius_max: i32,
+}
+
+#[derive(SpacetimeType, Clone, PartialEq, Debug)]
+pub struct ResourceDestroyBuildingOutcome {
+    pub probability: f32,
+    pub building_id: i32,
     pub radius_min: i32,
     pub radius_max: i32,
 }
@@ -2037,6 +2047,10 @@ pub struct InteriorNetworkDesc {
     pub trigger_collapse_time: u32,
     pub respawn_time: u32,
     pub child_interior_instances: Vec<i32>, //Cached during validation
+    #[default(false)]
+    pub start_collapsing: bool,
+    #[default(false)]
+    pub destroy_building_on_collapse: bool,
 }
 
 #[static_data_staging_table(building_portal_desc)]

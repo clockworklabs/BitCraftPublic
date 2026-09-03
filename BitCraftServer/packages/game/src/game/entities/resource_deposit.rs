@@ -4,13 +4,14 @@ use crate::agents::{crumb_trail_clean_up_agent, resources_regen};
 use crate::game::autogen::_delete_entity::delete_entity;
 use crate::game::entities::growth_timer::{delete_resource_growth_timer, insert_resource_growth_timer, resource_growth_timer};
 use crate::game::handlers::resource::respawn_resource_in_chunk::{respawn_resource_in_chunk_timer, RespawnResourceInChunkTimer};
+use crate::game::reducer_helpers::building_helpers::create_building_unsafe;
 use crate::game::reducer_helpers::timer_helpers::now_plus_secs_f32;
 use crate::game::reducer_helpers::{footprint_helpers, footprint_helpers::delete_footprint};
 use crate::game::{coordinates::*, dimensions, game_state, terrain_chunk::TerrainChunkCache};
 use crate::messages::authentication::ServerIdentity;
 use crate::messages::components::{
-    distant_visible_entity, light_source_state, location_state, DistantVisibleEntity, FootprintTileState, LightSourceState, LocationState,
-    ResourceState,
+    deployable_state_v2, distant_visible_entity, light_source_state, location_state, DistantVisibleEntity, FootprintTileState,
+    LightSourceState, LocationState, ResourceState,
 };
 use crate::messages::generic::{resource_count, ResourceCount};
 use crate::messages::static_data::*;
@@ -254,6 +255,190 @@ impl ResourceState {
                 resource_desc.on_destroy_yield_resource_max_radius,
             );
         }
+
+        if let Some(outcome) = Self::pick_destroy_building_outcome(ctx, resource_desc.on_destroy_building_outcomes) {
+            let _ = Self::spawn_building_in_radius_band_with_fallback(
+                ctx,
+                outcome.building_id,
+                coord,
+                deposit_direction,
+                outcome.radius_min,
+                outcome.radius_max,
+            );
+        }
+    }
+
+    pub fn pick_destroy_building_outcome(
+        ctx: &ReducerContext,
+        outcomes: Option<Vec<ResourceDestroyBuildingOutcome>>,
+    ) -> Option<ResourceDestroyBuildingOutcome> {
+        let outcomes = outcomes?;
+        if outcomes.is_empty() {
+            return None;
+        }
+
+        let mut sum = 0.0;
+        for outcome in &outcomes {
+            sum += outcome.probability;
+        }
+
+        if sum <= 0.0 {
+            return None;
+        }
+
+        let mut rnd = ctx.rng().gen_range(0.0..=sum);
+        for outcome in outcomes {
+            rnd -= outcome.probability;
+            if rnd <= 0.0 {
+                return Some(outcome);
+            }
+        }
+
+        None
+    }
+
+    pub fn spawn_building_in_radius_band_with_fallback(
+        ctx: &ReducerContext,
+        building_id: i32,
+        center: SmallHexTile,
+        direction_index: i32,
+        min_radius: i32,
+        max_radius: i32,
+    ) -> bool {
+        if building_id == 0 {
+            return false;
+        }
+
+        let building_desc = match ctx.db.building_desc().id().find(&building_id) {
+            Some(desc) => desc,
+            None => return false,
+        };
+        let min_radius = min_radius.max(0);
+        let max_radius = max_radius.max(min_radius);
+        let mut terrain_cache = TerrainChunkCache::empty();
+
+        if min_radius == 0 && max_radius == 0 {
+            return Self::try_spawn_building_at(ctx, &mut terrain_cache, &building_desc, center, direction_index);
+        }
+
+        let mut sampled = HashSet::new();
+        for _ in 0..SmallHexTile::tile_count_between_radius(min_radius, max_radius) {
+            let candidate = SmallHexTile::random_tile_between_radius(ctx, center, min_radius, max_radius, &mut sampled);
+            if Self::try_spawn_building_at(ctx, &mut terrain_cache, &building_desc, candidate, direction_index) {
+                return true;
+            }
+        }
+
+        Self::try_spawn_building_at(ctx, &mut terrain_cache, &building_desc, center, direction_index)
+    }
+
+    fn try_spawn_building_at(
+        ctx: &ReducerContext,
+        terrain_cache: &mut TerrainChunkCache,
+        building_desc: &BuildingDesc,
+        coordinates: SmallHexTile,
+        direction_index: i32,
+    ) -> bool {
+        if !Self::is_resource_spawn_safe_building(ctx, building_desc) {
+            return false;
+        }
+
+        let footprint = building_desc.get_footprint(&coordinates, direction_index);
+        if !Self::is_valid_resource_spawn_footprint(ctx, terrain_cache, coordinates, &footprint) {
+            return false;
+        }
+
+        if create_building_unsafe(ctx, 0, None, coordinates, direction_index, building_desc.id, None).is_err() {
+            return false;
+        }
+
+        true
+    }
+
+    fn is_resource_spawn_safe_building(ctx: &ReducerContext, building_desc: &BuildingDesc) -> bool {
+        if ctx.db.building_claim_desc().building_id().find(&building_desc.id).is_some() {
+            return false;
+        }
+
+        if building_desc.has_category(ctx, BuildingCategory::Waystone) {
+            return false;
+        }
+
+        if building_desc.has_category(ctx, BuildingCategory::EmpireFoundry) {
+            return false;
+        }
+
+        true
+    }
+
+    fn is_valid_resource_spawn_footprint(
+        ctx: &ReducerContext,
+        terrain_cache: &mut TerrainChunkCache,
+        coordinates: SmallHexTile,
+        footprint: &Vec<(SmallHexTile, FootprintType)>,
+    ) -> bool {
+        let close_enemies: Vec<SmallHexTile> = game_state::game_state_filters::enemies_in_radius(ctx, coordinates, 5)
+            .map(|(_, coord)| coord)
+            .collect();
+
+        let main_elevation = match terrain_cache.get_terrain_cell(ctx, &coordinates.parent_large_tile()) {
+            Some(cell) => cell.elevation,
+            None => return false,
+        };
+
+        for (coords, footprint_type) in footprint {
+            let existing_footprints = FootprintTileState::get_at_location(ctx, coords);
+            for existing in existing_footprints {
+                let resource = ctx.db.resource_state().entity_id().find(&existing.owner_entity_id);
+                if resource.is_none() && !FootprintTile::is_compatible(&existing.footprint_type, footprint_type) {
+                    return false;
+                }
+
+                if let Some(deposit) = resource {
+                    let Some(resource_desc) = ctx.db.resource_desc().id().find(&deposit.resource_id) else {
+                        return false;
+                    };
+
+                    if !resource_desc.flattenable {
+                        return false;
+                    }
+                }
+            }
+
+            let Some(terrain_target) = terrain_cache.get_terrain_cell(ctx, &coords.parent_large_tile()) else {
+                return false;
+            };
+
+            if *footprint_type != FootprintType::Perimeter {
+                if !game_state::game_state_filters::is_interior_tile_walkable(ctx, *coords) {
+                    return false;
+                }
+
+                if coords.is_corner() && !game_state::game_state_filters::is_flat_corner(ctx, terrain_cache, *coords) {
+                    return false;
+                }
+
+                if terrain_target.elevation != main_elevation {
+                    return false;
+                }
+
+                if game_state::game_state_filters::is_submerged(ctx, terrain_cache, *coords) {
+                    return false;
+                }
+            }
+
+            if close_enemies.contains(coords) {
+                return false;
+            }
+
+            if LocationState::select_all(ctx, coords)
+                .any(|location| ctx.db.deployable_state_v2().entity_id().find(&location.entity_id).is_some())
+            {
+                return false;
+            }
+        }
+
+        true
     }
 
     pub fn spawn_in_radius_band_with_fallback(

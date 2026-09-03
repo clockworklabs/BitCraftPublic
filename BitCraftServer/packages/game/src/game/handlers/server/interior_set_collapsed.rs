@@ -5,7 +5,7 @@ use crate::{
     game::{
         game_state::{self, game_state_filters},
         handlers::server::server_teleport_player::TeleportPlayerTimer,
-        reducer_helpers::{interior_helpers, timer_helpers::now_plus_secs},
+        reducer_helpers::{building_helpers::delete_building, interior_helpers, timer_helpers::now_plus_secs},
     },
     interior_network_desc,
     messages::{
@@ -78,6 +78,10 @@ pub fn interior_set_collapsed(ctx: &ReducerContext, dimension_network_entity_id:
             })
             .ok()
             .unwrap();
+
+        if interior_descriptor.destroy_building_on_collapse {
+            delete_building(ctx, 0, building.entity_id, None, true, false);
+        }
     } else {
         dimension_network.collapse_respawn_timestamp = 0;
         interior_helpers::respawn_interior(ctx, dimension_network_entity_id);

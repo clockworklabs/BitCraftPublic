@@ -621,6 +621,10 @@ fn create_building_interior_internal(
         return Err("Failed to insert dimension network description".into());
     }
 
+    if interior_desc.start_collapsing {
+        interior_trigger_collapse(ctx, dimension_network_descriptor_id)?;
+    }
+
     Ok(())
 }
 
