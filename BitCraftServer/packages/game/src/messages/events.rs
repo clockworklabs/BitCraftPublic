@@ -233,6 +233,15 @@ pub struct ExtractEvent {
     pub is_crit: bool,
 }
 
+#[spacetimedb::table(accessor = craft_event, public, event)]
+#[derive(Clone)]
+pub struct CraftEvent {
+    pub actor_entity_id: u64,
+    pub target_entity_id: u64,
+    pub progress: i32,
+    pub is_crit: bool,
+}
+
 /// Signals that an extraction action depleted a resource and its client
 /// representation should be kept alive long enough to play its deplete effect.
 #[spacetimedb::table(accessor = resource_depleted_event, public, event)]

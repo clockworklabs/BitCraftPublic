@@ -14,7 +14,7 @@ use crate::{
     messages::{
         action_request::{PlayerCraftContinueRequest, PlayerCraftInitiateRequest},
         components::*,
-        events::{craft_continue_start_event, craft_initiate_start_event, CraftContinueStartEvent, CraftInitiateStartEvent},
+        events::{craft_continue_start_event, craft_initiate_start_event, craft_event, CraftContinueStartEvent, CraftInitiateStartEvent, CraftEvent},
         game_util::ItemStack,
         static_data::*,
     },
@@ -494,6 +494,14 @@ pub fn reduce(
                     EquipmentState::try_activate_profession_hit_buffs(ctx, actor_id, skill)?;
                 }
             }
+
+            ctx.db.craft_event().insert(CraftEvent {
+                actor_entity_id: actor_id,
+                target_entity_id: progressive_action.entity_id,
+                progress: actions_count,
+                is_crit: crit_multiplier > 1.0,
+            });
+
             progressive_action.last_crit_outcome = crit_multiplier.ceil() as i32;
             progressive_action.progress += actions_count;
             if progressive_action.progress >= recipe.actions_required * progressive_action.craft_count {
