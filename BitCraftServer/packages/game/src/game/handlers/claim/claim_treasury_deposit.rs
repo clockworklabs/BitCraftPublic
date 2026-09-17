@@ -1,9 +1,14 @@
 use bitcraft_macro::feature_gate;
-use spacetimedb::ReducerContext;
+use spacetimedb::{ReducerContext, Table};
 
 use crate::{
     game::game_state::{self, game_state_filters},
-    messages::{action_request::PlayerClaimDepositToTreasuryRequest, components::*, game_util::ItemStack},
+    messages::{
+        action_request::PlayerClaimDepositToTreasuryRequest,
+        components::*,
+        events::{claim_treasury_event, ClaimTreasuryChangeReason, ClaimTreasuryEvent},
+        game_util::ItemStack,
+    }
     unwrap_or_err, InventoryState,
 };
 
@@ -32,7 +37,17 @@ pub fn claim_treasury_deposit(ctx: &ReducerContext, request: PlayerClaimDepositT
 
     let mut claim_local = claim.local_state(ctx);
     claim_local.treasury += request.amount;
+    let treasury_after = claim_local.treasury;
     ctx.db.claim_local_state().entity_id().update(claim_local);
+
+    ctx.db.claim_treasury_event().insert(ClaimTreasuryEvent {
+        claim_entity_id: request.claim_entity_id,
+        actor_entity_id: actor_id,
+        reason: ClaimTreasuryChangeReason::Deposit,
+        amount: request.amount,
+        treasury_after,
+        timestamp: ctx.timestamp,
+    });
 
     Ok(())
 }

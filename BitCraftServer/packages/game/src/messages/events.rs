@@ -14,7 +14,7 @@ use crate::messages::empire_shared::EmpireResupplyNodeRequest;
 use crate::messages::static_data::EnemyType;
 use crate::messages::util::{OffsetCoordinatesFloat, SmallHexTileMessage};
 use bitcraft_macro::event_table;
-use spacetimedb::{Identity, SpacetimeType};
+use spacetimedb::{Identity, SpacetimeType, Timestamp};
 
 /// Ephemeral notifications for effects that must be visible to connections other
 /// than the reducer caller in SpacetimeDB 2.x.
@@ -301,4 +301,21 @@ pub struct PlayerRegionTransferEvent {
 #[event_table(name = player_set_name_outcome_event)]
 pub struct PlayerSetNameOutcomeEvent {
     pub player_entity_id: u64,
+}
+
+#[derive(SpacetimeType, Copy, Clone)]
+#[repr(i32)]
+pub enum ClaimTreasuryChangeReason {
+    Deposit = 0,
+    Withdraw,
+}
+
+#[spacetimedb::table(accessor = claim_treasury_event, public, event)]
+pub struct ClaimTreasuryEvent {
+    pub claim_entity_id: u64,
+    pub actor_entity_id: u64,
+    pub reason: ClaimTreasuryChangeReason,
+    pub amount: u32,
+    pub treasury_after: u32,
+    pub timestamp: Timestamp,
 }
