@@ -243,6 +243,18 @@ pub struct ResourceDepletedEvent {
     pub show_time_left: bool,
 }
 
+/// Signals that an active craft reached `actions_required * craft_count` and
+/// the player's Craft action was cleared. The pocket still exists until collect.
+#[spacetimedb::table(accessor = craft_completed_event, public, event)]
+#[derive(Clone)]
+pub struct CraftCompletedEvent {
+    pub actor_entity_id: u64,
+    pub progressive_action_entity_id: u64,
+    pub building_entity_id: u64,
+    pub recipe_id: i32,
+    pub craft_count: i32,
+}
+
 #[derive(SpacetimeType, Copy, Clone)]
 #[repr(i32)]
 pub enum PlayerSignedOutReason {
