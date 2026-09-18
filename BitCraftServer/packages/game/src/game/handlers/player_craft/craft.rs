@@ -14,7 +14,10 @@ use crate::{
     messages::{
         action_request::{PlayerCraftContinueRequest, PlayerCraftInitiateRequest},
         components::*,
-        events::{craft_continue_start_event, craft_initiate_start_event, CraftContinueStartEvent, CraftInitiateStartEvent},
+        events::{
+            craft_completed_event, craft_continue_start_event, craft_initiate_start_event, CraftCompletedEvent, CraftContinueStartEvent,
+            CraftInitiateStartEvent,
+        },
         game_util::ItemStack,
         static_data::*,
     },
@@ -497,6 +500,13 @@ pub fn reduce(
             progressive_action.last_crit_outcome = crit_multiplier.ceil() as i32;
             progressive_action.progress += actions_count;
             if progressive_action.progress >= recipe.actions_required * progressive_action.craft_count {
+                ctx.db.craft_completed_event().insert(CraftCompletedEvent {
+                    actor_entity_id: actor_id,
+                    progressive_action_entity_id: progressive_action.entity_id,
+                    building_entity_id: progressive_action.building_entity_id,
+                    recipe_id: progressive_action.recipe_id,
+                    craft_count: progressive_action.craft_count,
+                });
                 PlayerActionState::success(
                     ctx,
                     actor_id,
