@@ -1,5 +1,5 @@
 use bitcraft_macro::feature_gate;
-use spacetimedb::ReducerContext;
+use spacetimedb::{ReducerContext, Table};
 
 use crate::game::coordinates::{OffsetCoordinatesSmall, SmallHexTile};
 use crate::game::game_state::{self, game_state_filters};
@@ -9,6 +9,7 @@ use crate::messages::components::{
     building_state, location_state, portal_state, DimensionNetworkState, InventoryState, Permission, PermissionState,
 };
 use crate::messages::empire_shared::empire_chunk_state;
+use crate::messages::event::{building_buff_activate_event, BuildingBuffActivateEvent};
 use crate::messages::game_util::{ItemStack, ItemType};
 use crate::messages::inter_module::EmpireAddCurrencyMsg;
 use crate::messages::static_data::{building_buff_desc, building_desc, item_desc};
@@ -123,6 +124,14 @@ pub fn activate_building_buff(ctx: &ReducerContext, building_entity_id: u64) -> 
             }),
             crate::inter_module::InterModuleDestination::Global,
         );
+
+        ctx.db.building_buff_activate_event().insert(BuildingBuffActivateEvent {
+            actor_entity_id: actor_id,
+            building_entity_id,
+            empire_entity_id,
+            amount: building_buff.empire_currency_cost as u32,
+        });
+
     }
 
     // gain potential buffs

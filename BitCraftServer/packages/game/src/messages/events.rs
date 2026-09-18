@@ -302,3 +302,11 @@ pub struct PlayerRegionTransferEvent {
 pub struct PlayerSetNameOutcomeEvent {
     pub player_entity_id: u64,
 }
+
+#[spacetimedb::table(accessor = building_buff_activate_event, public, event)]
+pub struct BuildingBuffActivateEvent {
+    pub actor_entity_id: u64,
+    pub building_entity_id: u64,
+    pub empire_entity_id: u64,
+    pub amount: u32,
+}
