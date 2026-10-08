@@ -34,8 +34,13 @@ pub fn empire_collect_hexite_capsule(ctx: &ReducerContext, request: EmpireCollec
 
     if InventoryState::get_player_cargo_id(ctx, actor_id) != 0 {
         let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
-        let deployable_inventories =
-            InventoryState::get_nearby_deployable_inventories(ctx, actor_id, |x| foundry_location.distance_to(x), max_distance);
+        let deployable_inventories = InventoryState::get_nearby_deployable_inventories(
+            ctx,
+            actor_id,
+            |x| foundry_location.distance_to(x),
+            max_distance,
+            true,
+        );
 
         if deployable_inventories.len() == 0 {
             return Err("Already carrying a cargo".into());

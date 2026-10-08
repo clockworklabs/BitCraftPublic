@@ -1216,6 +1216,7 @@ impl InventoryState {
         player_entity_id: u64,
         get_distance_fn: TDistanceFn,
         max_distance: i32,
+        always_include_mounted: bool,
     ) -> Vec<InventoryState>
     where
         TDistanceFn: Fn(SmallHexTile) -> i32,
@@ -1233,7 +1234,15 @@ impl InventoryState {
             };
 
             let distance = get_distance_fn(mobile_entity_state.coordinates());
-            if distance > max_distance {
+            if distance > max_distance
+                && !(always_include_mounted
+                    && ctx
+                        .db
+                        .mounting_state()
+                        .entity_id()
+                        .find(player_entity_id)
+                        .is_some_and(|mounting_state| mounting_state.deployable_entity_id == deployable.entity_id))
+            {
                 continue;
             }
 
@@ -1279,7 +1288,7 @@ impl InventoryState {
 
         //Find the player's nearby deployables and get their inventories
         let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
-        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
+        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance, false);
 
         let player_wallet = unwrap_or_err!(InventoryState::get_player_wallet(ctx, player_entity_id), "Player has no wallet");
         inventories.insert(0, player_wallet);
@@ -1320,7 +1329,7 @@ impl InventoryState {
 
         //Find the player's nearby deployables and get their inventories
         let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
-        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
+        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance, false);
 
         if inventories.len() == 0 {
             return Err("You don't have the required items.".into());
@@ -1401,7 +1410,7 @@ impl InventoryState {
             "Player has no inventory"
         );
         let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
-        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
+        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance, true);
         let mut changed_inventory_indices = HashSet::new();
         let mut overflow_items = Vec::new();
 
@@ -1584,7 +1593,7 @@ impl InventoryState {
 
         //Find the player's nearby deployables and get their inventories
         let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
-        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
+        let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance, false);
 
         if inventories.len() == 0 {
             return Err("You don't have the required items.".into());
