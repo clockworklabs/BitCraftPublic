@@ -35,4 +35,4 @@ if [[ -z "$wasm_path" || ! -f "$wasm_path" ]]; then
 fi
 
 echo "Publishing bitcraft-live-1 to '$host' using: $wasm_path"
-spacetime publish -s "$host" --bin-path "$wasm_path" bitcraft-live-1 -y
+spacetime publish -s "$host" --bin-path "$wasm_path" bitcraft-live-1

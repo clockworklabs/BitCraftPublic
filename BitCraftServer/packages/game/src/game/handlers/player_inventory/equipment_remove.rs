@@ -114,15 +114,12 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
             }
 
             for slot in equipment_info.slots.iter() {
-                let slot = *slot as usize;
-                let equipment_slot = &equipment_slots[slot];
-                if equipment_slot.item_id() > 0 {
-                    return Err("Can't swap".into());
-                }
-                equipment_slots[slot] = EquipmentSlot {
-                    item: Some(contents),
-                    primary: equipment_info.slots[0],
-                };
+                let equipment_slot = unwrap_or_err!(
+                    equipment_slots.iter_mut().find(|equipment_slot| equipment_slot.primary == *slot),
+                    "Unknown equipment slot '{{0}}'|~{:?}",
+                    *slot
+                );
+                equipment_slot.item = Some(contents);
             }
 
             inventory.remove_at(pocket_index);

@@ -19,4 +19,4 @@ if [[ -z "$host" ]]; then
 fi
 
 echo "Publishing bitcraft-live-global to '$host'..."
-spacetime publish -s "$host" bitcraft-live-global -y
+spacetime publish -s "$host" bitcraft-live-global

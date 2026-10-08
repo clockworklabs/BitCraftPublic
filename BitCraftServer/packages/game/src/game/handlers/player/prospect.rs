@@ -63,6 +63,17 @@ pub fn prospect(ctx: &ReducerContext, prospecting_id: i32, timestamp: u64) -> Re
     )
 }
 
+#[spacetimedb::reducer]
+#[feature_gate("prospecting")]
+pub fn prospect_cancel(ctx: &ReducerContext) -> Result<(), String> {
+    let actor_id = game_state::actor_id(&ctx, true)?;
+    PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
+
+    ctx.db.prospecting_state().entity_id().delete(actor_id);
+
+    Ok(())
+}
+
 fn event_delay(ctx: &ReducerContext, prospecting_id: i32) -> Duration {
     let prospecting = ctx.db.prospecting_desc().id().find(prospecting_id);
     if prospecting.is_none() {

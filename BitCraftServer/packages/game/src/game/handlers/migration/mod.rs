@@ -4,6 +4,7 @@ pub mod migrate_achievements;
 pub mod migrate_auto_attacks;
 pub mod migrate_character_stats;
 pub mod migrate_claim_tech;
+pub mod migrate_duplicate_equipment_slots;
 pub mod migrate_equipment_slots;
 pub mod migrate_grant_default_collectibles;
 pub mod migrate_missing_equipment_slot_types;
