@@ -68,13 +68,16 @@ pub fn item_drop(ctx: &ReducerContext, request: PlayerItemDropRequest) -> Result
             ctx.db.inventory_state().entity_id().find(&request.pocket.inventory_entity_id),
             "Invalid source inventory"
         );
-        inventory_helper::validate_interact(
+        let source_inventory_type = inventory_helper::validate_interact(
             ctx,
             actor_id,
             pile_coordinates,
             source_inventory.owner_entity_id,
             source_inventory.player_owner_entity_id,
         )?;
+
+        // Ensure this inventory type is allowed as a drop source.
+        inventory_helper::validate_drop(&source_inventory_type)?;
 
         let pocket_index: usize = request.pocket.pocket_index as usize;
         item_stack = unwrap_or_err!(
