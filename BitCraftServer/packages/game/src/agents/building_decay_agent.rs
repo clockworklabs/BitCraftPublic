@@ -5,7 +5,11 @@ use spacetimedb::{log, ReducerContext, Table};
 
 use crate::{
     agents, building_desc, building_state, claim_state,
-    game::{dimensions, entities::building_state::BuildingState, reducer_helpers::building_helpers::delete_building},
+    game::{
+        dimensions,
+        entities::building_state::BuildingState,
+        reducer_helpers::{building_helpers::delete_building, floating_platform_helpers},
+    },
     health_state, location_state,
     messages::authentication::ServerIdentity,
     parameters_desc,
@@ -162,13 +166,23 @@ fn building_decay(ctx: &ReducerContext, building_entity_id: u64, decay: f32, max
         }
     };
     let new_health = (health_state.health - decay).clamp(0.0, max_health);
-    if health_state.health != new_health {
+    let health_changed = health_state.health != new_health;
+    if health_changed {
         health_state.health = new_health;
         ctx.db.health_state().entity_id().update(health_state);
+    }
 
-        if new_health == 0.0 {
-            // Destroy building
-            delete_building(ctx, 0, building_entity_id, None, false, true);
+    if new_health == 0.0 {
+        // Floating platforms whose destruction was postponed stay at 0 health, so keep retrying them on every pass
+        let is_floating_platform = floating_platform_helpers::platform_cell_of(ctx, building_entity_id).is_some();
+        if !health_changed && !is_floating_platform {
+            return;
         }
+        if is_floating_platform && floating_platform_helpers::is_platform_occupied(ctx, building_entity_id) {
+            // Removing it would strand pets or mobs in the water: wait until they're gone (players and deployables don't block it)
+            return;
+        }
+        // Destroy building
+        delete_building(ctx, 0, building_entity_id, None, false, true);
     }
 }

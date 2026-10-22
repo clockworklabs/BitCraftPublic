@@ -1,13 +1,13 @@
 use bitcraft_macro::feature_gate;
 use std::time::Duration;
 
-use spacetimedb::{ReducerContext, Table};
+use spacetimedb::{rand::Rng, ReducerContext, Table};
 
 use crate::{
     game::{
         claim_helper,
         discovery::Discovery,
-        entities::building_state::BuildingState,
+        entities::{buff, building_state::BuildingState},
         game_state::{self, game_state_filters},
         reducer_helpers::{deployable_helpers::dismount_deployable_and_set_deployable_position, player_action_helpers},
     },
@@ -23,6 +23,16 @@ use crate::{
     },
     unwrap_or_err,
 };
+
+fn apply_self_buffs(ctx: &ReducerContext, actor_id: u64, self_buffs: &[PlaceableSelfBuffChance]) -> Result<(), String> {
+    for self_buff in self_buffs {
+        if ctx.rng().gen_range(0.0..=1.0) <= self_buff.chance {
+            buff::activate(ctx, actor_id, self_buff.buff_id, self_buff.duration, None)?;
+        }
+    }
+
+    Ok(())
+}
 
 pub fn event_delay(recipe: &CraftingRecipeDesc, stats: &CharacterStatsState) -> Duration {
     let skill_speed = match recipe.get_skill_type() {
@@ -236,12 +246,98 @@ pub fn reduce(
     actor_id: u64,
     recipe_id: i32,
     building_entity_id: u64,
+    progressive_action: ProgressiveActionState,
+    stats: CharacterStatsState,
+    new_craft_count: Option<i32>,
+    timestamp: u64,
+    is_public: bool,
+    dry_run: bool,
+) -> Result<(), String> {
+    reduce_with_options(
+        ctx,
+        actor_id,
+        recipe_id,
+        building_entity_id,
+        progressive_action,
+        stats,
+        new_craft_count,
+        timestamp,
+        is_public,
+        dry_run,
+        None,
+    )
+}
+
+pub fn apply_ability_profession_hit(
+    ctx: &ReducerContext,
+    actor_id: u64,
+    action: &PlayerActionState,
+    bonus_damage: i32,
+    timestamp: u64,
+) -> Result<(), String> {
+    let building_entity_id = action.target.ok_or_else(|| "Current crafting action has no target".to_string())?;
+    let recipe_id = action
+        .recipe_id
+        .ok_or_else(|| "Current crafting action has no recipe".to_string())?;
+    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(&recipe_id), "Invalid recipe");
+
+    let candidates: Vec<ProgressiveActionState> = ctx
+        .db
+        .progressive_action_state()
+        .building_entity_id()
+        .filter(building_entity_id)
+        .filter(|progressive_action| {
+            progressive_action.recipe_id == recipe_id
+                && progressive_action.preparation
+                && progressive_action.get_status_from_recipe(&recipe, ctx.timestamp) != ProgressiveActionStatus::Completed
+        })
+        .collect();
+
+    let mut accessible_candidates = candidates.iter().filter(|progressive_action| {
+        progressive_action.owner_entity_id == actor_id
+            || ctx
+                .db
+                .public_progressive_action_state()
+                .entity_id()
+                .find(progressive_action.entity_id)
+                .is_some()
+    });
+    let progressive_action = accessible_candidates
+        .next()
+        .cloned()
+        .ok_or_else(|| "Could not uniquely resolve the current crafting project".to_string())?;
+    if accessible_candidates.next().is_some() {
+        return Err("Could not uniquely resolve the current crafting project".into());
+    }
+
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    reduce_with_options(
+        ctx,
+        actor_id,
+        recipe_id,
+        building_entity_id,
+        progressive_action,
+        stats,
+        None,
+        timestamp,
+        false,
+        false,
+        Some(bonus_damage.max(0)),
+    )
+}
+
+fn reduce_with_options(
+    ctx: &ReducerContext,
+    actor_id: u64,
+    recipe_id: i32,
+    building_entity_id: u64,
     mut progressive_action: ProgressiveActionState,
     stats: CharacterStatsState,
     new_craft_count: Option<i32>,
     timestamp: u64,
     is_public: bool,
     dry_run: bool,
+    profession_hit_bonus_damage: Option<i32>,
 ) -> Result<(), String> {
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
@@ -249,11 +345,13 @@ pub fn reduce(
         return Err("Invalid quantity".into());
     }
 
-    PlayerActionState::validate_timestamp_basic(ctx, actor_id, PlayerActionType::Craft, timestamp)?;
-    if !dry_run {
-        // Make sure target and timestamp and action fit
-        PlayerActionState::validate(ctx, actor_id, PlayerActionType::Craft, Some(building_entity_id))?;
-        PlayerActionState::validate_action_timing(ctx, actor_id, PlayerActionType::Craft, timestamp)?;
+    if profession_hit_bonus_damage.is_none() {
+        PlayerActionState::validate_timestamp_basic(ctx, actor_id, PlayerActionType::Craft, timestamp)?;
+        if !dry_run {
+            // Make sure target and timestamp and action fit
+            PlayerActionState::validate(ctx, actor_id, PlayerActionType::Craft, Some(building_entity_id))?;
+            PlayerActionState::validate_action_timing(ctx, actor_id, PlayerActionType::Craft, timestamp)?;
+        }
     }
 
     let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(&recipe_id), "Invalid recipe");
@@ -311,16 +409,18 @@ pub fn reduce(
 
     if craft_status == ProgressiveActionStatus::Suspended {}
 
-    let stamina_state = unwrap_or_err!(
-        ctx.db.stamina_state().entity_id().find(&actor_id),
-        "Player missing stamina component!"
-    );
-    if stamina_state.stamina < recipe.stamina_requirement as f32 {
-        return Err("Not enough stamina.".into());
-    }
+    if profession_hit_bonus_damage.is_none() {
+        let stamina_state = unwrap_or_err!(
+            ctx.db.stamina_state().entity_id().find(&actor_id),
+            "Player missing stamina component!"
+        );
+        if stamina_state.stamina < recipe.stamina_requirement as f32 {
+            return Err("Not enough stamina.".into());
+        }
 
-    if !dry_run {
-        StaminaState::add_player_stamina(ctx, actor_id, -recipe.stamina_requirement as f32);
+        if !dry_run {
+            StaminaState::add_player_stamina(ctx, actor_id, -recipe.stamina_requirement as f32);
+        }
     }
 
     if recipe.required_claim_tech_id != 0 {
@@ -471,8 +571,9 @@ pub fn reduce(
 
                 crit_multiplier = stats.get_final_crit_multiplier(ctx, skill);
 
-                let base_damage = tool_power.round() as i32;
-                let damage = (tool_power * crit_multiplier).round() as i32;
+                let bonus_damage = profession_hit_bonus_damage.unwrap_or(0);
+                let base_damage = (tool_power.round() as i32).saturating_add(bonus_damage);
+                let damage = ((tool_power * crit_multiplier).round() as i32).saturating_add(bonus_damage);
 
                 let experience_actions_count = i32::min(
                     recipe.actions_required * progressive_action.craft_count - progressive_action.progress,
@@ -494,6 +595,9 @@ pub fn reduce(
                 }
 
                 if actions_count > 0 {
+                    if let Some(self_buffs) = &recipe.self_buffs {
+                        apply_self_buffs(ctx, actor_id, self_buffs)?;
+                    }
                     EquipmentState::try_activate_profession_hit_buffs(ctx, actor_id, skill)?;
                 }
             }
@@ -527,13 +631,22 @@ pub fn reduce(
                 );
             }
 
-            if recipe.tool_durability_lost > 0 {
+            if profession_hit_bonus_damage.is_none() && recipe.tool_durability_lost > 0 {
                 InventoryState::reduce_tool_durability(ctx, actor_id, recipe.tool_requirements[0].tool_type, recipe.tool_durability_lost);
             }
 
-            PlayerActionState::mark_as_consumed(ctx, actor_id)?;
+            if profession_hit_bonus_damage.is_none() {
+                PlayerActionState::mark_as_consumed(ctx, actor_id)?;
+            }
         }
     } else {
+        if profession_hit_bonus_damage.is_some() {
+            return Err(if !meets_tool_requirements {
+                "The current crafting action's tool requirements are not met".into()
+            } else {
+                "Your skill level is too low".into()
+            });
+        }
         PlayerActionState::clear_by_entity_id(ctx, actor_id)?;
     }
 

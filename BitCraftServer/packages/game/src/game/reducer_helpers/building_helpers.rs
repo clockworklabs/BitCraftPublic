@@ -1,3 +1,4 @@
+use crate::game::reducer_helpers::floating_platform_helpers;
 use std::cell::Cell;
 
 use spacetimedb::{log, ReducerContext, Table, Timestamp};
@@ -167,6 +168,8 @@ pub fn create_building_component(
             died_timestamp: 0,
         })
         .unwrap();
+
+    floating_platform_helpers::raise_terrain_under_platform(ctx, building_entity_id, building.id);
 
     for i in 0..building.functions.len() {
         let function = &building.functions[i];
@@ -521,6 +524,9 @@ pub fn delete_building(
     ctx.db.terraform_progress_state().entity_id().delete(&entity_id);
 
     ctx.db.passive_craft_state().building_entity_id().delete(&entity_id);
+
+    floating_platform_helpers::restore_terrain_under_platform(ctx, building.building_description_id, location);
+    floating_platform_helpers::dismount_players_on_platform(ctx, entity_id);
 
     delete_footprint(ctx, entity_id);
 

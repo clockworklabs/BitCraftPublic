@@ -1,7 +1,10 @@
 use spacetimedb::{ReducerContext, Table};
 use std::collections::HashMap;
 
-use spacetimedb::{log, rand::Rng};
+use spacetimedb::{
+    log,
+    rand::{seq::SliceRandom, Rng},
+};
 
 use crate::{
     building_desc, building_portal_desc, building_state, dimension_description_state, dimension_network_state, enemy_state,
@@ -16,7 +19,8 @@ use crate::{
         },
     },
     herd_state, interior_collapse_trigger_state, interior_instance_desc, interior_network_desc, interior_portal_connections_desc,
-    interior_shape_desc, interior_spawn_desc, loot_chest_state,
+    interior_shape_desc, interior_spawn_desc, interior_spawn_destroy_trigger_desc, interior_spawn_random_group_desc,
+    interior_spawned_resource_state, loot_chest_state,
     messages::{
         action_request::ServerTeleportReason,
         components::{
@@ -36,8 +40,8 @@ use super::{
 };
 
 use crate::messages::components::{
-    DimensionDescriptionState, DimensionNetworkState, HerdState, InteriorCollapseTriggerState, NpcState, PortalState, ResourceState,
-    TerrainChunkState,
+    DimensionDescriptionState, DimensionNetworkState, HerdState, InteriorCollapseTriggerState, InteriorSpawnedResourceState, NpcState,
+    PortalState, ResourceState, TerrainChunkState,
 };
 
 pub fn interior_trigger_collapse(ctx: &ReducerContext, dimension_network_entity_id: u64) -> Result<(), String> {
@@ -254,12 +258,11 @@ pub fn respawn_interior(ctx: &ReducerContext, dimension_network_description_id: 
             .interior_spawn_desc()
             .interior_instance_id()
             .filter(dimension.interior_instance_id)
+            .filter(|spawn| spawn.respawn)
             .collect();
+        let random_group_resources = resolve_random_group_resources(ctx, &spawns);
 
         for spawn in spawns {
-            if !spawn.respawn {
-                continue;
-            }
             let x = spawn.spawn_x - shape.min_x;
             let z = spawn.spawn_z - shape.min_z;
             match spawn.spawn_type {
@@ -285,8 +288,19 @@ pub fn respawn_interior(ctx: &ReducerContext, dimension_network_description_id: 
                         z,
                         dimension: dimension.dimension_id,
                     };
-                    spawn_interior_resource(ctx, &spawn, location, dimension_network_description_id);
+                    spawn_interior_resource(ctx, &spawn, spawn.resource_clump_id, location, dimension_network_description_id);
                     //add_interior_collapse_trigger(state, spawn, entity_id, dimension_network_descriptor_id); // Handled by spawn_interior_resource
+                }
+
+                InteriorSpawnType::InteriorSpawnRandomGroup => {
+                    if let Some(resource_clump_id) = random_group_resources.get(&spawn.id) {
+                        let location = OffsetCoordinatesSmall {
+                            x,
+                            z,
+                            dimension: dimension.dimension_id,
+                        };
+                        spawn_interior_resource(ctx, &spawn, *resource_clump_id, location, dimension_network_description_id);
+                    }
                 }
 
                 InteriorSpawnType::Chest => {
@@ -462,7 +476,14 @@ fn create_building_interior_internal(
         let mut combat_dimension_exists = ctx.db.combat_dimension_state().dimension_id().find(dimension).is_some();
 
         //Add spawns
-        for spawn in ctx.db.interior_spawn_desc().interior_instance_id().filter(interior_instance) {
+        let spawns: Vec<InteriorSpawnDesc> = ctx
+            .db
+            .interior_spawn_desc()
+            .interior_instance_id()
+            .filter(interior_instance)
+            .collect();
+        let random_group_resources = resolve_random_group_resources(ctx, &spawns);
+        for spawn in spawns {
             let x = spawn.spawn_x - shape.min_x;
             let z = spawn.spawn_z - shape.min_z;
             match spawn.spawn_type {
@@ -475,8 +496,15 @@ fn create_building_interior_internal(
 
                 InteriorSpawnType::Resource => {
                     let location = OffsetCoordinatesSmall { x, z, dimension };
-                    spawn_interior_resource(ctx, &spawn, location, dimension_network_descriptor_id);
+                    spawn_interior_resource(ctx, &spawn, spawn.resource_clump_id, location, dimension_network_descriptor_id);
                     //add_interior_collapse_trigger(state, spawn, entity_id, dimension_network_descriptor_id); // Handled by spawn_interior_resource
+                }
+
+                InteriorSpawnType::InteriorSpawnRandomGroup => {
+                    if let Some(resource_clump_id) = random_group_resources.get(&spawn.id) {
+                        let location = OffsetCoordinatesSmall { x, z, dimension };
+                        spawn_interior_resource(ctx, &spawn, *resource_clump_id, location, dimension_network_descriptor_id);
+                    }
                 }
 
                 InteriorSpawnType::Chest => {
@@ -716,10 +744,11 @@ fn spawn_interior_building(ctx: &ReducerContext, spawn: &InteriorSpawnDesc, loca
 pub(crate) fn spawn_interior_resource(
     ctx: &ReducerContext,
     spawn: &InteriorSpawnDesc,
+    resource_clump_id: i32,
     location: OffsetCoordinatesSmall,
     dimension_network_descriptor_id: u64,
 ) {
-    let clump = ctx.db.resource_clump_desc().id().find(&spawn.resource_clump_id).unwrap();
+    let clump = ctx.db.resource_clump_desc().id().find(&resource_clump_id).unwrap();
 
     let hex_coordinates = SmallHexTile::from(location);
     let facing_direction = HexDirection::from(spawn.direction);
@@ -773,10 +802,131 @@ pub(crate) fn spawn_interior_resource(
                     true,
                 )
                 .unwrap();
+                ctx.db
+                    .interior_spawned_resource_state()
+                    .insert(InteriorSpawnedResourceState {
+                        entity_id,
+                        interior_spawn_desc_id: spawn.id,
+                        dimension_id: location.dimension,
+                    });
                 add_interior_collapse_trigger(ctx, spawn, entity_id, dimension_network_descriptor_id);
             }
         }
     }
+}
+
+pub fn handle_interior_spawn_resource_destroyed(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
+    if ctx.db.interior_spawned_resource_state().entity_id().find(&entity_id).is_none() {
+        return Ok(());
+    }
+
+    let mut pending_resources = vec![(entity_id, false)];
+    while let Some((destroyed_entity_id, should_despawn)) = pending_resources.pop() {
+        let Some(spawned_resource) = ctx
+            .db
+            .interior_spawned_resource_state()
+            .entity_id()
+            .find(&destroyed_entity_id)
+        else {
+            continue;
+        };
+
+        ctx.db
+            .interior_spawned_resource_state()
+            .entity_id()
+            .delete(&destroyed_entity_id);
+
+        let destroy_triggers: Vec<_> = ctx
+            .db
+            .interior_spawn_destroy_trigger_desc()
+            .iter()
+            .filter(|trigger| {
+                trigger
+                    .trigger_interior_spawn_ids
+                    .contains(&spawned_resource.interior_spawn_desc_id)
+            })
+            .collect();
+
+        for destroy_trigger in destroy_triggers {
+            let is_triggered = !destroy_trigger.require_all_triggers
+                || destroy_trigger.trigger_interior_spawn_ids.iter().all(|spawn_id| {
+                    !ctx
+                        .db
+                        .interior_spawned_resource_state()
+                        .dimension_id()
+                        .filter(spawned_resource.dimension_id)
+                        .any(|resource| resource.interior_spawn_desc_id == *spawn_id)
+                });
+            if !is_triggered {
+                continue;
+            }
+
+            pending_resources.extend(
+                ctx.db
+                    .interior_spawned_resource_state()
+                    .dimension_id()
+                    .filter(spawned_resource.dimension_id)
+                    .filter(|resource| {
+                        destroy_trigger
+                            .destroyed_interior_spawn_ids
+                            .contains(&resource.interior_spawn_desc_id)
+                    })
+                    .map(|resource| (resource.entity_id, true)),
+            );
+        }
+
+        if should_despawn {
+            if let Some(collapse_trigger) = ctx
+                .db
+                .interior_collapse_trigger_state()
+                .entity_id()
+                .find(&destroyed_entity_id)
+            {
+                interior_trigger_collapse(ctx, collapse_trigger.dimension_network_entity_id)?;
+            }
+            if let Some(resource) = ctx.db.resource_state().entity_id().find(&destroyed_entity_id) {
+                resource.despawn_self(ctx);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn resolve_random_group_resources(ctx: &ReducerContext, spawns: &[InteriorSpawnDesc]) -> HashMap<i32, i32> {
+    let mut spawns_by_group: HashMap<i32, Vec<i32>> = HashMap::new();
+    for spawn in spawns
+        .iter()
+        .filter(|spawn| spawn.spawn_type == InteriorSpawnType::InteriorSpawnRandomGroup)
+    {
+        spawns_by_group
+            .entry(spawn.interior_spawn_random_group_id)
+            .or_default()
+            .push(spawn.id);
+    }
+
+    let mut assignments = HashMap::new();
+    for (group_id, mut spawn_ids) in spawns_by_group {
+        spawn_ids.sort_unstable();
+        let Some(group) = ctx.db.interior_spawn_random_group_desc().id().find(&group_id) else {
+            log::error!("Interior spawn random group {} does not exist", group_id);
+            continue;
+        };
+        if group.resource_clump_ids.is_empty() {
+            log::error!("Interior spawn random group {} contains no resource clumps", group_id);
+            continue;
+        }
+
+        for spawn_id_cycle in spawn_ids.chunks(group.resource_clump_ids.len()) {
+            let mut resource_clump_ids = group.resource_clump_ids.clone();
+            resource_clump_ids.shuffle(&mut ctx.rng());
+            for (spawn_id, resource_clump_id) in spawn_id_cycle.iter().zip(resource_clump_ids) {
+                assignments.insert(*spawn_id, resource_clump_id);
+            }
+        }
+    }
+
+    assignments
 }
 
 fn add_interior_collapse_trigger(ctx: &ReducerContext, spawn: &InteriorSpawnDesc, entity_id: u64, dimension_network_descriptor_id: u64) {

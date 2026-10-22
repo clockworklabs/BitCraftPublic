@@ -28,6 +28,23 @@ use spacetimedb::{ReducerContext, Table};
 use crate::messages::components::{DeployableStateV2, HealthState, PlayerState};
 use crate::messages::static_data::deployable_appearance_override_desc;
 
+impl DeployableAppearanceOverrideDesc {
+    pub fn affected_models(&self) -> &[String] {
+        match self.affected_model_addresses.as_deref() {
+            Some(addresses) if !addresses.is_empty() => addresses,
+            _ => std::slice::from_ref(&self.affected_model_address),
+        }
+    }
+
+    pub fn affects_model(&self, model_address: &str) -> bool {
+        self.affected_models().iter().any(|address| address == model_address)
+    }
+
+    pub fn affects_any_same_model_as(&self, other: &Self) -> bool {
+        self.affected_models().iter().any(|address| other.affects_model(address))
+    }
+}
+
 pub fn get_active_deployable_appearance_override(
     ctx: &ReducerContext,
     actor_id: u64,
@@ -49,7 +66,7 @@ pub fn get_active_deployable_appearance_override(
             .deployable_appearance_override_desc()
             .collectible_id()
             .find(&collectible.id)?;
-        if appearance_override.affected_model_address == model_address {
+        if appearance_override.affects_model(&model_address) {
             return Some(appearance_override);
         }
     }

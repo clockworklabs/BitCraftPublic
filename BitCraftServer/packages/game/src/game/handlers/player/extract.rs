@@ -15,7 +15,8 @@ use crate::{
         },
         permission_helper,
         reducer_helpers::{
-            deployable_helpers::dismount_deployable_and_set_deployable_position, interior_helpers::interior_trigger_collapse,
+            deployable_helpers::dismount_deployable_and_set_deployable_position,
+            interior_helpers::{handle_interior_spawn_resource_destroyed, interior_trigger_collapse},
             player_action_helpers,
         },
         terrain_chunk::TerrainChunkCache,
@@ -130,26 +131,60 @@ fn reduce(
     stats: CharacterStatsState,
     dry_run: bool,
 ) -> Result<(), String> {
+    reduce_with_options(ctx, actor_id, request, stats, dry_run, None)
+}
+
+pub fn apply_ability_profession_hit(
+    ctx: &ReducerContext,
+    actor_id: u64,
+    action: &PlayerActionState,
+    bonus_damage: i32,
+    timestamp: u64,
+) -> Result<(), String> {
+    let request = PlayerExtractRequest {
+        recipe_id: action
+            .recipe_id
+            .ok_or_else(|| "Current gathering action has no recipe".to_string())?,
+        target_entity_id: action.target.ok_or_else(|| "Current gathering action has no target".to_string())?,
+        timestamp,
+        clear_from_claim: false,
+    };
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    reduce_with_options(ctx, actor_id, request, stats, false, Some(bonus_damage.max(0)))
+}
+
+fn reduce_with_options(
+    ctx: &ReducerContext,
+    actor_id: u64,
+    request: PlayerExtractRequest,
+    stats: CharacterStatsState,
+    dry_run: bool,
+    profession_hit_bonus_damage: Option<i32>,
+) -> Result<(), String> {
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
-    PlayerActionState::validate_timestamp_basic(ctx, actor_id, PlayerActionType::Extract, request.timestamp)?;
-    if !dry_run {
-        // Make sure target and timestamp and action fit
-        PlayerActionState::validate(ctx, actor_id, PlayerActionType::Extract, Some(request.target_entity_id))?;
-        PlayerActionState::validate_action_timing(ctx, actor_id, PlayerActionType::Extract, request.timestamp)?;
+    if profession_hit_bonus_damage.is_none() {
+        PlayerActionState::validate_timestamp_basic(ctx, actor_id, PlayerActionType::Extract, request.timestamp)?;
+        if !dry_run {
+            // Make sure target and timestamp and action fit
+            PlayerActionState::validate(ctx, actor_id, PlayerActionType::Extract, Some(request.target_entity_id))?;
+            PlayerActionState::validate_action_timing(ctx, actor_id, PlayerActionType::Extract, request.timestamp)?;
+        }
     }
 
     let mut terrain_cache = TerrainChunkCache::empty();
 
     let recipe = unwrap_or_err!(ctx.db.extraction_recipe_desc().id().find(&request.recipe_id), "Recipe not found.");
 
-    let stamina_state = unwrap_or_err!(
-        ctx.db.stamina_state().entity_id().find(&actor_id),
-        "Player missing stamina component!"
-    );
+    if profession_hit_bonus_damage.is_none() {
+        let stamina_state = unwrap_or_err!(
+            ctx.db.stamina_state().entity_id().find(&actor_id),
+            "Player missing stamina component!"
+        );
 
-    if stamina_state.stamina < recipe.stamina_requirement as f32 {
-        return Err("Not enough stamina!".into());
+        if stamina_state.stamina < recipe.stamina_requirement as f32 {
+            return Err("Not enough stamina!".into());
+        }
     }
 
     let deposit_entity_id;
@@ -377,7 +412,7 @@ fn reduce(
 
     // validation is complete
     if !dry_run {
-        if !StaminaState::decrease_stamina(ctx, actor_id, recipe.stamina_requirement as f32) {
+        if profession_hit_bonus_damage.is_none() && !StaminaState::decrease_stamina(ctx, actor_id, recipe.stamina_requirement as f32) {
             return Err("Failed to update stamina".into());
         }
 
@@ -408,7 +443,7 @@ fn reduce(
             }
         }
 
-        if recipe.tool_durability_lost > 0 {
+        if profession_hit_bonus_damage.is_none() && recipe.tool_durability_lost > 0 {
             InventoryState::reduce_tool_durability(ctx, actor_id, recipe.tool_requirements[0].tool_type, recipe.tool_durability_lost);
         }
 
@@ -427,8 +462,9 @@ fn reduce(
         } else {
             if request.clear_from_claim || player_level >= deposit_desired_level {
                 let crit_multiplier = stats.get_final_crit_multiplier(ctx, recipe.get_skill_type());
-                let base_damage = tool_power.round() as i32;
-                let damage = (tool_power * crit_multiplier).round() as i32;
+                let bonus_damage = profession_hit_bonus_damage.unwrap_or(0);
+                let base_damage = (tool_power.round() as i32).saturating_add(bonus_damage);
+                let damage = ((tool_power * crit_multiplier).round() as i32).saturating_add(bonus_damage);
 
                 let experience_damage_output = i32::min(deposit_health.health, base_damage);
                 let damage_output = i32::min(deposit_health.health, damage);
@@ -549,6 +585,8 @@ fn reduce(
                     interior_trigger_collapse(ctx, collapse_trigger.dimension_network_entity_id)?;
                 }
 
+                handle_interior_spawn_resource_destroyed(ctx, deposit_entity_id)?;
+
                 // delete the deposit along its footprints and location then spawn the replacement resource if needed
                 let resource_id = deposit.resource_id;
                 let resource_direction = deposit.direction_index;
@@ -595,7 +633,9 @@ fn reduce(
             false,
         )?;
 
-        PlayerActionState::mark_as_consumed(ctx, actor_id)?;
+        if profession_hit_bonus_damage.is_none() {
+            PlayerActionState::mark_as_consumed(ctx, actor_id)?;
+        }
     }
 
     player_action_helpers::post_reducer_update_cargo(ctx, actor_id);

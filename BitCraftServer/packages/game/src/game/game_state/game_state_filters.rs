@@ -146,6 +146,37 @@ pub fn get_hitbox_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -> 
     return None;
 }
 
+/// Returns the floating platform building (and its description) whose footprint covers these coordinates.
+/// Project sites (platforms under construction) are not considered.
+pub fn floating_platform_at_coordinates(ctx: &ReducerContext, coordinates: SmallHexTile) -> Option<(BuildingState, FloatingPlatformDesc)> {
+    for footprint in FootprintTileState::get_at_location(ctx, &coordinates) {
+        if footprint.footprint_type != FootprintType::Platform {
+            continue;
+        }
+        if let Some(building) = ctx.db.building_state().entity_id().find(&footprint.owner_entity_id) {
+            if let Some(desc) = ctx
+                .db
+                .floating_platform_desc()
+                .building_id()
+                .find(&building.building_description_id)
+            {
+                return Some((building, desc));
+            }
+        }
+    }
+    None
+}
+
+/// Returns the completed floating platform raising a terrain cell, if any (platforms are always centered on a terrain cell).
+pub fn floating_platform_on_cell(ctx: &ReducerContext, cell: LargeHexTile) -> Option<BuildingState> {
+    floating_platform_at_coordinates(ctx, cell.center_small_tile()).map(|(building, _)| building)
+}
+
+/// Like `TerrainCell::is_submerged`, but also true for cells that are only above water because a floating platform raised them.
+pub fn is_submerged_or_platform(ctx: &ReducerContext, cell: &TerrainCell) -> bool {
+    cell.is_submerged() || (cell.water_level > 0 && floating_platform_on_cell(ctx, cell.coordinates()).is_some())
+}
+
 pub fn is_flat_corner(ctx: &ReducerContext, terrain_cache: &mut TerrainChunkCache, coordinates: SmallHexTile) -> bool {
     let elevations: [i16; 3] = coordinates
         .get_terrain_coordinates()

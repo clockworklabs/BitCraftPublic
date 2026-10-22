@@ -152,6 +152,9 @@ pub fn clear_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     for r in ctx.db.staged_extraction_recipe_desc().iter() {
         ctx.db.staged_extraction_recipe_desc().delete(r);
     }
+    for r in ctx.db.staged_floating_platform_desc().iter() {
+        ctx.db.staged_floating_platform_desc().delete(r);
+    }
     for r in ctx.db.staged_food_desc().iter() {
         ctx.db.staged_food_desc().delete(r);
     }
@@ -178,6 +181,12 @@ pub fn clear_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     }
     for r in ctx.db.staged_interior_spawn_desc().iter() {
         ctx.db.staged_interior_spawn_desc().delete(r);
+    }
+    for r in ctx.db.staged_interior_spawn_destroy_trigger_desc().iter() {
+        ctx.db.staged_interior_spawn_destroy_trigger_desc().delete(r);
+    }
+    for r in ctx.db.staged_interior_spawn_random_group_desc().iter() {
+        ctx.db.staged_interior_spawn_random_group_desc().delete(r);
     }
     for r in ctx.db.staged_item_conversion_recipe_desc().iter() {
         ctx.db.staged_item_conversion_recipe_desc().delete(r);
@@ -992,6 +1001,20 @@ pub fn stage_extraction_recipe_desc(ctx: &ReducerContext, records: Vec<Extractio
 }
 
 #[spacetimedb::reducer]
+pub fn stage_floating_platform_desc(ctx: &ReducerContext, records: Vec<FloatingPlatformDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    for r in records {
+        if let Err(e) = ctx.db.staged_floating_platform_desc().try_insert(r.clone()) {
+            spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
 pub fn stage_food_desc(ctx: &ReducerContext, records: Vec<FoodDesc>) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         return Err("Invalid permissions".into());
@@ -1110,6 +1133,34 @@ pub fn stage_interior_spawn_desc(ctx: &ReducerContext, records: Vec<InteriorSpaw
     }
     for r in records {
         if let Err(e) = ctx.db.staged_interior_spawn_desc().try_insert(r.clone()) {
+            spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn stage_interior_spawn_destroy_trigger_desc(ctx: &ReducerContext, records: Vec<InteriorSpawnDestroyTriggerDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    for r in records {
+        if let Err(e) = ctx.db.staged_interior_spawn_destroy_trigger_desc().try_insert(r.clone()) {
+            spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
+            return Err(e.to_string());
+        }
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn stage_interior_spawn_random_group_desc(ctx: &ReducerContext, records: Vec<InteriorSpawnRandomGroupDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    for r in records {
+        if let Err(e) = ctx.db.staged_interior_spawn_random_group_desc().try_insert(r.clone()) {
             spacetimedb::log::error!("Failed to stage record {:?}: {}", r, e);
             return Err(e.to_string());
         }
@@ -1959,6 +2010,9 @@ pub fn validate_staged_data(ctx: &ReducerContext) -> Result<(), String> {
     if ctx.db.staged_extraction_recipe_desc().count() == 0 {
         return Err("Staged data for ExtractionRecipeDesc is empty, aborting.".into());
     }
+    if ctx.db.staged_floating_platform_desc().count() == 0 {
+        return Err("Staged data for FloatingPlatformDesc is empty, aborting.".into());
+    }
     if ctx.db.staged_food_desc().count() == 0 {
         return Err("Staged data for FoodDesc is empty, aborting.".into());
     }
@@ -1985,6 +2039,12 @@ pub fn validate_staged_data(ctx: &ReducerContext) -> Result<(), String> {
     }
     if ctx.db.staged_interior_spawn_desc().count() == 0 {
         return Err("Staged data for InteriorSpawnDesc is empty, aborting.".into());
+    }
+    if ctx.db.staged_interior_spawn_destroy_trigger_desc().count() == 0 {
+        return Err("Staged data for InteriorSpawnDestroyTriggerDesc is empty, aborting.".into());
+    }
+    if ctx.db.staged_interior_spawn_random_group_desc().count() == 0 {
+        return Err("Staged data for InteriorSpawnRandomGroupDesc is empty, aborting.".into());
     }
     if ctx.db.staged_item_conversion_recipe_desc().count() == 0 {
         return Err("Staged data for ItemConversionRecipeDesc is empty, aborting.".into());

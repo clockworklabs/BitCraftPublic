@@ -902,7 +902,9 @@ fn is_valid_single_resource_footprint(
             let entity_id = loc.entity_id;
 
             if let Some(fp) = ctx.db.footprint_tile_state().entity_id().find(&entity_id) {
-                if ((fp.footprint_type == FootprintType::Hitbox) | (fp.footprint_type == FootprintType::Walkable))
+                if ((fp.footprint_type == FootprintType::Hitbox)
+                    | (fp.footprint_type == FootprintType::Walkable)
+                    | (fp.footprint_type == FootprintType::Platform))
                     && ctx.db.building_state().entity_id().find(&fp.owner_entity_id).is_some()
                 {
                     return false;
@@ -958,7 +960,9 @@ fn is_valid_cell(
 
         // footprint must not be overlapping a building or higher priority resource
         if let Some(fp) = ctx.db.footprint_tile_state().entity_id().find(&entity_id) {
-            if ((fp.footprint_type == FootprintType::Hitbox) | (fp.footprint_type == FootprintType::Walkable))
+            if ((fp.footprint_type == FootprintType::Hitbox)
+                | (fp.footprint_type == FootprintType::Walkable)
+                | (fp.footprint_type == FootprintType::Platform))
                 && ctx.db.building_state().entity_id().find(&fp.owner_entity_id).is_some()
             {
                 return false;

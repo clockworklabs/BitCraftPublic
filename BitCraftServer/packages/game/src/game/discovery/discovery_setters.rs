@@ -12,6 +12,22 @@ use crate::{
     *,
 };
 
+#[spacetimedb::table(accessor = refresh_player_knowledges_timer, scheduled(refresh_player_knowledges_scheduled, at = scheduled_at))]
+pub struct RefreshPlayerKnowledgesTimer {
+    #[primary_key]
+    #[auto_inc]
+    pub scheduled_id: u64,
+    pub scheduled_at: spacetimedb::ScheduleAt,
+    pub player_entity_ids: Vec<u64>,
+}
+
+#[spacetimedb::reducer]
+fn refresh_player_knowledges_scheduled(ctx: &ReducerContext, timer: RefreshPlayerKnowledgesTimer) {
+    let count = timer.player_entity_ids.len();
+    Discovery::refresh_players_knowledges(ctx, timer.player_entity_ids);
+    log::info!("Refreshed knowledges for {} players.", count);
+}
+
 impl Discovery {
     pub(super) fn knowledge_entry_array_hash(entries: &Vec<KnowledgeEntry>) -> i32 {
         entries.iter().filter(|e| e.state == KnowledgeState::Acquired).count() as i32 * 10000
@@ -596,16 +612,58 @@ impl Discovery {
         }
     }
 
+    pub fn schedule_all_players_knowledges_refresh(ctx: &ReducerContext) {
+        for timer in ctx.db.refresh_player_knowledges_timer().iter() {
+            ctx.db.refresh_player_knowledges_timer().scheduled_id().delete(timer.scheduled_id);
+        }
+
+        const BATCH_SIZE: usize = 250;
+        let mut batch: Vec<u64> = Vec::new();
+        let mut count = 0;
+
+        for p in ctx.db.player_state().iter() {
+            batch.push(p.entity_id);
+            count += 1;
+
+            if batch.len() == BATCH_SIZE {
+                ctx.db
+                    .refresh_player_knowledges_timer()
+                    .try_insert(RefreshPlayerKnowledgesTimer {
+                        scheduled_id: 0,
+                        scheduled_at: ctx.timestamp.into(),
+                        player_entity_ids: batch.clone(),
+                    })
+                    .unwrap();
+                batch.clear();
+            }
+        }
+
+        ctx.db
+            .refresh_player_knowledges_timer()
+            .try_insert(RefreshPlayerKnowledgesTimer {
+                scheduled_id: 0,
+                scheduled_at: ctx.timestamp.into(),
+                player_entity_ids: batch,
+            })
+            .unwrap();
+
+        log::info!("Scheduled knowledge refresh for {} players", count);
+    }
+
     // Refresh all auto-discovered recipes
     pub fn refresh_all_players_knowledges(ctx: &ReducerContext) {
+        Self::refresh_players_knowledges(ctx, ctx.db.player_state().iter().map(|x| x.entity_id).collect());
+    }
+
+    pub fn refresh_players_knowledges(ctx: &ReducerContext, player_entity_ids: Vec<u64>) {
         let crafting_recipes: Vec<CraftingRecipeDesc> = ctx.db.crafting_recipe_desc().iter().collect();
         let construction_recipes: Vec<ConstructionRecipeDesc> = ctx.db.construction_recipe_desc().iter().collect();
         let resource_placement_recipes: Vec<ResourcePlacementRecipeDesc> = ctx.db.resource_placement_recipe_desc().iter().collect();
         let paving_tile_recipes: Vec<PavingTileDesc> = ctx.db.paving_tile_desc().iter().collect();
         let pillar_shaping_recipes: Vec<PillarShapingDesc> = ctx.db.pillar_shaping_desc().iter().collect();
 
-        for p in ctx.db.player_state().iter() {
-            let mut discovery = Discovery::new(p.entity_id);
+        for player_entity_id in player_entity_ids {
+            let mut discovery = Discovery::new(player_entity_id);
             discovery.initialize(ctx);
             discovery.evaluate_craft_discoveries(ctx, crafting_recipes.iter());
             discovery.evaluate_construction_discoveries(ctx, construction_recipes.iter());

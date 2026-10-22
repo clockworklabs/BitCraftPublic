@@ -9,7 +9,7 @@ use crate::{deployable_state_v2, resource_state, unwrap_or_err, Biome};
 use crate::{
     game::{claim_helper, game_state::game_state_filters},
     messages::{
-        components::{FootprintTileState, PavedTileState, ProjectSiteState},
+        components::{FootprintTileState, PavedTileState, ProjectSiteState, TerrainCell},
         static_data::*,
     },
 };
@@ -50,6 +50,49 @@ impl ProjectSiteState {
         ignore_building_entity_id: Option<u64>,
         ignore_player_placement: bool,
     ) -> Result<(), String> {
+        Self::validate_placement_with_platform(
+            ctx,
+            terrain_cache,
+            coordinates,
+            player_entity_id,
+            footprint,
+            required_paving,
+            player_must_be_neighbor,
+            original_claim_id,
+            ignore_building_entity_id,
+            ignore_player_placement,
+            None,
+        )
+    }
+
+    /// Checks that a terrain cell can hold the given floating platform (water depth range and allowed biomes).
+    pub fn validate_floating_platform_cell(cell: &TerrainCell, platform: &FloatingPlatformDesc) -> Result<(), String> {
+        let depth = cell.water_depth();
+        if !cell.is_submerged() || depth < platform.min_water_depth {
+            return Err("The water is too shallow here.".into());
+        }
+        if depth > platform.max_water_depth {
+            return Err("The water is too deep here.".into());
+        }
+        if !platform.allowed_biomes.is_empty() && !platform.allowed_biomes.iter().any(|b| *b as i32 == cell.biome()) {
+            return Err("Can't build this in this biome.".into());
+        }
+        Ok(())
+    }
+
+    pub fn validate_placement_with_platform(
+        ctx: &ReducerContext,
+        terrain_cache: &mut TerrainChunkCache,
+        coordinates: SmallHexTile,
+        player_entity_id: u64,
+        footprint: &Vec<(SmallHexTile, FootprintType)>,
+        required_paving: i32,
+        player_must_be_neighbor: bool,
+        original_claim_id: u64,
+        ignore_building_entity_id: Option<u64>,
+        ignore_player_placement: bool,
+        floating_platform: Option<&FloatingPlatformDesc>,
+    ) -> Result<(), String> {
         if !ignore_player_placement {
             if coordinates.distance_to(game_state_filters::coordinates_float(ctx, player_entity_id).into())
                 > ctx.db.parameters_desc().version().find(&0).unwrap().max_build_range
@@ -62,11 +105,12 @@ impl ProjectSiteState {
             .map(|(_, coord)| coord)
             .collect();
 
-        let main_elevation = unwrap_or_err!(
+        let main_cell = unwrap_or_err!(
             terrain_cache.get_terrain_cell(ctx, &coordinates.parent_large_tile()),
             "Invalid location"
-        )
-        .elevation;
+        );
+        let main_elevation = main_cell.elevation;
+        let main_water_level = main_cell.water_level;
 
         let mut player_is_neighbor = false;
 
@@ -122,7 +166,23 @@ impl ProjectSiteState {
                 None => return Err("Invalid footprint.".into()),
             };
 
-            if *footprint_type != FootprintType::Perimeter {
+            if *footprint_type != FootprintType::Perimeter && floating_platform.is_some() {
+                // Floating platforms must be entirely over water of the right depth, on a flat water surface
+                let platform = floating_platform.unwrap();
+                for cell_coords in coords.get_terrain_coordinates() {
+                    let cell = unwrap_or_err!(terrain_cache.get_terrain_cell(ctx, &cell_coords), "Invalid footprint.");
+                    Self::validate_floating_platform_cell(&cell, platform)?;
+                    if cell.water_level != main_water_level {
+                        return Err("Can only build on a flat water surface.".into());
+                    }
+                }
+            } else if *footprint_type != FootprintType::Perimeter {
+                if let Some((_, platform)) = game_state_filters::floating_platform_at_coordinates(ctx, *coords) {
+                    if !platform.supports_buildings {
+                        return Err("Can't build on this platform.".into());
+                    }
+                }
+
                 if !game_state_filters::is_interior_tile_walkable(ctx, *coords) {
                     return Err("Can't build outside interior".into());
                 }
@@ -196,6 +256,16 @@ impl ProjectSiteState {
             Self::is_valid_elevator_placement(ctx, terrain_cache, coordinates, facing_direction)?
         }
 
+        let floating_platform = ctx.db.floating_platform_desc().building_id().find(&building.id);
+        if floating_platform.is_some() {
+            if coordinates.dimension != crate::game::dimensions::OVERWORLD {
+                return Err("Floating platforms can only be built outside".into());
+            }
+            if !coordinates.is_center() {
+                return Err("Floating platforms can only be built in the center of a terrain cell".into());
+            }
+        }
+
         // Don't allow placing close to prohibited biomes
         for biome in ctx.db.biome_desc().disallow_player_build().filter(true) {
             let terrain_target = unwrap_or_err!(
@@ -219,7 +289,7 @@ impl ProjectSiteState {
             Some(recipe) => recipe.required_paving_tier,
             None => -1,
         };
-        Self::validate_placement(
+        Self::validate_placement_with_platform(
             ctx,
             terrain_cache,
             coordinates,
@@ -230,6 +300,7 @@ impl ProjectSiteState {
             original_claim_id,
             ignore_building_entity_id,
             false,
+            floating_platform.as_ref(),
         )
     }
 

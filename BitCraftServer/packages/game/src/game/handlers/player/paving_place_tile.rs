@@ -103,6 +103,10 @@ fn reduce(
         return Err("You can't pave on this claim.".into());
     }
 
+    if game_state::game_state_filters::floating_platform_at_coordinates(ctx, target_coord).is_some() {
+        return Err("Can't pave on a floating platform".into());
+    }
+
     if let Some(terrain_source) = terrain_cache.get_terrain_cell(ctx, &player_coord.parent_large_tile()) {
         if let Some(terrain_target) = terrain_cache.get_terrain_cell(ctx, &target_coord.parent_large_tile()) {
             let elevation_diff = i16::abs(terrain_source.elevation - terrain_target.elevation);

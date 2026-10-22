@@ -68,7 +68,10 @@ pub fn get_claim_under_footprint_cached(
 
     let mut claim_entity_id = 0;
     for (coord, footprint_type) in footprint {
-        if *footprint_type == FootprintType::Walkable || *footprint_type == FootprintType::Hitbox {
+        if *footprint_type == FootprintType::Walkable
+            || *footprint_type == FootprintType::Hitbox
+            || *footprint_type == FootprintType::Platform
+        {
             if let Some(claim_id) = claim_cache.get_claim_on_tile(ctx, *coord) {
                 if claim_entity_id != 0 && claim_entity_id != claim_id {
                     // split between 2 different claims => not claimable
@@ -96,7 +99,10 @@ pub fn get_claim_under_footprint(ctx: &ReducerContext, footprint: &Vec<(SmallHex
 
     let mut claim_entity_id = 0;
     for (coord, footprint_type) in footprint {
-        if *footprint_type == FootprintType::Walkable || *footprint_type == FootprintType::Hitbox {
+        if *footprint_type == FootprintType::Walkable
+            || *footprint_type == FootprintType::Hitbox
+            || *footprint_type == FootprintType::Platform
+        {
             if let Some(claim) = get_claim_on_tile(ctx, *coord) {
                 if claim_entity_id != 0 && claim_entity_id != claim.claim_id {
                     // split between 2 different claims => not claimable
@@ -121,7 +127,10 @@ pub fn get_partial_claims_under_footprint(ctx: &ReducerContext, footprint: &Vec<
     let mut claims = Vec::new();
     let mut first_claim = 0; //If there's only one claim under this building, it will be stored in this variable to reduce memory overhead. If there's more, then there's no way to avoid that overhead
     for (coord, footprint_type) in footprint {
-        if *footprint_type == FootprintType::Walkable || *footprint_type == FootprintType::Hitbox {
+        if *footprint_type == FootprintType::Walkable
+            || *footprint_type == FootprintType::Hitbox
+            || *footprint_type == FootprintType::Platform
+        {
             if let Some(claim) = get_claim_on_tile(ctx, *coord) {
                 if first_claim == 0 {
                     first_claim = claim.claim_id;
@@ -183,7 +192,11 @@ fn claim_tile_buildings(ctx: &ReducerContext, claim_entity_id: u64, coord: Small
         .select_all(ctx, &coord)
         .iter()
         .filter_map(|c| ctx.db.footprint_tile_state().entity_id().find(c))
-        .filter(|f| f.footprint_type == FootprintType::Hitbox || f.footprint_type == FootprintType::Walkable)
+        .filter(|f| {
+            f.footprint_type == FootprintType::Hitbox
+                || f.footprint_type == FootprintType::Walkable
+                || f.footprint_type == FootprintType::Platform
+        })
         .map(|f| f.owner_entity_id)
         .next();
     if let Some(building_entity_id) = footprint {

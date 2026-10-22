@@ -1,3 +1,4 @@
+use crate::game::reducer_helpers::floating_platform_helpers;
 use bitcraft_macro::feature_gate;
 use std::time::Duration;
 
@@ -117,6 +118,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
     if building_desc.not_deconstructible {
         return Err("That building cannot be deconstructed.".into());
     }
+    floating_platform_helpers::validate_platform_removal(ctx, building_entity_id)?;
     if building_desc.functions.iter().find(|f| f.trade_orders > 0).is_some() {
         if !PermissionState::can_interact_with_tile(ctx, actor_id, coord, Permission::Build) {
             return Err("You don't have permission to interact with this building".into());

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use spacetimedb::rand::Rng;
 use spacetimedb::{ReducerContext, Table};
 
-use crate::messages::components::{LocationState, PlaceableState};
+use crate::messages::components::{AttachedHerdsState, HerdState, LocationState, PlaceableState};
 use crate::messages::static_data::*;
 use crate::{
     game::{
@@ -59,12 +59,16 @@ impl PlaceableState {
 
         game_state::insert_location(ctx, entity_id, coordinates.to_offset_coordinates());
         Self::add_growth_timer(ctx, entity_id, placeable_id);
+        if let Some(enemy_params_id) = placeable_desc.enemy_params_id {
+            HerdState::attach(ctx, entity_id, enemy_params_id, coordinates.to_offset_coordinates());
+        }
 
         Ok(())
     }
 
     pub fn despawn(&self, ctx: &ReducerContext) {
         delete_placeable_growth_timer(ctx, self.entity_id);
+        AttachedHerdsState::delete(ctx, self.entity_id);
         delete_entity(ctx, self.entity_id);
     }
 

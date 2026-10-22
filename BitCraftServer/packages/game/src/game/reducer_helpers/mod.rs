@@ -2,6 +2,7 @@ pub mod building_helpers;
 pub mod cargo_helpers;
 pub mod dimension_helpers;
 pub mod distance_helpers;
+pub mod floating_platform_helpers;
 pub mod footprint_helpers;
 pub mod health_helpers;
 pub mod interior_helpers;

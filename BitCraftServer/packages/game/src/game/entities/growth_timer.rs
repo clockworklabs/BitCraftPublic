@@ -8,7 +8,7 @@ use crate::{
     location_state,
     messages::{
         authentication::ServerIdentity,
-        components::{PlaceableState, ResourceState},
+        components::{AttachedHerdsState, PlaceableState, ResourceState},
         generic::world_region_state,
         static_data::{PlaceableGrowthDesc, ResourceGrowthRecipeDesc},
     },
@@ -155,6 +155,7 @@ fn placeable_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Resul
     let coordinates = location.coordinates();
     let direction = placeable.direction_index;
     let owner_entity_id = placeable.owner_entity_id;
+    AttachedHerdsState::delete(ctx, placeable.entity_id);
     delete_entity(ctx, placeable.entity_id);
 
     if let Some(outcome) = PlaceableState::pick_growth_outcome(ctx, recipe.outcomes_v2) {

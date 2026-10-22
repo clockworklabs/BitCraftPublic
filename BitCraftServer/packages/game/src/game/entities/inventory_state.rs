@@ -1400,7 +1400,7 @@ impl InventoryState {
             InventoryState::get_player_inventory(ctx, player_entity_id),
             "Player has no inventory"
         );
-        let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
+        let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().deposit_to_deployables_range;
         let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
         let mut changed_inventory_indices = HashSet::new();
         let mut overflow_items = Vec::new();

@@ -122,12 +122,45 @@ fn reduce(
     stats: CharacterStatsState,
     dry_run: bool,
 ) -> Result<(), String> {
+    reduce_with_options(ctx, actor_id, request, stats, dry_run, None)
+}
+
+pub fn apply_ability_profession_hit(
+    ctx: &ReducerContext,
+    actor_id: u64,
+    action: &PlayerActionState,
+    bonus_damage: i32,
+    timestamp: u64,
+) -> Result<(), String> {
+    let request = PlayerPlaceableInteractRequest {
+        interaction_id: action
+            .recipe_id
+            .ok_or_else(|| "Current placeable interaction has no recipe".to_string())?,
+        target_entity_id: action
+            .target
+            .ok_or_else(|| "Current placeable interaction has no target".to_string())?,
+        timestamp,
+    };
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    reduce_with_options(ctx, actor_id, request, stats, false, Some(bonus_damage.max(0)))
+}
+
+fn reduce_with_options(
+    ctx: &ReducerContext,
+    actor_id: u64,
+    request: PlayerPlaceableInteractRequest,
+    stats: CharacterStatsState,
+    dry_run: bool,
+    profession_hit_bonus_damage: Option<i32>,
+) -> Result<(), String> {
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
-    PlayerActionState::validate_timestamp_basic(ctx, actor_id, PlayerActionType::InteractPlaceable, request.timestamp)?;
+    if profession_hit_bonus_damage.is_none() {
+        PlayerActionState::validate_timestamp_basic(ctx, actor_id, PlayerActionType::InteractPlaceable, request.timestamp)?;
+    }
     let mut outcome_event = None;
 
-    if !dry_run {
+    if !dry_run && profession_hit_bonus_damage.is_none() {
         PlayerActionState::validate(ctx, actor_id, PlayerActionType::InteractPlaceable, Some(request.target_entity_id))?;
         PlayerActionState::validate_action_timing(ctx, actor_id, PlayerActionType::InteractPlaceable, request.timestamp)?;
     }
@@ -171,12 +204,14 @@ fn reduce(
 
     validate_knowledges(ctx, actor_id, &recipe.required_knowledges, &recipe.blocking_knowledges)?;
 
-    let stamina_state = unwrap_or_err!(
-        ctx.db.stamina_state().entity_id().find(&actor_id),
-        "Player missing stamina component!"
-    );
-    if stamina_state.stamina < recipe.stamina_requirement {
-        return Err("Not enough stamina!".into());
+    if profession_hit_bonus_damage.is_none() {
+        let stamina_state = unwrap_or_err!(
+            ctx.db.stamina_state().entity_id().find(&actor_id),
+            "Player missing stamina component!"
+        );
+        if stamina_state.stamina < recipe.stamina_requirement {
+            return Err("Not enough stamina!".into());
+        }
     }
 
     let mut tool_power = 1.0;
@@ -216,8 +251,12 @@ fn reduce(
             .all(|requirement| experience.get_level(requirement.skill_id) >= requirement.level)
     };
 
+    if profession_hit_bonus_damage.is_some() && !meets_level_requirements {
+        return Err("Your skill level is too low".into());
+    }
+
     if !dry_run {
-        if !StaminaState::decrease_stamina(ctx, actor_id, recipe.stamina_requirement) {
+        if profession_hit_bonus_damage.is_none() && !StaminaState::decrease_stamina(ctx, actor_id, recipe.stamina_requirement) {
             return Err("Failed to update stamina".into());
         }
 
@@ -248,7 +287,7 @@ fn reduce(
             }
         }
 
-        if recipe.tool_durability_lost > 0 {
+        if profession_hit_bonus_damage.is_none() && recipe.tool_durability_lost > 0 {
             if let Some(tool_type) = used_tool_type {
                 InventoryState::reduce_tool_durability(ctx, actor_id, tool_type, recipe.tool_durability_lost);
             }
@@ -261,9 +300,10 @@ fn reduce(
 
         if meets_level_requirements {
             let crit_multiplier = stats.get_final_crit_multiplier(ctx, recipe.get_skill_type());
-            let base_damage = tool_power.round().max(1.0);
+            let bonus_damage = profession_hit_bonus_damage.unwrap_or(0) as f32;
+            let base_damage = tool_power.round().max(1.0) + bonus_damage;
             let scaled_power = tool_power * recipe.power_multiplier;
-            let damage = (scaled_power * crit_multiplier).round().max(1.0);
+            let damage = (scaled_power * crit_multiplier).round().max(1.0) + bonus_damage;
             let mut health = unwrap_or_err!(
                 ctx.db.health_state().entity_id().find(&placeable.entity_id),
                 "Placeable is missing health"

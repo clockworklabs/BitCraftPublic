@@ -1029,7 +1029,8 @@ pub struct PlaceableState {
 
 #[spacetimedb::table(accessor = building_state, public, 
     index(accessor = claim_entity_id, btree(columns = [claim_entity_id])), 
-    index(accessor = building_description_id, btree(columns = [building_description_id])))]
+    index(accessor = building_description_id, btree(columns = [building_description_id])),
+    index(accessor = constructed_by_player_and_description, btree(columns = [constructed_by_player_entity_id, building_description_id])))]
 #[shared_table]
 #[derive(Default, Clone, bitcraft_macro::Operations, Debug)]
 pub struct BuildingState {
@@ -1398,6 +1399,21 @@ pub struct InteriorCollapseTriggerState {
     pub entity_id: u64,
 
     pub dimension_network_entity_id: u64,
+}
+
+#[spacetimedb::table(
+    accessor = interior_spawned_resource_state,
+    index(accessor = interior_spawn_desc_id, btree(columns = [interior_spawn_desc_id])),
+    index(accessor = dimension_id, btree(columns = [dimension_id]))
+)]
+#[derive(bitcraft_macro::Operations, Clone)]
+#[operations(delete)]
+pub struct InteriorSpawnedResourceState {
+    #[primary_key]
+    pub entity_id: u64,
+
+    pub interior_spawn_desc_id: i32,
+    pub dimension_id: u32,
 }
 
 #[spacetimedb::table(accessor = rent_state, public, index(accessor = claim_entity_id, btree(columns = [claim_entity_id])))]

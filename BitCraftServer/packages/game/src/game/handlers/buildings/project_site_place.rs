@@ -3,6 +3,7 @@ use crate::game::discovery::Discovery;
 use crate::game::entities::location::LocationState;
 use crate::game::handlers::empires::empires_shared::validate_empire_build_foundry;
 use crate::game::reducer_helpers::building_helpers::create_building_unsafe;
+use crate::game::reducer_helpers::floating_platform_helpers;
 use crate::game::reducer_helpers::footprint_helpers::{self, create_project_site_footprint};
 use crate::game::reducer_helpers::player_action_helpers;
 use crate::game::terrain_chunk::TerrainChunkCache;
@@ -13,7 +14,9 @@ use crate::messages::components::*;
 use crate::messages::empire_shared::{empire_player_data_state, empire_state, EmpireSettlementState};
 use crate::messages::game_util::{DimensionType, ItemStack};
 use crate::messages::static_data::*;
-use crate::{unwrap_or_err, unwrap_or_return, BuildingInteractionLevel, InventoryState, PlayerActionType};
+use crate::{
+    interior_spawn_random_group_desc, unwrap_or_err, unwrap_or_return, BuildingInteractionLevel, InventoryState, PlayerActionType,
+};
 use bitcraft_macro::shared_table_reducer;
 use spacetimedb::{ReducerContext, Table};
 
@@ -80,6 +83,14 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
             0,
             None,
         )?;
+        if ctx.db.floating_platform_desc().building_id().find(&building.id).is_some() {
+            // Floating platforms are placed from land (or from another platform), not while swimming
+            let player_cell = game_state::game_state_filters::coordinates_float(ctx, actor_id).parent_large_tile();
+            if terrain_cache.get_terrain_cell(ctx, &player_cell).map_or(false, |c| c.player_should_swim()) {
+                return Err("Platforms must be placed from land.".into());
+            }
+            floating_platform_helpers::validate_platform_limit(ctx, building.id, actor_id)?;
+        }
         is_rent_terminal = building.has_category(ctx, BuildingCategory::RentTerminal);
         is_claim_totem = building.has_category(ctx, BuildingCategory::ClaimTotem);
 
@@ -491,6 +502,18 @@ fn validate_rentability(ctx: &ReducerContext, dimension: u32, dimension_network:
                 InteriorSpawnType::Building => building_spawns.push(spawn.building_id),
                 InteriorSpawnType::Resource => {
                     resource_spawns.append(&mut ResourceClumpDesc::get_resource_ids(ctx, spawn.resource_clump_id))
+                }
+                InteriorSpawnType::InteriorSpawnRandomGroup => {
+                    if let Some(group) = ctx
+                        .db
+                        .interior_spawn_random_group_desc()
+                        .id()
+                        .find(&spawn.interior_spawn_random_group_id)
+                    {
+                        for resource_clump_id in group.resource_clump_ids {
+                            resource_spawns.append(&mut ResourceClumpDesc::get_resource_ids(ctx, resource_clump_id));
+                        }
+                    }
                 }
                 _ => (),
             }

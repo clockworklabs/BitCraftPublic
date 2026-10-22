@@ -1607,6 +1607,103 @@ fn import_interior_spawn_desc_internal(ctx: &ReducerContext, records: Vec<Interi
 }
 
 #[spacetimedb::reducer]
+pub fn import_interior_spawn_random_group_desc(
+    ctx: &ReducerContext,
+    records: Vec<InteriorSpawnRandomGroupDesc>,
+) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_interior_spawn_random_group_desc_internal(ctx, records)
+}
+
+fn import_interior_spawn_random_group_desc_internal(
+    ctx: &ReducerContext,
+    records: Vec<InteriorSpawnRandomGroupDesc>,
+) -> Result<(), String> {
+    for id in ctx.db.interior_spawn_random_group_desc().iter().map(|item| item.id) {
+        ctx.db.interior_spawn_random_group_desc().id().delete(&id);
+    }
+    let len = records.len();
+    log::info!("Will insert {} records of type InteriorSpawnRandomGroupDesc", len);
+    for record in records {
+        let id = record.id;
+        if record.resource_clump_ids.is_empty() {
+            return Err(format!("InteriorSpawnRandomGroupDesc record with id {id} contains no resource clumps"));
+        }
+        if let Err(err) = ctx.db.interior_spawn_random_group_desc().try_insert(record) {
+            return Err(format!(
+                "Couldn't insert InteriorSpawnRandomGroupDesc record with id {id}. Error message: {err}"
+            ));
+        }
+    }
+    log::info!("Inserted {} records of type InteriorSpawnRandomGroupDesc", len);
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+pub fn import_interior_spawn_destroy_trigger_desc(
+    ctx: &ReducerContext,
+    records: Vec<InteriorSpawnDestroyTriggerDesc>,
+) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_interior_spawn_destroy_trigger_desc_internal(ctx, records)
+}
+
+fn import_interior_spawn_destroy_trigger_desc_internal(
+    ctx: &ReducerContext,
+    records: Vec<InteriorSpawnDestroyTriggerDesc>,
+) -> Result<(), String> {
+    for id in ctx.db.interior_spawn_destroy_trigger_desc().iter().map(|item| item.id) {
+        ctx.db.interior_spawn_destroy_trigger_desc().id().delete(&id);
+    }
+    let len = records.len();
+    log::info!("Will insert {} records of type InteriorSpawnDestroyTriggerDesc", len);
+    for record in records {
+        let id = record.id;
+        if record.destroyed_interior_spawn_ids.is_empty() || record.trigger_interior_spawn_ids.is_empty() {
+            return Err(format!(
+                "InteriorSpawnDestroyTriggerDesc record with id {id} must contain both destroyed and trigger interior spawns"
+            ));
+        }
+        let mut interior_instance_id = None;
+        for spawn_id in record
+            .destroyed_interior_spawn_ids
+            .iter()
+            .chain(&record.trigger_interior_spawn_ids)
+        {
+            let Some(spawn) = ctx.db.interior_spawn_desc().id().find(spawn_id) else {
+                return Err(format!(
+                    "InteriorSpawnDestroyTriggerDesc record with id {id} references missing InteriorSpawnDesc {spawn_id}"
+                ));
+            };
+            if spawn.spawn_type != InteriorSpawnType::Resource
+                && spawn.spawn_type != InteriorSpawnType::InteriorSpawnRandomGroup
+            {
+                return Err(format!(
+                    "InteriorSpawnDestroyTriggerDesc record with id {id} references non-resource InteriorSpawnDesc {spawn_id}"
+                ));
+            }
+            if interior_instance_id.is_some_and(|instance_id| instance_id != spawn.interior_instance_id) {
+                return Err(format!(
+                    "InteriorSpawnDestroyTriggerDesc record with id {id} references spawns from multiple interior instances"
+                ));
+            }
+            interior_instance_id = Some(spawn.interior_instance_id);
+        }
+        if let Err(err) = ctx.db.interior_spawn_destroy_trigger_desc().try_insert(record) {
+            return Err(format!(
+                "Couldn't insert InteriorSpawnDestroyTriggerDesc record with id {id}. Error message: {err}"
+            ));
+        }
+    }
+    log::info!("Inserted {} records of type InteriorSpawnDestroyTriggerDesc", len);
+    Ok(())
+}
+
+#[spacetimedb::reducer]
 pub fn import_inventory_state(ctx: &ReducerContext, records: Vec<InventoryState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
@@ -3628,6 +3725,30 @@ fn import_elevator_desc_internal(ctx: &ReducerContext, records: Vec<ElevatorDesc
     Ok(())
 }
 
+#[spacetimedb::reducer]
+pub fn import_floating_platform_desc(ctx: &ReducerContext, records: Vec<FloatingPlatformDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_floating_platform_desc_internal(ctx, records)?;
+    Ok(())
+}
+fn import_floating_platform_desc_internal(ctx: &ReducerContext, records: Vec<FloatingPlatformDesc>) -> Result<(), String> {
+    for id in ctx.db.floating_platform_desc().iter().map(|item| item.building_id) {
+        ctx.db.floating_platform_desc().building_id().delete(&id);
+    }
+    let len: usize = records.len();
+    log::info!("Will insert {} records of type FloatingPlatformDesc", len);
+    for record in records {
+        let id = record.building_id;
+        if let Err(err) = ctx.db.floating_platform_desc().try_insert(record) {
+            return Err(format!("Couldn't insert FloatingPlatformDesc record with id {id}. Error message: {err}"));
+        }
+    }
+    log::info!("Inserted {} records of type FloatingPlatformDesc", len);
+    Ok(())
+}
+
 fn generate_building_function_mappings(ctx: &ReducerContext) -> Result<(), String> {
     for id in ctx.db.building_function_type_mapping_desc().iter().map(|item| item.type_id) {
         ctx.db.building_function_type_mapping_desc().type_id().delete(&id);
@@ -4364,6 +4485,8 @@ pub fn commit_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     import_interior_instance_desc_internal(ctx, collect_table(ctx.db.staged_interior_instance_desc()))?;
     import_interior_environment_desc_internal(ctx, collect_table(ctx.db.staged_interior_environment_desc()))?;
     import_interior_spawn_desc_internal(ctx, collect_table(ctx.db.staged_interior_spawn_desc()))?;
+    import_interior_spawn_random_group_desc_internal(ctx, collect_table(ctx.db.staged_interior_spawn_random_group_desc()))?;
+    import_interior_spawn_destroy_trigger_desc_internal(ctx, collect_table(ctx.db.staged_interior_spawn_destroy_trigger_desc()))?;
     import_building_portal_desc_internal(ctx, collect_table(ctx.db.staged_building_portal_desc()))?;
     import_interior_portal_connections_desc_internal(ctx, collect_table(ctx.db.staged_interior_portal_connections_desc()))?;
     import_interior_network_desc_internal(ctx, collect_table(ctx.db.staged_interior_network_desc()))?;
@@ -4412,6 +4535,7 @@ pub fn commit_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     import_gate_desc_internal(ctx, collect_table(ctx.db.staged_gate_desc()))?;
     import_pathfinding_desc_internal(ctx, collect_table(ctx.db.staged_pathfinding_desc()))?;
     import_elevator_desc_internal(ctx, collect_table(ctx.db.staged_elevator_desc()))?;
+    import_floating_platform_desc_internal(ctx, collect_table(ctx.db.staged_floating_platform_desc()))?;
     import_player_action_desc_internal(ctx, collect_table(ctx.db.staged_player_action_desc()))?;
     import_distant_visible_entity_desc_internal(ctx, collect_table(ctx.db.staged_distant_visible_entity_desc()))?;
     import_player_housing_desc_internal(ctx, collect_table(ctx.db.staged_player_housing_desc()))?;
@@ -4447,7 +4571,7 @@ pub fn commit_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     update_resource_light_source_states(ctx);
     migrate_achievements(ctx, &old_achievements)?;
     refresh_traveler_trade_orders_if_changed(ctx, old_traveler_trade_orders, collect_table(ctx.db.traveler_trade_order_desc()));
-    crate::game::discovery::Discovery::refresh_all_players_knowledges(ctx);
+    crate::game::discovery::Discovery::schedule_all_players_knowledges_refresh(ctx);
 
     clear_staged_static_data(ctx)?;
 

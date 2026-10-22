@@ -52,7 +52,8 @@ fn reduce(
             cache.get_terrain_cell(ctx, &neighbor_coordinates),
             "Can't dig so close to the world edge"
         );
-        if neighbor.is_submerged() && neighbor.water_level > request.final_height_target {
+        // Cells raised by a floating platform still count as water (the seabed is restored when the platform is removed)
+        if game_state_filters::is_submerged_or_platform(ctx, &neighbor) && neighbor.water_level > request.final_height_target {
             return Err("Can't dig next to water".into());
         }
     }

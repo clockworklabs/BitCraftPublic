@@ -99,7 +99,13 @@ pub fn admin_respawn_interior_spawn_desc(ctx: &ReducerContext, interior_spawn_de
                 ctx.db.resource_state().entity_id().find(&entity_id).unwrap().resource_id,
             );
         }
-        spawn_interior_resource(ctx, &spawn, location, dimension.dimension_network_entity_id);
+        spawn_interior_resource(
+            ctx,
+            &spawn,
+            spawn.resource_clump_id,
+            location,
+            dimension.dimension_network_entity_id,
+        );
     }
 
     log::info!(

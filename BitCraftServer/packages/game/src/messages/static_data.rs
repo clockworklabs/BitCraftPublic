@@ -283,6 +283,16 @@ pub enum EnemyType {
     DeerSwift = 42,
 
     CrystalizedHexiteCrab = 43,
+    DistractedSagiBird = 44,
+    DistractedNubiGoat = 45,
+    DistractedCervus = 46,
+    DistractedScrofa = 47,
+    DistractedOx = 48,
+    DistractedYagiGoat = 49,
+    DistractedJungleTerrorBird = 50,
+    DistractedElderScrofa = 51,
+    DistractedTundraOx = 52,
+    DistractedDesertTerrorbird = 53,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
@@ -441,6 +451,7 @@ pub enum FootprintType {
     Walkable,
     Perimeter, //Only perimiter tiles can overlap
     WalkableResource, // everything can be built but there's a resource over which player can walk
+    Platform, // only conflicts with other platforms, other buildings may be placed on top (if the platform supports it)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
@@ -454,6 +465,7 @@ pub enum InteriorSpawnType {
     Resource,
     Enemy,
     Paving,
+    InteriorSpawnRandomGroup,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
@@ -622,6 +634,8 @@ pub struct PlaceableDesc {
     pub water_depth_min: i32,
     #[default(1000)]
     pub water_depth_max: i32,
+    #[default(None::<Vec<i32>>)]
+    pub enemy_params_id: Option<Vec<i32>>,
 }
 
 #[static_data_staging_table(placeable_group_desc)]
@@ -1014,6 +1028,8 @@ pub struct DeployableAppearanceOverrideDesc {
     pub affected_model_address: String,
     pub model_address: String,
     pub icon_asset_name: String,
+    #[default(None)]
+    pub affected_model_addresses: Option<Vec<String>>,
 }
 
 #[spacetimedb::table(accessor = crafting_recipe_discovery_item_desc, index(accessor = item_id, btree(columns = [requirement_id])))]
@@ -1066,6 +1082,8 @@ pub struct CraftingRecipeDesc {
     pub allow_use_hands: bool,
     pub is_passive: bool,
     pub show_in_progression: bool,
+    #[default(None::<Vec<PlaceableSelfBuffChance>>)]
+    pub self_buffs: Option<Vec<PlaceableSelfBuffChance>>,
 }
 
 #[static_data_staging_table(construction_recipe_desc)]
@@ -2090,6 +2108,32 @@ pub struct InteriorSpawnDesc {
     pub traveler_ruin_entity_id: i32,       // [MIGRATION TODO] This is EITHER a Traveler Id or an EnemyAIDesc Id - This is the most horrible hack ever, but the enemy type now spawns EnemyAiParamsDesc and we need a i32 for that 
     pub respawn: bool,
     pub collapse_trigger: bool,
+    #[default(0)]
+    pub interior_spawn_random_group_id: i32,
+}
+
+#[static_data_staging_table(interior_spawn_random_group_desc)]
+#[spacetimedb::table(accessor = interior_spawn_random_group_desc, public)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct InteriorSpawnRandomGroupDesc {
+    #[primary_key]
+    pub id: i32,
+
+    pub name: String,
+    pub resource_clump_ids: Vec<i32>,
+}
+
+#[static_data_staging_table(interior_spawn_destroy_trigger_desc)]
+#[spacetimedb::table(accessor = interior_spawn_destroy_trigger_desc, public)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct InteriorSpawnDestroyTriggerDesc {
+    #[primary_key]
+    pub id: i32,
+
+    pub name: String,
+    pub destroyed_interior_spawn_ids: Vec<i32>,
+    pub trigger_interior_spawn_ids: Vec<i32>,
+    pub require_all_triggers: bool,
 }
 
 #[static_data_staging_table(interior_portal_connections_desc)]
@@ -2584,6 +2628,24 @@ pub struct AbilityCustomDesc {
     pub linked_ability_buff_desc_id: i32,   // if need to trigger another entry for compound effect
     pub animation: String,                  // animation string for animator
     pub icon_path: String,                  // for action bar ui
+    #[default(None)]
+    pub required_buff_ids: Option<Vec<i32>>, // any one active buff from this list satisfies the requirement
+    #[default(false)]
+    pub consume_required_buff: bool,        // consume the first active required buff, in authored list order
+    #[default(false)]
+    pub perform_profession_hit: bool,       // instantly hit the player's current crafting or extraction action
+    #[default(0)]
+    pub profession_hit_bonus_damage: i32,  // flat progress/damage added after the normal crit calculation
+    #[default(1)]
+    pub profession_hit_skill_id: i32, // SkillType::ANY accepts every recipe; otherwise must exactly match the recipe requirement
+    #[default("")]
+    pub description: String,
+    #[default(None::<Vec<InputItemStack>>)]
+    pub input_item_stacks: Option<Vec<InputItemStack>>,
+    #[default(None::<Vec<ProbabilisticItemStack>>)]
+    pub output_item_stacks: Option<Vec<ProbabilisticItemStack>>,
+    #[default(None::<Vec<ExtractionSpawnedPlaceable>>)]
+    pub spawned_placeables: Option<Vec<ExtractionSpawnedPlaceable>>,
 }
 
 // For Migration purpose
@@ -2766,4 +2828,18 @@ pub struct QuestDropDesc {
     pub required_quest_id: i32,
     pub required_stage_id: i32, // If 0, then drops at any stage.
     pub item_drop: ProbabilisticItemStack,
+}
+
+#[static_data_staging_table(floating_platform_desc)]
+#[spacetimedb::table(accessor = floating_platform_desc, public)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct FloatingPlatformDesc {
+    #[primary_key]
+    pub building_id: i32,
+    pub tier: i32,
+    pub min_water_depth: i16,
+    pub max_water_depth: i16,
+    pub allowed_biomes: Vec<Biome>, //Empty = any biome.
+    pub supports_buildings: bool,
+    pub max_per_player: i32, //0 = unlimited
 }

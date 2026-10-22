@@ -77,11 +77,9 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
 
     if collectible_is_activated != activated {
         if let Some(deploybale_appearance_override) = &deploybale_appearance_override {
-            if deployable_helpers::has_deployed_deployable_with_model_address(
-                ctx,
-                actor_id,
-                &deploybale_appearance_override.affected_model_address,
-            ) {
+            if deploybale_appearance_override.affected_models().iter().any(|model_address| {
+                deployable_helpers::has_deployed_deployable_with_model_address(ctx, actor_id, model_address)
+            }) {
                 return Err("Cannot change the appearance of a deployable while it's deployed, store it first.".into());
             }
         }
@@ -173,7 +171,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
                         }
 
                         let other = get_deployable_deploybale_appearance_override(ctx, other_col.id)?;
-                        if other.affected_model_address == deploybale_appearance_override.affected_model_address {
+                        if other.affects_any_same_model_as(deploybale_appearance_override) {
                             other_col.activated = false;
                         }
                     }

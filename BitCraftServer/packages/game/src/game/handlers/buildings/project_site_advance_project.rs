@@ -1,3 +1,4 @@
+use crate::game::reducer_helpers::floating_platform_helpers;
 use bitcraft_macro::feature_gate;
 use std::time::Duration;
 
@@ -258,7 +259,19 @@ pub fn reduce(
 
     //Assumes the whole building is on the same elevation
     let target_coords = game_state_filters::coordinates(ctx, request.owner_entity_id);
-    player_action_helpers::validate_action_elevation(ctx, &mut terrain_cache, actor_coords, target_coords, false, 4, "build")?;
+    // Floating platforms are built over water: the seabed elevation is irrelevant
+    let is_floating_platform = building
+        .as_ref()
+        .map_or(false, |b| ctx.db.floating_platform_desc().building_id().find(&b.id).is_some());
+    player_action_helpers::validate_action_elevation(
+        ctx,
+        &mut terrain_cache,
+        actor_coords,
+        target_coords,
+        is_floating_platform,
+        4,
+        "build",
+    )?;
 
     if project_site.progress >= actions_required {
         return Err("Invalid build action".into());
@@ -363,6 +376,7 @@ pub fn reduce(
             ctx.db.project_site_state().entity_id().delete(&request.owner_entity_id);
 
             if let Some(building) = building {
+                floating_platform_helpers::validate_platform_limit(ctx, building.id, actor_id)?;
                 let entity_id = create_building_component(ctx, owner_id, request.owner_entity_id, direction, &building, actor_id);
 
                 footprint_helpers::update_footprint_after_building_completion(ctx, request.owner_entity_id, direction, &building);

@@ -106,6 +106,10 @@ fn reduce(
         return Err("You can't add pillar decoration on this claim.".into());
     }
 
+    if game_state::game_state_filters::floating_platform_at_coordinates(ctx, target_coord).is_some() {
+        return Err("Can't add pillar decoration on a floating platform".into());
+    }
+
     if let Some(terrain_target) = terrain_cache.get_terrain_cell(ctx, &coordinates) {
         if terrain_target.is_submerged() {
             return Err("Can't add pillar decoration under water".into());

@@ -1,3 +1,4 @@
+use crate::floating_platform_desc;
 use bitcraft_macro::feature_gate;
 use bitcraft_macro::shared_table_reducer;
 use spacetimedb::ReducerContext;
@@ -74,6 +75,10 @@ pub fn building_move(ctx: &ReducerContext, request: PlayerBuildingMoveRequest) -
 
     if building.has_category(ctx, BuildingCategory::TerrraformingBase) {
         return Err("Terraforming digsites can't be moved.".into());
+    }
+
+    if ctx.db.floating_platform_desc().building_id().find(&building.id).is_some() {
+        return Err("Floating platforms can't be moved.".into());
     }
 
     if building.has_category(ctx, BuildingCategory::ClaimTotem) {
