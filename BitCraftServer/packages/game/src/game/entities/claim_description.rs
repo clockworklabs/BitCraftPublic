@@ -16,6 +16,33 @@ use crate::{
     parameters_desc, params, rent_state, unwrap_or_err, PlayerState,
 };
 
+const DEFAULT_TILE_COST: f32 = 0.1;
+
+fn marginal_tile_maintenance(tile_count: i32, mut tile_costs: Vec<ClaimTileCost>) -> f32 {
+    if tile_count <= 0 {
+        return 0.0;
+    }
+
+    tile_costs.sort_unstable_by_key(|tile_cost| tile_cost.tile_count);
+
+    let mut maintenance = 0.0;
+    let mut bracket_start = 1;
+    let mut cost_per_tile = DEFAULT_TILE_COST;
+
+    for tile_cost in tile_costs {
+        let next_bracket_start = tile_cost.tile_count.max(1);
+        if next_bracket_start > tile_count {
+            break;
+        }
+
+        maintenance += (next_bracket_start - bracket_start) as f32 * cost_per_tile;
+        bracket_start = next_bracket_start;
+        cost_per_tile = tile_cost.cost_per_tile;
+    }
+
+    maintenance + (tile_count - bracket_start + 1) as f32 * cost_per_tile
+}
+
 impl ClaimState {
     pub fn clear_notifications(ctx: &ReducerContext, claim_entity_id: u64) {
         if let Some(claim) = ctx.db.claim_state().entity_id().find(&claim_entity_id) {
@@ -428,26 +455,18 @@ impl ClaimLocalState {
     }
 
     pub fn tiles_maintenance(&self, ctx: &ReducerContext) -> f32 {
-        let tile_count = self.num_tiles;
-        let mut max: ClaimTileCost = ClaimTileCost {
-            tile_count: 0,
-            cost_per_tile: 0.1,
-        };
-        for tile_cost in ctx.db.claim_tile_cost().iter() {
-            if tile_cost.tile_count <= tile_count && tile_cost.tile_count > max.tile_count {
-                max = tile_cost;
-            }
-        }
-        tile_count as f32 * max.cost_per_tile
+        marginal_tile_maintenance(self.num_tiles, ctx.db.claim_tile_cost().iter().collect())
     }
 
-    pub fn get_upkeep_multiplier(&self, ctx: &ReducerContext) -> f32 {
-        let parameters_desc = ctx.db.parameters_desc().version().find(&0).unwrap();
-        let param_m = parameters_desc.claim_stability_param_m;
-        let param_b = parameters_desc.claim_stability_param_b;
-        let stability = self.num_tile_neighbors as f32 / self.num_tiles as f32;
+    pub fn get_upkeep_multiplier(&self, _ctx: &ReducerContext) -> f32 {
+        if self.num_tiles <= 0 {
+            return 1f32;
+        }
+        let stability = self.num_tile_neighbors as f64 / self.num_tiles as f64;
 
-        return (param_m * stability + param_b).max(1f32);
+        // Hardcoded for now instead of the static-data claim_stability_param_m/b values.
+        // Keep the client ClaimLocalState.UpkeepMultiplier calculation in sync.
+        (5.5f64 * (5.65f64 - stability)).exp().max(1f64) as f32
     }
 
     pub fn full_maintenance(&self, ctx: &ReducerContext) -> f32 {

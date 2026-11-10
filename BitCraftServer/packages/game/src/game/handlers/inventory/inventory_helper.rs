@@ -1,11 +1,18 @@
-use spacetimedb::ReducerContext;
+use spacetimedb::{ReducerContext, Table};
 
 use crate::{
     building_state, deployable_state_v2,
-    game::{entities::{building_state::InventoryState, inventory_type::InventoryType}, permission_helper},
+    game::{
+        entities::{building_state::InventoryState, inventory_type::InventoryType},
+        permission_helper,
+    },
     location_state, loot_chest_state,
-    messages::{components::{claim_state, dropped_inventory_state, BuildingState, Permission, PermissionState}, game_util::{ItemStack, ItemType}, static_data::{building_desc, cargo_desc, BuildingCategory}},
-    mobile_entity_state, mounting_state, unwrap_or_err, ClaimPermission, DeployableStateV2, SmallHexTile,
+    messages::{
+        components::{claim_state, dropped_inventory_state, BuildingState, Permission, PermissionState},
+        game_util::{ItemStack, ItemType},
+        static_data::{building_desc, cargo_desc, BuildingCategory},
+    },
+    mobile_entity_state, mounting_state, regional_bank_state, unwrap_or_err, ClaimPermission, DeployableStateV2, SmallHexTile,
 };
 
 const MAX_INTERACTION_DISTANCE: i32 = 2;
@@ -18,8 +25,11 @@ fn validate_building(ctx: &ReducerContext, actor_id: u64, player_location: Small
     }
 
     // Interacting with Barter Stall inventory requires co-owner permission.
-    let building_desc = unwrap_or_err!(ctx.db.building_desc().id().find(building.building_description_id), "Unknown building type");
-    if building_desc.has_category(ctx,BuildingCategory::Barter) {
+    let building_desc = unwrap_or_err!(
+        ctx.db.building_desc().id().find(building.building_description_id),
+        "Unknown building type"
+    );
+    if building_desc.has_category(ctx, BuildingCategory::Barter) {
         if let Some(claim) = ctx.db.claim_state().entity_id().find(building.claim_entity_id) {
             if !claim.has_co_owner_permissions(ctx, actor_id) {
                 return Err("Only claim owners or co-owners can interact with barter stall inventories".into());
@@ -111,6 +121,17 @@ pub fn validate_interact(
         return Err("You don't have permission to interact with this inventory".into());
     }
 
+    if owner_entity_id == 0 && player_owner_entity_id != 0 {
+        for bank in ctx.db.regional_bank_state().iter() {
+            if let Some(building) = ctx.db.building_state().entity_id().find(bank.building_entity_id) {
+                if validate_building(ctx, actor_id, player_location, &building).is_ok() {
+                    return Ok(InventoryType::Building);
+                }
+            }
+        }
+        return Err("No permitted regional bank nearby".into());
+    }
+
     if let Some(building) = ctx.db.building_state().entity_id().find(&owner_entity_id) {
         validate_building(ctx, actor_id, player_location, &building)?;
         return Ok(InventoryType::Building);
@@ -144,26 +165,30 @@ pub fn validate_move(target_inventory_type: &InventoryType) -> Result<(), String
     return Ok(());
 }
 
-pub fn validate_cargo_target(
-    ctx: &ReducerContext,
-    target_inventory: &InventoryState,
-    item_stack: &ItemStack,
-) -> Result<(), String> {
+pub fn validate_cargo_target(ctx: &ReducerContext, target_inventory: &InventoryState, item_stack: &ItemStack) -> Result<(), String> {
     if item_stack.item_type != ItemType::Cargo {
         return Ok(());
     }
 
-    let cargo_desc = unwrap_or_err!(
-        ctx.db.cargo_desc().id().find(&item_stack.item_id),
-        "Invalid cargo id"
-    );
+    let cargo_desc = unwrap_or_err!(ctx.db.cargo_desc().id().find(&item_stack.item_id), "Invalid cargo id");
 
     if cargo_desc.cannot_store_in_buildings
-        && ctx.db.building_state().entity_id().find(&target_inventory.owner_entity_id).is_some()
+        && (target_inventory.is_regional_bank()
+            || ctx
+                .db
+                .building_state()
+                .entity_id()
+                .find(&target_inventory.owner_entity_id)
+                .is_some())
     {
         return Err("You cannot store this cargo in buildings.".into());
     } else if cargo_desc.cannot_store_in_deployables
-        && ctx.db.deployable_state_v2().entity_id().find(&target_inventory.owner_entity_id).is_some()
+        && ctx
+            .db
+            .deployable_state_v2()
+            .entity_id()
+            .find(&target_inventory.owner_entity_id)
+            .is_some()
     {
         return Err("You cannot store this cargo in deployables.".into());
     }

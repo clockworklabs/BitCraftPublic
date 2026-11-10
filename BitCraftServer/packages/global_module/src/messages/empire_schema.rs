@@ -73,6 +73,18 @@ pub struct EmpireSiegeEngineState {
     pub building_entity_id: u64,
 }
 
+#[spacetimedb::table(accessor = empire_blacklist_state, public,
+    index(accessor = empire_entity_id, btree(columns = [empire_entity_id])),
+    index(accessor = empire_player, btree(columns = [empire_entity_id, player_entity_id])))]
+#[derive(Clone, Debug)]
+pub struct EmpireBlacklistState {
+    #[primary_key]
+    #[auto_inc]
+    pub entity_id: u64,
+    pub empire_entity_id: u64,
+    pub player_entity_id: u64,
+}
+
 // === Action Requests ========================================================================
 
 #[derive(SpacetimeType)]

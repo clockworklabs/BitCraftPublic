@@ -2,15 +2,11 @@ use bitcraft_macro::feature_gate;
 use spacetimedb::{ReducerContext, Table};
 
 use crate::{
-    game::{
-        game_state::{self, game_state_filters},
-        reducer_helpers::player_action_helpers,
-    },
+    game::{game_state, reducer_helpers::player_action_helpers},
     messages::{
         action_request::PlayerPostOrderRequest,
         components::{
-            building_state, buy_order_state, closed_listing_state, sell_order_state, AuctionListingState, ClosedListingState, HealthState,
-            InventoryState,
+            buy_order_state, closed_listing_state, sell_order_state, AuctionListingState, ClosedListingState, HealthState, InventoryState,
         },
         events::{market_trade_event, MarketOrderType, MarketTradeEvent},
         game_util::{ItemStack, ItemType},
@@ -40,14 +36,7 @@ pub fn order_post_buy_order(ctx: &ReducerContext, request: PlayerPostOrderReques
         return Err("Coins don't match the offer".into());
     }
 
-    let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(request.building_entity_id),
-        "Building does not exist"
-    );
-
-    if building.distance_to(ctx, &game_state_filters::coordinates_float(ctx, actor_id).into()) > 2 {
-        return Err("Too far".into());
-    }
+    let building = AuctionListingState::marketplace_for_action(ctx, actor_id, request.building_entity_id, 2)?;
 
     let claim_entity_id = building.claim_entity_id;
 
@@ -144,8 +133,8 @@ pub fn resolve_buy_order(
     let mut matching_orders: Vec<AuctionListingState> = ctx
         .db
         .sell_order_state()
-        .item_for_claim()
-        .filter((item_id, item_type as i32, claim_entity_id))
+        .item()
+        .filter((item_id, item_type as i32))
         .filter(|order| order.price_threshold <= price_threshold)
         .collect();
     matching_orders.sort_by(|a, b| a.price_threshold.cmp(&b.price_threshold).then(a.timestamp.cmp(&b.timestamp)));
@@ -184,7 +173,7 @@ pub fn resolve_buy_order(
         let seller_coins = ClosedListingState {
             entity_id: game_state::create_entity(ctx),
             owner_entity_id: matching_order.owner_entity_id,
-            claim_entity_id,
+            claim_entity_id: matching_order.claim_entity_id,
             item_stack: ItemStack::hex_coins(matching_order.price_threshold * quantity_sold),
             timestamp: ctx.timestamp,
         };
@@ -193,7 +182,7 @@ pub fn resolve_buy_order(
         matching_order.quantity -= quantity_sold;
 
         ctx.db.market_trade_event().insert(MarketTradeEvent {
-            claim_entity_id,
+            claim_entity_id: matching_order.claim_entity_id,
             listing_entity_id: matching_order.entity_id,
             listing_type: MarketOrderType::SellOrder,
             buyer_entity_id: owner_entity_id,

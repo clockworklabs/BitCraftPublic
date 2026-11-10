@@ -93,6 +93,10 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
 
             let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(&item_id), "Can't swap");
 
+            if !equipment_info.slots.contains(&remove_slot) {
+                return Err("Can't swap equipment of different types".into());
+            }
+
             if let Some(level_req) = &equipment_info.level_requirement {
                 if !PlayerState::meets_level_requirement(ctx, actor_id, level_req) {
                     let mut skill_name = ctx.db.skill_desc().id().find(&level_req.skill_id).unwrap().name;
@@ -115,11 +119,19 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
 
             for slot in equipment_info.slots.iter() {
                 let equipment_slot = unwrap_or_err!(
-                    equipment_slots.iter_mut().find(|equipment_slot| equipment_slot.primary == *slot),
+                    equipment_slots.iter().find(|equipment_slot| equipment_slot.primary == *slot),
                     "Unknown equipment slot '{{0}}'|~{:?}",
                     *slot
                 );
-                equipment_slot.item = Some(contents);
+                if equipment_slot.item.is_some() {
+                    return Err("Can't swap: required equipment slot is occupied".into());
+                }
+            }
+
+            for equipment_slot in equipment_slots.iter_mut() {
+                if equipment_info.slots.contains(&equipment_slot.primary) {
+                    equipment_slot.item = Some(contents);
+                }
             }
 
             inventory.remove_at(pocket_index);

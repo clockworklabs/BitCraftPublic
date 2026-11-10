@@ -19,6 +19,7 @@ pub enum EmpirePermission {
     Count,          // DO NOT USE [FINAL RELEASE] get rid of 'Count' as it's not migration-friendly.
     HarvestEmpireResources,
     WithdrawEmpireCurrency,
+    ManageBlacklist,
 }
 
 #[derive(spacetimedb::SpacetimeType, Clone, Copy, PartialEq, Debug)]

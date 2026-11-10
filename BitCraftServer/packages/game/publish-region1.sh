@@ -17,6 +17,21 @@ if [[ -z "$host" ]]; then
   read -r -p "Enter the spacetime server name (e.g. bitcraft-staging): " host
 fi
 
+while true; do
+  read -r -p "Enter the world to publish (ea2 or release): " world
+  case "$world" in
+    ea2) prefix="bitcraft-live"; break ;;
+    release) prefix="idc"; break ;;
+    *) echo "Invalid world: '$world'" >&2 ;;
+  esac
+done
+
+read -r -p "You are about to publish to world '$world' (prefix: $prefix-) on server '$host'. Continue? (yes/no): " confirm
+if [[ "$confirm" != "yes" ]]; then
+  echo "Publish cancelled."
+  exit 1
+fi
+
 echo "Building module to produce wasm artifact..."
 spacetime build -p "$script_dir"
 
@@ -34,5 +49,5 @@ if [[ -z "$wasm_path" || ! -f "$wasm_path" ]]; then
   exit 1
 fi
 
-echo "Publishing bitcraft-live-1 to '$host' using: $wasm_path"
-spacetime publish -s "$host" --bin-path "$wasm_path" bitcraft-live-1
+echo "Publishing $prefix-1 to '$host' using: $wasm_path"
+spacetime publish -s "$host" --bin-path "$wasm_path" "$prefix-1"

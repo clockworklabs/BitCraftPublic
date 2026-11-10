@@ -5,7 +5,7 @@ use crate::{
     game::{game_state, reducer_helpers::player_action_helpers},
     messages::{
         action_request::PlayerEditOrderRequest,
-        components::{building_state, buy_order_state, closed_listing_state, ClosedListingState, HealthState, InventoryState},
+        components::{buy_order_state, closed_listing_state, AuctionListingState, ClosedListingState, HealthState, InventoryState},
         game_util::{ItemStack, ItemType},
     },
     unwrap_or_err,
@@ -26,10 +26,7 @@ pub fn order_edit_buy_order(ctx: &ReducerContext, request: PlayerEditOrderReques
         return Err("Invalid coins".into());
     }
 
-    let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(request.building_entity_id),
-        "Building does not exist"
-    );
+    let building = AuctionListingState::marketplace_for_action(ctx, actor_id, request.building_entity_id, 2)?;
 
     let claim_entity_id = building.claim_entity_id;
 
@@ -45,6 +42,9 @@ pub fn order_edit_buy_order(ctx: &ReducerContext, request: PlayerEditOrderReques
     let new_threshold = request.coins;
     let new_quantity = request.quantity;
     let process_order = new_threshold > buy_order.price_threshold;
+    if buy_order.claim_entity_id != claim_entity_id {
+        return Err("You cannot edit this listing from there".into());
+    }
 
     if new_quantity == buy_order.quantity && new_threshold == buy_order.price_threshold {
         return Err("No change".into());
@@ -74,7 +74,7 @@ pub fn order_edit_buy_order(ctx: &ReducerContext, request: PlayerEditOrderReques
         return Err("Overflow detected. Change is not allowed".into());
     }
 
-    // Try resolving the buy order with the new values. In all honesty, it can only self-resolve if the new price increased
+    // Only retry matching when the buy price increases.
     let mut required_item = ItemStack::new(ctx, buy_order.item_id, ItemType::to_enum(buy_order.item_type), buy_order.quantity);
     let mut coins_spent = 0;
     if process_order {

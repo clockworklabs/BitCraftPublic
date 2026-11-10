@@ -21,6 +21,8 @@ pub fn chat_post_targeted_message(ctx: &ReducerContext, request: PlayerChatPostM
 }
 
 pub fn reduce(ctx: &ReducerContext, actor_id: u64, text: String, target_entity_id: u64, language_code: String) -> Result<(), String> {
+    UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your chat privileges have been suspended")?;
+
     if text.len() <= 0 {
         return Err(format!("Can't send empty chat message"));
     }
@@ -30,10 +32,9 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, text: String, target_entity_i
         return Err("Failed to send chat messages".into());
     }
 
-    UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your chat privileges have been suspended")?;
+    i18n::validate_chat_language_code(&language_code)?;
 
     let username = unwrap_or_err!(ctx.db.player_username_state().entity_id().find(actor_id), "Invalid player").username;
-
     let timestamp = unix(ctx.timestamp);
 
     //TODO: Add a mapping from Role to CollectibleId somewhere

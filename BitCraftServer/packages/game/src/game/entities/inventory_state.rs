@@ -17,6 +17,10 @@ pub struct RemoveItemResult {
 }
 
 impl InventoryState {
+    pub fn is_regional_bank(&self) -> bool {
+        self.owner_entity_id == 0 && self.player_owner_entity_id != 0
+    }
+
     pub fn update(self, ctx: &ReducerContext) {
         ctx.db.inventory_state().entity_id().update(self);
     }
@@ -960,8 +964,9 @@ impl InventoryState {
         self.pockets = inventory_copy.pockets;
 
         if !overflow_items.is_empty() {
-            let player_coordinates = game_state_filters::coordinates_any(ctx, self.owner_entity_id);
-            DroppedInventoryState::update_from_items(ctx, self.owner_entity_id, player_coordinates.into(), overflow_items, None);
+            let owner = if self.player_owner_entity_id != 0 { self.player_owner_entity_id } else { self.owner_entity_id };
+            let player_coordinates = game_state_filters::coordinates_any(ctx, owner);
+            DroppedInventoryState::update_from_items(ctx, owner, player_coordinates.into(), overflow_items, None);
         }
     }
 
@@ -1103,6 +1108,7 @@ impl InventoryState {
         item_stack: &mut ItemStack,
         do_discover: bool,
     ) -> bool {
+        let player_entity_id = if inventory.player_owner_entity_id != 0 { inventory.player_owner_entity_id } else { player_entity_id };
         if item_stack.item_type == ItemType::Item {
             //handle item list items
             if let Some(item_desc) = ctx.db.item_desc().id().find(&item_stack.item_id) {

@@ -42,6 +42,8 @@ use crate::{
 
 use crate::messages::components::*;
 
+const TIER_2_CLAIM_TECH_ID: i32 = 200;
+
 pub fn create_building_unsafe(
     ctx: &ReducerContext,
     actor_id: u64,
@@ -134,7 +136,9 @@ pub fn create_building_component(
 
     BuildingState::claim(ctx, building_entity_id, owning_claim_entity_id);
 
-    if building.has_category(ctx, BuildingCategory::Waystone) {
+    if building.has_category(ctx, BuildingCategory::Waystone)
+        || building.has_category(ctx, BuildingCategory::OneWayWaystone)
+    {
         let building_state = ctx.db.building_state().entity_id().find(building_entity_id).unwrap();
         ctx.db.building_state().entity_id().delete(building_entity_id);
         BuildingState::insert_shared(ctx, building_state, crate::inter_module::InterModuleDestination::AllOtherRegions);
@@ -314,8 +318,12 @@ pub fn create_building_claim(ctx: &ReducerContext, building_entity_id: u64, neut
             ClaimState::insert_shared(ctx, claim_state, crate::inter_module::InterModuleDestination::Global);
             ctx.db.claim_local_state().insert(claim_local_state);
 
-            // starts with tier 0 claim techs by default
-            let starting_techs: Vec<i32> = ctx.db.claim_tech_desc().tier().filter(0).map(|ct| ct.id).collect();
+            // Starts with tier 0 claim techs and the specific Tier 2 claim tech.
+            let mut starting_techs: Vec<i32> = ctx.db.claim_tech_desc().tier().filter(0).map(|ct| ct.id).collect();
+            if ctx.db.claim_tech_desc().id().find(TIER_2_CLAIM_TECH_ID).is_none() {
+                return Err("Missing Tier 2 starting claim tech".into());
+            }
+            starting_techs.push(TIER_2_CLAIM_TECH_ID);
             let claim_tech = ClaimTechState {
                 entity_id: claim_desc_entity_id,
                 learned: starting_techs,
@@ -587,7 +595,9 @@ pub fn delete_building(
 
     // finally delete building entity and remaining components
     ctx.db.health_state().entity_id().delete(&entity_id);
-    if description.has_category(ctx, BuildingCategory::Waystone) {
+    if description.has_category(ctx, BuildingCategory::Waystone)
+        || description.has_category(ctx, BuildingCategory::OneWayWaystone)
+    {
         let loc = ctx
             .db
             .location_state()
@@ -606,6 +616,7 @@ pub fn delete_building(
 
     ctx.db.waystone_state().building_entity_id().delete(entity_id);
     ctx.db.bank_state().building_entity_id().delete(entity_id);
+    ctx.db.regional_bank_state().building_entity_id().delete(entity_id);
     ctx.db.marketplace_state().building_entity_id().delete(entity_id);
 }
 
@@ -670,7 +681,9 @@ pub fn move_building_unsafe(
 
     let location = LocationState::new(building_entity_id, offset_coordinates);
     let location_hex = location.coordinates();
-    if building_desc.has_category(ctx, BuildingCategory::Waystone) {
+    if building_desc.has_category(ctx, BuildingCategory::Waystone)
+        || building_desc.has_category(ctx, BuildingCategory::OneWayWaystone)
+    {
         LocationState::update_shared(ctx, location, crate::inter_module::InterModuleDestination::AllOtherRegions);
     } else {
         ctx.db.location_state().entity_id().update(location);

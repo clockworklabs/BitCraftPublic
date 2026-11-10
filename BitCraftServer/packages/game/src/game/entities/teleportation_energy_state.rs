@@ -1,12 +1,14 @@
 use spacetimedb::{log, ReducerContext};
 
 use crate::{
-    game::{dimensions, game_state::game_state_filters},
+    game::{coordinates::region_coordinates::RegionCoordinates, dimensions, game_state::game_state_filters},
     messages::{
         components::{character_stats_state, teleportation_energy_state, TeleportationEnergyState},
+        generic::world_region_state,
         static_data::{parameters_desc, CharacterStatType},
     },
     params,
+    utils::from_ctx::FromCtx,
 };
 
 use super::{building_state::InventoryState, enemy_state::FloatHexTile};
@@ -79,6 +81,12 @@ impl TeleportationEnergyState {
 
         let distance = destination.parent_large_tile().distance_to(location) as f32;
         let distance_cost = distance * params.teleportation_cost_per_large_tile;
+
+        let region = ctx.db.world_region_state().id().find(0).unwrap();
+        let destination_region = RegionCoordinates::from_ctx(ctx, destination).to_region_index(region.region_count_sqrt);
+        if destination_region == region.region_index {
+            return Some((base_cost + distance_cost).ceil());
+        }
 
         let inventory = InventoryState::get_player_inventory(ctx, self.entity_id).unwrap();
         let filled_pockets = inventory

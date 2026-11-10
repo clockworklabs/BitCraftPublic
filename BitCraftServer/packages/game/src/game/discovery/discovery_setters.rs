@@ -267,10 +267,9 @@ impl Discovery {
         self.evaluate_extract_discoveries(
             ctx,
             ctx.db
-                .construction_recipe_discovery_knowledge_desc()
-                .knowledge_id()
-                .filter(knowledge_id)
-                .map(|r| ctx.db.construction_recipe_desc().id().find(r.recipe_id).unwrap()),
+                .extraction_recipe_desc()
+                .iter()
+                .filter(|recipe| recipe.discovery_triggers.contains(&knowledge_id)),
         );
         self.evaluate_paving_discoveries(
             ctx,
@@ -538,7 +537,7 @@ impl Discovery {
     fn evaluate_extract_discoveries<I>(&mut self, ctx: &ReducerContext, recipes: I)
     where
         I: IntoIterator,
-        I::Item: Borrow<ConstructionRecipeDesc>,
+        I::Item: Borrow<ExtractionRecipeDesc>,
     {
         for recipe in recipes {
             let recipe = recipe.borrow();
@@ -658,6 +657,7 @@ impl Discovery {
     pub fn refresh_players_knowledges(ctx: &ReducerContext, player_entity_ids: Vec<u64>) {
         let crafting_recipes: Vec<CraftingRecipeDesc> = ctx.db.crafting_recipe_desc().iter().collect();
         let construction_recipes: Vec<ConstructionRecipeDesc> = ctx.db.construction_recipe_desc().iter().collect();
+        let extraction_recipes: Vec<ExtractionRecipeDesc> = ctx.db.extraction_recipe_desc().iter().collect();
         let resource_placement_recipes: Vec<ResourcePlacementRecipeDesc> = ctx.db.resource_placement_recipe_desc().iter().collect();
         let paving_tile_recipes: Vec<PavingTileDesc> = ctx.db.paving_tile_desc().iter().collect();
         let pillar_shaping_recipes: Vec<PillarShapingDesc> = ctx.db.pillar_shaping_desc().iter().collect();
@@ -668,7 +668,7 @@ impl Discovery {
             discovery.evaluate_craft_discoveries(ctx, crafting_recipes.iter());
             discovery.evaluate_construction_discoveries(ctx, construction_recipes.iter());
             discovery.evaluate_resource_placement_discoveries(ctx, resource_placement_recipes.iter());
-            discovery.evaluate_extract_discoveries(ctx, construction_recipes.iter());
+            discovery.evaluate_extract_discoveries(ctx, extraction_recipes.iter());
             discovery.evaluate_paving_discoveries(ctx, paving_tile_recipes.iter());
             discovery.evaluate_pillar_shaping_discoveries(ctx, pillar_shaping_recipes.iter());
             discovery.commit(ctx);

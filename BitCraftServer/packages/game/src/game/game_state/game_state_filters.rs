@@ -3,7 +3,6 @@ use spacetimedb::{ReducerContext, Table};
 
 use crate::game::coordinates::region_coordinates::RegionCoordinates;
 use crate::game::{reducer_helpers, PLAYER_MIN_SWIM_DEPTH};
-use crate::messages::static_data::BuildingCategory::Waystone;
 use crate::messages::util::MovementSpeed;
 use crate::messages::{
     authentication::Role,
@@ -165,6 +164,17 @@ pub fn floating_platform_at_coordinates(ctx: &ReducerContext, coordinates: Small
         }
     }
     None
+}
+
+pub fn floating_platforms_at_coordinates(
+    ctx: &ReducerContext,
+    coordinates: SmallHexTile,
+) -> impl Iterator<Item = (BuildingState, FloatingPlatformDesc)> + '_ {
+    let mut cells = coordinates.get_terrain_coordinates().to_vec();
+    cells.dedup();
+    cells
+        .into_iter()
+        .filter_map(move |cell| floating_platform_at_coordinates(ctx, cell.center_small_tile()))
 }
 
 /// Returns the completed floating platform raising a terrain cell, if any (platforms are always centered on a terrain cell).
@@ -491,8 +501,14 @@ pub fn teleport_waystone(
     );
 
     //verify building to is charter stone
-    if !building_to.has_category(ctx, Waystone) {
+    if !building_to.has_category(ctx, BuildingCategory::Waystone)
+        && !building_to.has_category(ctx, BuildingCategory::OneWayWaystone)
+    {
         return Err("Building is not a charter stone.".into());
+    }
+
+    if !building_to.has_category(ctx, BuildingCategory::Waystone) {
+        return Err("This waystone cannot be used as a destination.".into());
     }
 
     let building_state_from = unwrap_or_err!(
@@ -510,7 +526,9 @@ pub fn teleport_waystone(
     );
 
     //verify building from is charter stone
-    if !building_from.has_category(ctx, Waystone) {
+    if !building_from.has_category(ctx, BuildingCategory::Waystone)
+        && !building_from.has_category(ctx, BuildingCategory::OneWayWaystone)
+    {
         return Err("Building is not a charter stone.".into());
     }
 

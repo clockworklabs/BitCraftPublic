@@ -12,7 +12,6 @@ use std::collections::HashSet;
 use std::convert::From;
 use std::fmt::Display;
 use std::hash::Hash;
-use std::i32;
 use std::ops::{Add, Sub};
 
 impl From<SmallHexTile> for HexCoordinates {

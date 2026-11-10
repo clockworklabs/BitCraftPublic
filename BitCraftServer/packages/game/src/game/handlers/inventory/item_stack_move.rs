@@ -50,6 +50,7 @@ pub fn item_stack_move(ctx: &ReducerContext, request: PlayerItemStackMoveRequest
                 && !desc.has_category(ctx, BuildingCategory::Barter)
                 && !desc.has_category(ctx, BuildingCategory::RentTerminal)
                 && !desc.has_category(ctx, BuildingCategory::Bank)
+                && !desc.has_category(ctx, BuildingCategory::RegionalBank)
             {
                 return Err("Cannot store items in this building".into());
             }

@@ -1,7 +1,12 @@
+use std::collections::HashMap;
+
+use bitcraft_macro::shared_table_reducer;
+
 use crate::game::autogen::_static_data::validate_staged_data;
 use crate::game::handlers::authentication::has_role;
 use crate::messages::authentication::{identity_role, server_identity, IdentityRole, Role, ServerIdentity};
 use crate::messages::components::BuildingState;
+use crate::messages::empire_shared::{empire_state, EmpireState};
 use crate::messages::generic::{
     admin_broadcast, config, globals, resource_count, world_region_name_state, world_region_state, AdminBroadcast, ResourceCount,
     WorldRegionNameState, WorldRegionState,
@@ -965,6 +970,32 @@ fn import_emote_desc_internal(ctx: &ReducerContext, records: Vec<EmoteDesc>) -> 
 }
 
 #[spacetimedb::reducer]
+pub fn import_furniture_emote_desc(ctx: &ReducerContext, records: Vec<FurnitureEmoteDesc>) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Invalid permissions".into());
+    }
+    import_furniture_emote_desc_internal(ctx, records)?;
+    Ok(())
+}
+fn import_furniture_emote_desc_internal(ctx: &ReducerContext, records: Vec<FurnitureEmoteDesc>) -> Result<(), String> {
+    for id in ctx.db.furniture_emote_desc().iter().map(|item| item.emote_id) {
+        ctx.db.furniture_emote_desc().emote_id().delete(&id);
+    }
+    let len: usize = records.len();
+    log::info!("Will insert {} records of type FurnitureEmoteDesc", len);
+    for record in records {
+        let id = record.emote_id;
+        if let Err(err) = ctx.db.furniture_emote_desc().try_insert(record) {
+            return Err(format!(
+                "Couldn't insert FurnitureEmoteDesc record with emote_id {id}. Error message: {err}"
+            ));
+        }
+    }
+    log::info!("Inserted {} records of type FurnitureEmoteDesc", len);
+    Ok(())
+}
+
+#[spacetimedb::reducer]
 pub fn import_enemy_ai_params_desc(ctx: &ReducerContext, records: Vec<EnemyAiParamsDesc>) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         return Err("Invalid permissions".into());
@@ -1463,10 +1494,7 @@ fn import_interior_spawn_desc_internal(ctx: &ReducerContext, records: Vec<Interi
 }
 
 #[spacetimedb::reducer]
-pub fn import_interior_spawn_random_group_desc(
-    ctx: &ReducerContext,
-    records: Vec<InteriorSpawnRandomGroupDesc>,
-) -> Result<(), String> {
+pub fn import_interior_spawn_random_group_desc(ctx: &ReducerContext, records: Vec<InteriorSpawnRandomGroupDesc>) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         return Err("Invalid permissions".into());
     }
@@ -1485,7 +1513,9 @@ fn import_interior_spawn_random_group_desc_internal(
     for record in records {
         let id = record.id;
         if record.resource_clump_ids.is_empty() {
-            return Err(format!("InteriorSpawnRandomGroupDesc record with id {id} contains no resource clumps"));
+            return Err(format!(
+                "InteriorSpawnRandomGroupDesc record with id {id} contains no resource clumps"
+            ));
         }
         if let Err(err) = ctx.db.interior_spawn_random_group_desc().try_insert(record) {
             return Err(format!(
@@ -1517,6 +1547,7 @@ fn import_interior_spawn_destroy_trigger_desc_internal(
     }
     let len = records.len();
     log::info!("Will insert {} records of type InteriorSpawnDestroyTriggerDesc", len);
+    let mut tracking_settings_by_spawn: HashMap<i32, (bool, i32)> = HashMap::new();
     for record in records {
         let id = record.id;
         if record.destroyed_interior_spawn_ids.is_empty() || record.trigger_interior_spawn_ids.is_empty() {
@@ -1525,19 +1556,13 @@ fn import_interior_spawn_destroy_trigger_desc_internal(
             ));
         }
         let mut interior_instance_id = None;
-        for spawn_id in record
-            .destroyed_interior_spawn_ids
-            .iter()
-            .chain(&record.trigger_interior_spawn_ids)
-        {
+        for spawn_id in record.destroyed_interior_spawn_ids.iter().chain(&record.trigger_interior_spawn_ids) {
             let Some(spawn) = ctx.db.interior_spawn_desc().id().find(spawn_id) else {
                 return Err(format!(
                     "InteriorSpawnDestroyTriggerDesc record with id {id} references missing InteriorSpawnDesc {spawn_id}"
                 ));
             };
-            if spawn.spawn_type != InteriorSpawnType::Resource
-                && spawn.spawn_type != InteriorSpawnType::InteriorSpawnRandomGroup
-            {
+            if spawn.spawn_type != InteriorSpawnType::Resource && spawn.spawn_type != InteriorSpawnType::InteriorSpawnRandomGroup {
                 return Err(format!(
                     "InteriorSpawnDestroyTriggerDesc record with id {id} references non-resource InteriorSpawnDesc {spawn_id}"
                 ));
@@ -1548,6 +1573,17 @@ fn import_interior_spawn_destroy_trigger_desc_internal(
                 ));
             }
             interior_instance_id = Some(spawn.interior_instance_id);
+        }
+        for spawn_id in &record.trigger_interior_spawn_ids {
+            if let Some((tracking_enabled, other_trigger_id)) = tracking_settings_by_spawn.get(spawn_id) {
+                if *tracking_enabled != record.track_on_destroy_spawned_resources {
+                    return Err(format!(
+                        "InteriorSpawnDesc {spawn_id} is referenced by InteriorSpawnDestroyTriggerDesc records {other_trigger_id} and {id} with conflicting on-destroy spawned-resource tracking settings"
+                    ));
+                }
+            } else {
+                tracking_settings_by_spawn.insert(*spawn_id, (record.track_on_destroy_spawned_resources, id));
+            }
         }
         if let Err(err) = ctx.db.interior_spawn_destroy_trigger_desc().try_insert(record) {
             return Err(format!(
@@ -2175,6 +2211,7 @@ pub fn import_onboarding_state(ctx: &ReducerContext, records: Vec<OnboardingStat
 }
 
 #[spacetimedb::reducer]
+#[shared_table_reducer]
 pub fn import_parameters_desc(ctx: &ReducerContext, records: Vec<ParametersDesc>) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         return Err("Invalid permissions".into());
@@ -2183,6 +2220,7 @@ pub fn import_parameters_desc(ctx: &ReducerContext, records: Vec<ParametersDesc>
     Ok(())
 }
 fn import_parameters_desc_internal(ctx: &ReducerContext, records: Vec<ParametersDesc>) -> Result<(), String> {
+    let previous_parameters: Option<ParametersDesc> = ctx.db.parameters_desc().version().find(&0);
     for id in ctx.db.parameters_desc().iter().map(|item| item.version) {
         ctx.db.parameters_desc().version().delete(&id);
     }
@@ -2197,7 +2235,25 @@ fn import_parameters_desc_internal(ctx: &ReducerContext, records: Vec<Parameters
         }
     }
     log::info!("Inserted {} records of type ParametersDesc", len);
+    post_process_parameters(ctx, previous_parameters);
     Ok(())
+}
+
+fn post_process_parameters(ctx: &ReducerContext, previous_parameters: Option<ParametersDesc>) {
+    let Some(current_parameters) = ctx.db.parameters_desc().version().find(&0) else {
+        return;
+    };
+
+    let upkeep_changed = previous_parameters.map_or(true, |previous| {
+        previous.empire_watchtower_upkeep_per_chunk != current_parameters.empire_watchtower_upkeep_per_chunk
+            || previous.empire_watchtower_upkeep_per_total_chunks != current_parameters.empire_watchtower_upkeep_per_total_chunks
+    });
+    if upkeep_changed {
+        for empire in ctx.db.empire_state().iter() {
+            // The existing calculation preserves NPC towers' fixed upkeep.
+            EmpireState::update_empire_upkeep(ctx, empire.entity_id);
+        }
+    }
 }
 
 #[spacetimedb::reducer]
@@ -3271,7 +3327,9 @@ fn import_floating_platform_desc_internal(ctx: &ReducerContext, records: Vec<Flo
     for record in records {
         let id = record.building_id;
         if let Err(err) = ctx.db.floating_platform_desc().try_insert(record) {
-            return Err(format!("Couldn't insert FloatingPlatformDesc record with id {id}. Error message: {err}"));
+            return Err(format!(
+                "Couldn't insert FloatingPlatformDesc record with id {id}. Error message: {err}"
+            ));
         }
     }
     log::info!("Inserted {} records of type FloatingPlatformDesc", len);
@@ -3469,6 +3527,7 @@ fn collect_table<T: spacetimedb::Table>(table: &T) -> Vec<T::Row> {
 }
 
 #[spacetimedb::reducer]
+#[shared_table_reducer]
 pub fn commit_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         return Err("Invalid permissions".into());
@@ -3493,6 +3552,7 @@ pub fn commit_staged_static_data(ctx: &ReducerContext) -> Result<(), String> {
     import_enemy_ai_params_desc_internal(ctx, collect_table(ctx.db.staged_enemy_ai_params_desc()))?;
     import_empire_rank_desc_internal(ctx, collect_table(ctx.db.staged_empire_rank_desc()))?;
     import_emote_desc_internal(ctx, collect_table(ctx.db.staged_emote_desc()))?;
+    import_furniture_emote_desc_internal(ctx, collect_table(ctx.db.staged_furniture_emote_desc()))?;
     import_climb_requirement_desc_internal(ctx, collect_table(ctx.db.staged_climb_requirement_desc()))?;
     import_claim_tile_cost_internal(ctx, collect_table(ctx.db.staged_claim_tile_cost()))?;
     import_claim_tech_desc_internal(ctx, collect_table(ctx.db.staged_claim_tech_desc()))?;

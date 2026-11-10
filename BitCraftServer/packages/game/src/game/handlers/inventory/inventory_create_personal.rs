@@ -23,9 +23,16 @@ pub fn inventory_create_personal(ctx: &ReducerContext, building_entity_id: u64) 
         "Invalid building description"
     );
     let bank_function = unwrap_or_err!(
-        building_desc.get_function(ctx, BuildingCategory::Bank),
+        building_desc
+            .get_function(ctx, BuildingCategory::Bank)
+            .or_else(|| building_desc.get_function(ctx, BuildingCategory::RegionalBank)),
         "Building doesn't allow personal inventories."
     );
+    let owner_entity_id = if building_desc.has_category(ctx, BuildingCategory::RegionalBank) {
+        0
+    } else {
+        building_entity_id
+    };
 
     let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Invalid player location").coordinates();
     inventory_helper::validate_interact(ctx, actor_id, player_location, building_entity_id, 0)?;
@@ -33,9 +40,8 @@ pub fn inventory_create_personal(ctx: &ReducerContext, building_entity_id: u64) 
     if ctx
         .db
         .inventory_state()
-        .entity_id()
-        .find(&building_entity_id)
-        .iter()
+        .owner_entity_id()
+        .filter(owner_entity_id)
         .any(|x| x.player_owner_entity_id == actor_id)
     {
         return Err("Personal inventory already exists".into());
@@ -47,7 +53,7 @@ pub fn inventory_create_personal(ctx: &ReducerContext, building_entity_id: u64) 
         bank_function.item_slot_size,
         bank_function.cargo_slot_size,
         bank_function.storage_slots,
-        building_entity_id,
+        owner_entity_id,
         actor_id,
         None,
     ) {

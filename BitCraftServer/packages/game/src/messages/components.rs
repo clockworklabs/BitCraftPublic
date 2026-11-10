@@ -1414,6 +1414,10 @@ pub struct InteriorSpawnedResourceState {
 
     pub interior_spawn_desc_id: i32,
     pub dimension_id: u32,
+    #[default(false)]
+    pub destroy_trigger_completed: bool,
+    #[default(0)]
+    pub original_resource_id: i32,
 }
 
 #[spacetimedb::table(accessor = rent_state, public, index(accessor = claim_entity_id, btree(columns = [claim_entity_id])))]
@@ -1760,13 +1764,15 @@ pub struct TravelerTaskCreditState {
 }
 
 #[spacetimedb::table(accessor = sell_order_state, public, 
+    index(accessor = item, btree(columns = [item_id, item_type])),
     index(accessor = item_for_claim, btree(columns = [item_id, item_type, claim_entity_id])),
     index(accessor = claim_entity_id, btree(columns = [claim_entity_id])),
-    index(accessor = owner_for_claim, btree(columns = [owner_entity_id, claim_entity_id])))]
+    index(accessor = owner_entity_id, btree(columns = [owner_entity_id])))]
 #[spacetimedb::table(accessor = buy_order_state, public,
+    index(accessor = item, btree(columns = [item_id, item_type])),
     index(accessor = item_for_claim, btree(columns = [item_id, item_type, claim_entity_id])),
     index(accessor = claim_entity_id, btree(columns = [claim_entity_id])),
-    index(accessor = owner_for_claim, btree(columns = [owner_entity_id, claim_entity_id])))]
+    index(accessor = owner_entity_id, btree(columns = [owner_entity_id])))]
 #[derive(Clone, Debug)]
 pub struct AuctionListingState {
     #[primary_key]
@@ -2046,6 +2052,8 @@ pub struct WaystoneState {
 
 #[spacetimedb::table(accessor = bank_state, public, 
     index(accessor = claim_entity_id, btree(columns = [claim_entity_id])))]
+#[spacetimedb::table(accessor = regional_bank_state, public,
+    index(accessor = claim_entity_id, btree(columns = [claim_entity_id])))]
 #[derive(Clone, Debug)]
 pub struct BankState {
     #[primary_key]
@@ -2089,6 +2097,7 @@ pub enum AbilityType {
     DeployableToggle(i32),      // Collectible ID - will call either Store or Deploy based on the collectible state
     Emote(i32),                 // Collectible ID
     EquipPreset(i32),           // Preset index
+    PlaceablePlace(i32),        // Input item Id
 }
 
 // Keep in sync with AbilityType
@@ -2108,6 +2117,7 @@ pub enum AbilityTypeEnum {
     DeployableToggle,
     Emote,
     EquipPreset,
+    PlaceablePlace,
 }
 
 #[spacetimedb::table(accessor = action_bar_state, public,

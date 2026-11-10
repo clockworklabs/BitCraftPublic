@@ -4,8 +4,8 @@ pub use crate::game::coordinates::*;
 use crate::game::game_state;
 use crate::game::reducer_helpers::building_helpers;
 use crate::messages::components::{
-    bank_state, building_nickname_state, claim_local_state, claim_tech_state, waystone_state, BankState, BuildingNicknameState,
-    DimensionNetworkState, MarketplaceState, RentState, WaystoneState,
+    bank_state, building_nickname_state, claim_local_state, claim_tech_state, regional_bank_state, waystone_state, BankState,
+    BuildingNicknameState, DimensionNetworkState, MarketplaceState, RentState, WaystoneState,
 };
 pub use crate::messages::components::{BuildingState, InventoryState};
 use crate::messages::inter_module::EmpireCreateBuildingMsg;
@@ -36,7 +36,7 @@ impl BuildingState {
         for f in &description.functions {
             if f.storage_slots > 0 || f.cargo_slots > 0 {
                 //Banks will create an inventory on demand for each player
-                if f.has_category(ctx, BuildingCategory::Bank) {
+                if f.has_category(ctx, BuildingCategory::Bank) || f.has_category(ctx, BuildingCategory::RegionalBank) {
                     continue;
                 }
 
@@ -114,6 +114,10 @@ impl BuildingState {
             bank.claim_entity_id = claim_entity_id;
             ctx.db.bank_state().building_entity_id().update(bank);
         }
+        if let Some(mut bank) = ctx.db.regional_bank_state().building_entity_id().find(&building_entity_id) {
+            bank.claim_entity_id = claim_entity_id;
+            ctx.db.regional_bank_state().building_entity_id().update(bank);
+        }
         if let Some(mut marketplace) = ctx.db.marketplace_state().building_entity_id().find(&building_entity_id) {
             marketplace.claim_entity_id = claim_entity_id;
             ctx.db.marketplace_state().building_entity_id().update(marketplace);
@@ -159,6 +163,10 @@ impl BuildingState {
         if let Some(mut bank) = ctx.db.bank_state().building_entity_id().find(&building_entity_id) {
             bank.claim_entity_id = 0;
             ctx.db.bank_state().building_entity_id().update(bank);
+        }
+        if let Some(mut bank) = ctx.db.regional_bank_state().building_entity_id().find(&building_entity_id) {
+            bank.claim_entity_id = 0;
+            ctx.db.regional_bank_state().building_entity_id().update(bank);
         }
         // Shouldn't be needed since marketplaces SHOULD have the destroy_on_unclaim flag; still leaving this code in case it's forgotten as the alternative would be worse.
         if let Some(mut marketplace) = ctx.db.marketplace_state().building_entity_id().find(&building_entity_id) {
@@ -236,7 +244,8 @@ impl BuildingState {
         building_desc: &BuildingDesc,
         coordinates: SmallHexTileMessage,
     ) {
-        if building_desc.has_category(ctx, BuildingCategory::Waystone) {
+        if building_desc.has_category(ctx, BuildingCategory::Waystone) || building_desc.has_category(ctx, BuildingCategory::OneWayWaystone)
+        {
             ctx.db.waystone_state().insert(WaystoneState {
                 building_entity_id: building_entity_id,
                 claim_entity_id: claim_entity_id,
@@ -252,15 +261,20 @@ impl BuildingState {
         building_desc: &BuildingDesc,
         coordinates: SmallHexTileMessage,
     ) -> Result<(), String> {
-        if building_desc.has_category(ctx, BuildingCategory::Bank) {
-            if ctx.db.bank_state().claim_entity_id().filter(claim_entity_id).next().is_some() {
-                return Err("Claims can only have one bank".into());
+        if building_desc.has_category(ctx, BuildingCategory::Bank) || building_desc.has_category(ctx, BuildingCategory::RegionalBank) {
+            let bank = BankState {
+                building_entity_id,
+                claim_entity_id,
+                coordinates,
+            };
+            if building_desc.has_category(ctx, BuildingCategory::RegionalBank) {
+                ctx.db.regional_bank_state().insert(bank);
+            } else {
+                if claim_entity_id != 0 && ctx.db.bank_state().claim_entity_id().filter(claim_entity_id).next().is_some() {
+                    return Err("Claims can only have one bank".into());
+                }
+                ctx.db.bank_state().insert(bank);
             }
-            ctx.db.bank_state().insert(BankState {
-                building_entity_id: building_entity_id,
-                claim_entity_id: claim_entity_id,
-                coordinates: coordinates,
-            });
         }
         Ok(())
     }

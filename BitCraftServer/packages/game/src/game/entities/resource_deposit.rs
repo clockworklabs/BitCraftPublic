@@ -232,7 +232,7 @@ impl ResourceState {
         true
     }
 
-    pub fn produce_offspawn(ctx: &ReducerContext, resource_id: i32, coord: SmallHexTile, deposit_direction: i32) {
+    pub fn produce_offspawn(ctx: &ReducerContext, resource_id: i32, coord: SmallHexTile, deposit_direction: i32) -> Option<u64> {
         // Respawn resource right away since it's likely a resource that undergoes a state change.
         // We assume the footprint will be the same or included within the original shape.
         let resource_desc = ctx.db.resource_desc().id().find(&resource_id).unwrap();
@@ -245,16 +245,18 @@ impl ResourceState {
             ctx.rng().gen_range(0.0..=1.0) <= resource_desc.on_destroy_yield_resource_chance
         };
 
-        if respawn_resource_id != 0 && should_spawn {
-            let _ = Self::spawn_in_radius_band_with_fallback(
+        let spawned_resource_entity_id = if respawn_resource_id != 0 && should_spawn {
+            Self::spawn_in_radius_band_with_fallback_entity(
                 ctx,
                 respawn_resource_id,
                 coord,
                 deposit_direction,
                 resource_desc.on_destroy_yield_resource_min_radius,
                 resource_desc.on_destroy_yield_resource_max_radius,
-            );
-        }
+            )
+        } else {
+            None
+        };
 
         if let Some(outcome) = Self::pick_destroy_building_outcome(ctx, resource_desc.on_destroy_building_outcomes) {
             let _ = Self::spawn_building_in_radius_band_with_fallback(
@@ -266,6 +268,8 @@ impl ResourceState {
                 outcome.radius_max,
             );
         }
+
+        spawned_resource_entity_id
     }
 
     pub fn pick_destroy_building_outcome(
@@ -360,7 +364,9 @@ impl ResourceState {
             return false;
         }
 
-        if building_desc.has_category(ctx, BuildingCategory::Waystone) {
+        if building_desc.has_category(ctx, BuildingCategory::Waystone)
+            || building_desc.has_category(ctx, BuildingCategory::OneWayWaystone)
+        {
             return false;
         }
 
@@ -449,8 +455,27 @@ impl ResourceState {
         min_radius: i32,
         max_radius: i32,
     ) -> bool {
+        Self::spawn_in_radius_band_with_fallback_entity(
+            ctx,
+            resource_id,
+            center,
+            direction_index,
+            min_radius,
+            max_radius,
+        )
+        .is_some()
+    }
+
+    pub fn spawn_in_radius_band_with_fallback_entity(
+        ctx: &ReducerContext,
+        resource_id: i32,
+        center: SmallHexTile,
+        direction_index: i32,
+        min_radius: i32,
+        max_radius: i32,
+    ) -> Option<u64> {
         if resource_id == 0 {
-            return false;
+            return None;
         }
 
         let resource_desc = ctx.db.resource_desc().id().find(&resource_id).unwrap();
@@ -466,7 +491,7 @@ impl ResourceState {
         let mut terrain_cache = TerrainChunkCache::empty();
 
         if min_radius == 0 && max_radius == 0 {
-            return Self::spawn(ctx, None, resource_id, center, direction_index, resource_health, false, false).is_ok();
+            return Self::spawn(ctx, None, resource_id, center, direction_index, resource_health, false, false).ok();
         }
 
         let mut attempts = SmallHexTile::tile_count_between_radius(min_radius, max_radius);
@@ -483,12 +508,12 @@ impl ResourceState {
                 continue;
             }
 
-            if Self::spawn(ctx, None, resource_id, candidate, direction_index, resource_health, false, false).is_ok() {
-                return true;
+            if let Ok(entity_id) = Self::spawn(ctx, None, resource_id, candidate, direction_index, resource_health, false, false) {
+                return Some(entity_id);
             }
         }
 
-        Self::spawn(ctx, None, resource_id, center, direction_index, resource_health, false, false).is_ok()
+        Self::spawn(ctx, None, resource_id, center, direction_index, resource_health, false, false).ok()
     }
 
     pub fn schedule_resource_spawn(ctx: &ReducerContext, resource_id: i32, coordinates: SmallHexTileMessage, direction_index: i32) {

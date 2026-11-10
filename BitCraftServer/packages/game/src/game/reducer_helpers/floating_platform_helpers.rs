@@ -58,11 +58,11 @@ pub fn platform_cell_of(ctx: &ReducerContext, building_entity_id: u64) -> Option
     Some(platform_cell(location.coordinates()))
 }
 
-/// Raises the terrain cell under a newly created floating platform to its water level.
+/// Sets the gameplay terrain elevation relative to water; visual decks stay at water level.
 pub fn raise_terrain_under_platform(ctx: &ReducerContext, building_entity_id: u64, building_desc_id: i32) {
-    if ctx.db.floating_platform_desc().building_id().find(&building_desc_id).is_none() {
+    let Some(platform) = ctx.db.floating_platform_desc().building_id().find(&building_desc_id) else {
         return;
-    }
+    };
     let Some(location) = ctx.db.location_state().entity_id().find(&building_entity_id) else {
         log::error!("Floating platform {building_entity_id} has no location");
         return;
@@ -74,9 +74,19 @@ pub fn raise_terrain_under_platform(ctx: &ReducerContext, building_entity_id: u6
         return;
     };
     let index = chunk.get_index(cell);
-    if chunk.water_levels[index] > chunk.elevations[index] {
-        chunk.elevations[index] = chunk.water_levels[index];
+    let target = chunk.water_levels[index].saturating_add(platform.target_elevation);
+    if target != chunk.elevations[index] {
+        chunk.elevations[index] = target;
         cache.consume_and_persist_all(ctx);
+    }
+}
+
+/// Reapply offsets to existing platforms when their static data is imported or staged data is committed.
+pub fn refresh_platform_elevations(ctx: &ReducerContext) {
+    for platform in ctx.db.floating_platform_desc().iter() {
+        for building in ctx.db.building_state().building_description_id().filter(platform.building_id) {
+            raise_terrain_under_platform(ctx, building.entity_id, platform.building_id);
+        }
     }
 }
 
@@ -152,19 +162,16 @@ pub fn is_platform_occupied(ctx: &ReducerContext, building_entity_id: u64) -> bo
 /// A platform can only be removed when no blocking mobile entity is on it (players and deployables are allowed)
 /// and, for platforms that support buildings, once nothing else is built on it.
 pub fn validate_platform_removal(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
-    if platform_cell_of(ctx, building_entity_id).is_none() {
+    let Some(cell) = platform_cell_of(ctx, building_entity_id) else {
         return Ok(());
-    }
+    };
     let occupied_by_mobile = is_platform_occupied(ctx, building_entity_id);
     if occupied_by_mobile {
         return Err("Can't remove the platform while something is on it.".into());
     }
 
-    for platform_tile in ctx.db.footprint_tile_state().owner_entity_id().filter(building_entity_id) {
-        let Some(location) = ctx.db.location_state().entity_id().find(&platform_tile.entity_id) else {
-            continue;
-        };
-        let occupied = FootprintTileState::get_at_location(ctx, &location.coordinates())
+    for tile in tiles_on_cell(cell) {
+        let occupied = FootprintTileState::get_at_location(ctx, &tile)
             .any(|f| f.owner_entity_id != building_entity_id && f.footprint_type != FootprintType::Perimeter);
         if occupied {
             return Err("Remove everything built on this platform first.".into());

@@ -12,7 +12,7 @@ use crate::{collectible_desc, i18n, unwrap_or_err};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn chat_post_message(ctx: &ReducerContext, request: PlayerChatPostMessageRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     reduce(
         ctx,
@@ -32,6 +32,8 @@ pub fn reduce(
     target_id: u64,
     language_code: String,
 ) -> Result<(), String> {
+    UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your chat privileges have been suspended")?;
+
     if text.len() <= 0 {
         return Err(format!("Can't send empty chat message"));
     }
@@ -41,13 +43,20 @@ pub fn reduce(
         return Err("Failed to send chat messages".into());
     }
 
-    let player_state = unwrap_or_err!(ctx.db.player_state().entity_id().find(&actor_id), "Invalid player");
-
-    UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your chat privileges have been suspended")?;
+    if !matches!(
+        channel_id,
+        ChatChannel::Local | ChatChannel::Region | ChatChannel::LookingForGroup | ChatChannel::Trade
+    ) {
+        return Err("This chat channel does not accept player messages".into());
+    }
 
     if target_id > 0 && channel_id != ChatChannel::Local {
         return Err("This regional channel shouldn't have a target".into());
     }
+
+    i18n::validate_chat_language_code(&language_code)?;
+
+    let player_state = unwrap_or_err!(ctx.db.player_state().entity_id().find(&actor_id), "Invalid player");
 
     let vault = unwrap_or_err!(
         ctx.db.vault_state().entity_id().find(&actor_id),

@@ -37,10 +37,21 @@ pub fn claim_tech_learn(ctx: &ReducerContext, request: PlayerClaimTechLearnReque
 
     // Make sure requisite is known
     let tech_desc = unwrap_or_err!(ctx.db.claim_tech_desc().id().find(tech_id), "Tech does not exist");
+    if tech_desc.cannot_be_researched {
+        return Err("This technology cannot be researched directly.".into());
+    }
     let mut claim_tech = unwrap_or_err!(
         ctx.db.claim_tech_state().entity_id().find(&claim_entity_id),
         "Claim has no tech, this should not happen"
     );
+
+    if tech_desc
+        .blocking_claim_techs
+        .as_ref()
+        .is_some_and(|blocking_techs| blocking_techs.iter().any(|tech| claim_tech.learned.contains(tech)))
+    {
+        return Err("A technology that blocks this research has already been learned.".into());
+    }
 
     for req in tech_desc.requirements {
         if !claim_tech.learned.contains(&req) {

@@ -16,6 +16,7 @@ pub mod growth_agent;
 pub mod npc_ai_agent;
 pub mod player_housing_income_agent;
 pub mod player_regen_agent;
+pub mod player_session_log_cleanup_agent;
 pub mod region_population_agent;
 pub mod rent_collector_agent;
 pub mod resources_regen;
@@ -54,6 +55,7 @@ pub fn init(ctx: &ReducerContext) {
         region_population_agent::init(ctx);
         storage_log_cleanup_agent::init(ctx);
         crumb_trail_clean_up_agent::init(ctx);
+        player_session_log_cleanup_agent::init(ctx);
 
         log::info!("Initialized agents with parameter values.");
     } else {
@@ -75,5 +77,6 @@ pub fn update_scheduled_timers_from_static_data(ctx: &ReducerContext) -> Result<
     resources_regen::update_timer(ctx);
     starving_agent::update_timer(ctx);
     storage_log_cleanup_agent::update_timer(ctx);
+    player_session_log_cleanup_agent::update_timer(ctx);
     Ok(())
 }

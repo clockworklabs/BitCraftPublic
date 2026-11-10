@@ -236,10 +236,11 @@ pub fn reduce(
 
     if let Some(ref building_desc) = building {
         let claim_entity_id = project_site.owner_id;
-        if building_desc.has_category(ctx, BuildingCategory::Bank) {
-            if ctx.db.bank_state().claim_entity_id().filter(claim_entity_id).next().is_some() {
-                return Err("Claims can only have one bank".into());
-            }
+        if building_desc.has_category(ctx, BuildingCategory::Bank)
+            && claim_entity_id != 0
+            && ctx.db.bank_state().claim_entity_id().filter(claim_entity_id).next().is_some()
+        {
+            return Err("Claims can only have one bank".into());
         }
         if building_desc.has_category(ctx, BuildingCategory::TownMarket) {
             if ctx

@@ -52,7 +52,7 @@ pub fn reduce(ctx: &ReducerContext, vote_entity_id: u64, player_entity_id: u64, 
 
     // if outcome is determined, conclude the vote after a small delay that will let the clients use the vote information before it's deleted
     if outcome != PlayerVoteAnswer::None {
-        vote.play_outcome(ctx);
+        vote.play_outcome(ctx)?;
         ctx.db
             .player_vote_conclude_timer()
             .try_insert(PlayerVoteConcludeTimer {

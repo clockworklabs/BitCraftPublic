@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use queues::*;
 use spacetimedb::{log, ReducerContext, Table};
 
 use crate::{
@@ -11,7 +10,6 @@ use crate::{
         components::{building_nickname_state, claim_member_state, user_state},
         empire_schema::*,
         empire_shared::*,
-        generic::world_region_state,
         global::user_region_state,
         inter_module::{
             EmpireRemoveCrownMsg, EmpireUpdateEmperorCrownMsg, OnPlayerJoinedEmpireMsg, OnPlayerLeftEmpireMsg, RegionDestroySiegeEngineMsg,
@@ -24,6 +22,19 @@ use crate::{
 
 use super::empires::delete_empire_building;
 use super::npc_empire::is_npc_empire;
+
+/// Hourly upkeep for a player watchtower. NPC towers keep their fixed upkeep.
+/// A = assigned chunks, B = per-chunk upkeep, C = territory coefficient,
+/// D = currently occupied empire chunks. Round only the final A * B * (1 + C * D^2).
+fn calculate_watchtower_upkeep(assigned_chunks: usize, empire_chunks: usize, per_chunk: f64, per_total_chunks: f64) -> i32 {
+    if assigned_chunks == 0 || per_chunk == 0.0 {
+        return 0;
+    }
+
+    let territory = empire_chunks as f64;
+    let upkeep = assigned_chunks as f64 * per_chunk * (1.0 + per_total_chunks * territory * territory);
+    upkeep.ceil() as i32
+}
 
 impl EmpireNodeState {
     pub fn chunk_coordinates(&self, ctx: &ReducerContext) -> Option<ChunkCoordinates> {
@@ -207,8 +218,7 @@ impl EmpireState {
             .empire_player_data_state()
             .empire_entity_id()
             .filter(self.entity_id)
-            .filter(|data| data.rank == 0)
-            .next()
+            .find(|data| data.rank == 0)
         {
             emperor_entity_id = emperor.entity_id;
         }
@@ -292,9 +302,32 @@ impl EmpireState {
         ctx.db.empire_lowercase_name_state().entity_id().delete(entity_id);
         ctx.db.empire_log_state().entity_id().delete(&entity_id);
         ctx.db.empire_emblem_state().entity_id().delete(entity_id);
+        ctx.db.empire_blacklist_state().empire_entity_id().delete(entity_id);
     }
 
-    pub fn merge_into(&self, ctx: &ReducerContext, new_empire_entity_id: u64) {
+    pub fn merge_into(&self, ctx: &ReducerContext, new_empire_entity_id: u64) -> Result<(), String> {
+        // Remove crown from previous emperor
+        if let Some(emperor) = ctx
+            .db
+            .empire_player_data_state()
+            .empire_entity_id()
+            .filter(self.entity_id)
+            .find(|data| data.rank == 0)
+        {
+            EmpireState::remove_crown_status(ctx, emperor.entity_id);
+        }
+
+        // Remove any players on the target empire's blacklist
+        for blacklisted_player in ctx
+            .db
+            .empire_player_data_state()
+            .empire_entity_id()
+            .filter(self.entity_id)
+            .filter(|player| super::empires::validate_not_blacklisted(ctx, new_empire_entity_id, player.entity_id).is_err())
+        {
+            super::empires::remove_empire_citizen(ctx, blacklisted_player.entity_id, self.entity_id, true)?;
+        }
+
         // Delete foundries
         for foundry in ctx.db.empire_foundry_state().empire_entity_id().filter(self.entity_id) {
             delete_empire_building(ctx, 0, foundry.entity_id, false);
@@ -318,18 +351,6 @@ impl EmpireState {
         // Align all EmpireChunkStates
         for empire_chunk in ctx.db.empire_chunk_state().iter() {
             empire_chunk.convert_and_commit(ctx, self.entity_id, new_empire_entity_id);
-        }
-
-        // Remove crown from previous emperor
-        if let Some(emperor) = ctx
-            .db
-            .empire_player_data_state()
-            .empire_entity_id()
-            .filter(self.entity_id)
-            .filter(|data| data.rank == 0)
-            .next()
-        {
-            EmpireState::remove_crown_status(ctx, emperor.entity_id);
         }
 
         // All aligned player ranks must be converted
@@ -374,124 +395,34 @@ impl EmpireState {
 
         // delete all remaining stuff from the empire
         self.delete(ctx);
+        Self::update_empire_upkeep(ctx, new_empire_entity_id);
+        Ok(())
     }
 
     pub fn update_empire_upkeep(ctx: &ReducerContext, empire_entity_id: u64) {
-        // NPC empire watchtowers use fixed upkeep values set at placement time
+        // NPC empire watchtowers retain the fixed upkeep assigned at placement.
         if is_npc_empire(ctx, empire_entity_id) {
             return;
         }
 
-        let empire = ctx.db.empire_state().entity_id().find(&empire_entity_id).unwrap();
-
-        log::info!("Recalculating upkeep for every node");
-        let chunk_index = SmallHexTile::from(empire.location).chunk_coordinates().chunk_index();
-        let capital_coord = TerrainChunkState::chunk_coord_from_chunk_index(chunk_index);
-
-        let nodes: Vec<EmpireNodeState> = ctx.db.empire_node_state().empire_entity_id().filter(empire_entity_id).collect();
-        let active_node_count = nodes.clone().iter().filter(|n| n.active).count() as i32;
-
-        let mut owned_chunks: Vec<u64> = ctx
-            .db
-            .empire_chunk_state()
-            .empire_entity_id()
-            .filter(empire_entity_id)
-            .map(|c| c.chunk_index)
-            .collect();
-
-        let mut allied_settlements_chunk_indexes: Vec<u64> = ctx
-            .db
-            .empire_settlement_state()
-            .empire_entity_id()
-            .filter(empire_entity_id)
-            .map(|settlement| settlement.chunk_index)
-            .collect();
-        allied_settlements_chunk_indexes.sort();
-        allied_settlements_chunk_indexes.dedup();
-
-        let mut areas = Vec::new(); // Chunks in this area, whether an allied claim can be found on those chunks
-
-        while owned_chunks.len() > 0 {
-            let chunk_index = owned_chunks[0];
-            owned_chunks.remove(0);
-            let area = Self::extract_connected_empire_chunks(ctx, chunk_index, &mut owned_chunks);
-            let is_supplied_by_claim = allied_settlements_chunk_indexes
-                .iter()
-                .any(|chunk_index| area.contains(&chunk_index));
-            areas.push((area, is_supplied_by_claim));
-        }
-
-        for mut node in nodes {
-            let upkeep;
-            let node_chunk_coord = TerrainChunkState::chunk_coord_from_chunk_index(node.chunk_index);
-            if node.active {
-                // A watchtower might have no territory if it has an adjacent opposing watchtower (after a succesful siege of one of two contiguous aligned watchtowers)
-                let aligned_territory = areas.iter().filter(|a| a.0.contains(&node.chunk_index)).next();
-                let is_supplied_by_claim = match aligned_territory {
-                    Some(t) => t.1,
-                    None => false,
-                };
-                let chunk_distance = i32::abs(node_chunk_coord.x - capital_coord.x) + i32::abs(node_chunk_coord.z - capital_coord.z);
-                let node_count_cost = f32::log(active_node_count as f32, 2.0);
-                let distance_cost = (chunk_distance as f32) * 0.2;
-                let additional_constant = if is_supplied_by_claim { 1.0 } else { 16.0 };
-                let empire_upkeep_multiplier = 0.1;
-                upkeep = f32::ceil((node_count_cost + distance_cost + additional_constant) * empire_upkeep_multiplier) as i32;
-                // log::info!("Upkeep update for node at {:?}", node_chunk_coord);
-                // log::info!("Active Node Count... {} => {}", active_node_count, node_count_cost);
-                // log::info!("Distance... {} => {}", chunk_distance, distance_cost);
-                // log::info!("Additional Constant... {} => {}", is_supplied_by_claim, additional_constant);
-                // log::info!("Total... {}", upkeep);
+        let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
+        let empire_chunks = ctx.db.empire_chunk_state().empire_entity_id().filter(empire_entity_id).count();
+        for mut node in ctx.db.empire_node_state().empire_entity_id().filter(empire_entity_id) {
+            let upkeep = if node.active {
+                calculate_watchtower_upkeep(
+                    ctx.db.empire_chunk_state().watchtower_entity_id().filter(node.entity_id).count(),
+                    empire_chunks,
+                    parameters.empire_watchtower_upkeep_per_chunk,
+                    parameters.empire_watchtower_upkeep_per_total_chunks,
+                )
             } else {
-                upkeep = 0;
-                // log::info!("Upkeep update for INACTIVE node at {:?}", node_chunk_coord);
-                // log::info!("Total... {}", upkeep);
-            }
-
+                0
+            };
             if upkeep != node.upkeep {
                 node.upkeep = upkeep;
                 EmpireNodeState::update_shared(ctx, node, crate::inter_module::InterModuleDestination::AllOtherRegions);
             }
         }
-    }
-
-    fn extract_connected_empire_chunks(ctx: &ReducerContext, start: u64, owned_chunks: &mut Vec<u64>) -> HashSet<u64> {
-        let world_info = ctx.db.world_region_state().id().find(0).unwrap();
-
-        let min_x = world_info.region_min_chunk_x as i32;
-        let min_z = world_info.region_min_chunk_z as i32;
-        let max_x = min_x + world_info.region_width_chunks as i32 * world_info.region_count_sqrt as i32 - 1;
-        let max_z = min_z + world_info.region_height_chunks as i32 * world_info.region_count_sqrt as i32 - 1;
-
-        let mut open_set = Queue::new(); //vec![start];
-        open_set.add(start).ok();
-
-        let mut connected_chunks: HashSet<u64> = HashSet::new();
-        connected_chunks.insert(start);
-
-        //Flood-fill
-        let neighbors = vec![(0, 1), (0, -1), (1, 0), (-1, 0)];
-        while open_set.size() > 0 {
-            let current = open_set.remove().ok().unwrap();
-            let coord = TerrainChunkState::chunk_coord_from_chunk_index(current);
-            for n in &neighbors {
-                let neighbor_coord = ChunkCoordinates {
-                    x: coord.x + n.0,
-                    z: coord.z + n.1,
-                    dimension: coord.dimension,
-                };
-                if neighbor_coord.x < min_x || neighbor_coord.x > max_x || neighbor_coord.z < min_z || neighbor_coord.z > max_z {
-                    continue;
-                }
-                let neighbor_chunk_index = TerrainChunkState::chunk_index_from_coords(&neighbor_coord);
-                if let Some(i) = owned_chunks.iter().position(|ci| *ci == neighbor_chunk_index) {
-                    connected_chunks.insert(neighbor_chunk_index);
-                    open_set.add(neighbor_chunk_index).ok();
-                    owned_chunks.remove(i);
-                }
-            }
-        }
-        connected_chunks
     }
 
     pub fn remove_crown_status(ctx: &ReducerContext, player_entity_id: u64) {
@@ -514,8 +445,7 @@ impl EmpireState {
                 .empire_player_data_state()
                 .empire_entity_id()
                 .filter(empire_entity_id)
-                .filter(|d| d.rank == 0)
-                .next(),
+                .find(|d| d.rank == 0),
             "Emperor doesn't exist"
         );
         let region = game_state::player_region(ctx, emperor.entity_id).expect("Player region not found");
@@ -652,6 +582,7 @@ impl EmpireChunkState {
 
 impl EmpirePlayerDataState {
     pub fn new(ctx: &ReducerContext, actor_id: u64, empire_entity_id: u64, rank: u8) -> Result<(), String> {
+        super::empires::validate_not_blacklisted(ctx, empire_entity_id, actor_id)?;
         EmpirePlayerDataState::insert_shared(
             ctx,
             EmpirePlayerDataState {
@@ -825,8 +756,7 @@ impl EmpireNodeSiegeState {
                     .empire_node_siege_state()
                     .building_entity_id()
                     .filter(empire_node.entity_id)
-                    .filter(|s| s.active && s.empire_entity_id != self.empire_entity_id)
-                    .next()
+                    .find(|s| s.active && s.empire_entity_id != self.empire_entity_id)
                     .unwrap();
             } else {
                 // This siege has a different empire than the tower's, therefore it's the attacking side

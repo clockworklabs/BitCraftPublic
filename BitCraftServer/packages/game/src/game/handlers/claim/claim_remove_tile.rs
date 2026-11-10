@@ -8,6 +8,7 @@ use crate::{
     game::{
         claim_helper,
         coordinates::SmallHexTile,
+        dimensions,
         game_state::{self, game_state_filters},
     },
     location_state,
@@ -26,6 +27,10 @@ pub fn claim_remove_tile(ctx: &ReducerContext, request: PlayerClaimRemoveTileReq
 }
 
 fn reduce(ctx: &ReducerContext, actor_id: u64, tile: SmallHexTile) -> Result<(), String> {
+    if tile.dimension != dimensions::OVERWORLD {
+        return Err("Cannot unclaim tiles inside an interior.".into());
+    }
+
     // Make sure the tile is claimed
     if let Some(claimed_tile) = claim_helper::get_claim_on_tile(ctx, tile) {
         let claim_entity_id = claimed_tile.claim_id;

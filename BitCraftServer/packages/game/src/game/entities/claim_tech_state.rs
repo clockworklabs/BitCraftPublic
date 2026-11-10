@@ -1,4 +1,3 @@
-use std::u32;
 
 use spacetimedb::ReducerContext;
 

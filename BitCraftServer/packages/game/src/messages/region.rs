@@ -48,3 +48,16 @@ pub struct MigrationBuildingDescParams {
     pub id: i32,
     pub allow_building_health_change: bool,
 }
+
+#[spacetimedb::table(accessor = player_session_log,
+    index(accessor = entity_id, btree(columns = [entity_id])),
+    index(accessor = sign_out_timestamp, btree(columns = [sign_out_timestamp])))]
+#[derive(Clone, Debug)]
+pub struct PlayerSessionLog {
+    #[primary_key]
+    #[auto_inc]
+    pub id: u64,
+    pub entity_id: u64,
+    pub sign_in_timestamp: i32,
+    pub sign_out_timestamp: i32,
+}

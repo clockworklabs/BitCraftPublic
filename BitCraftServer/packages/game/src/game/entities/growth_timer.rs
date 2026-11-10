@@ -3,7 +3,10 @@ use std::time::Duration;
 use spacetimedb::{log, rand::Rng, ReducerContext, ScheduleAt, Table};
 
 use crate::{
-    game::autogen::_delete_entity::delete_entity,
+    game::{
+        autogen::_delete_entity::delete_entity,
+        reducer_helpers::interior_helpers::transfer_interior_spawn_tracking_after_growth,
+    },
     inter_module::system_chat_broadcast::{sytem_chat_broadcast_timer, SystemChatBroadcastTimer},
     location_state,
     messages::{
@@ -12,7 +15,8 @@ use crate::{
         generic::world_region_state,
         static_data::{PlaceableGrowthDesc, ResourceGrowthRecipeDesc},
     },
-    placeable_growth_desc, placeable_state, resource_growth_recipe_desc, resource_state, unwrap_or_return,
+    interior_spawned_resource_state, placeable_growth_desc, placeable_state, resource_growth_recipe_desc, resource_state,
+    unwrap_or_return,
 };
 
 #[spacetimedb::table(accessor = resource_growth_timer, public, scheduled(resource_growth_scheduled, at = scheduled_at))]
@@ -94,6 +98,11 @@ fn resource_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Result
 
     let coordinates = location.coordinates();
     let direction = resource.direction_index;
+    let interior_tracking = ctx
+        .db
+        .interior_spawned_resource_state()
+        .entity_id()
+        .find(&timer.entity_id);
     resource.despawn_growing(ctx);
 
     let should_spawn = if recipe.grown_resource_chance >= 1.0 {
@@ -104,9 +113,8 @@ fn resource_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Result
         ctx.rng().gen_range(0.0..=1.0) <= recipe.grown_resource_chance
     };
 
-    if recipe.grown_resource_id != 0
-        && should_spawn
-        && !ResourceState::spawn_in_radius_band_with_fallback(
+    let grown_entity_id = if recipe.grown_resource_id != 0 && should_spawn {
+        ResourceState::spawn_in_radius_band_with_fallback_entity(
             ctx,
             recipe.grown_resource_id,
             coordinates,
@@ -114,13 +122,23 @@ fn resource_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Result
             recipe.grown_resource_min_radius,
             recipe.grown_resource_max_radius,
         )
-    {
+    } else {
+        None
+    };
+    if recipe.grown_resource_id != 0 && should_spawn && grown_entity_id.is_none() {
         log::error!(
             "Unable to grow resource {} into {}",
             timer.entity_id,
             recipe.grown_resource_id
         );
     }
+    transfer_interior_spawn_tracking_after_growth(
+        ctx,
+        interior_tracking,
+        resource.resource_id,
+        grown_entity_id,
+        recipe.grown_resource_id,
+    );
 
     Ok(())
 }

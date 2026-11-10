@@ -33,6 +33,30 @@ fn apply_self_buffs(ctx: &ReducerContext, actor_id: u64, self_buffs: &[Placeable
     Ok(())
 }
 
+fn collect_output_stacks(
+    per_progress: &[ItemStack],
+    on_destroy: Option<&[ItemStack]>,
+    damage: i32,
+    destroyed: bool,
+) -> Vec<ItemStack> {
+    let mut output = Vec::new();
+    if damage > 0 {
+        for stack in per_progress {
+            let mut stack = stack.clone();
+            stack.quantity *= damage;
+            if stack.quantity > 0 {
+                output.push(stack);
+            }
+        }
+    }
+    if destroyed {
+        if let Some(on_destroy) = on_destroy {
+            output.extend(on_destroy.iter().filter(|stack| stack.quantity > 0).cloned());
+        }
+    }
+    output
+}
+
 fn format_missing_input_message(ctx: &ReducerContext, required_stack: &ItemStack) -> String {
     let item_name = match required_stack.item_type {
         ItemType::Item => ctx
@@ -318,17 +342,6 @@ fn reduce_with_options(
             experience_damage_output = health.health.min(base_damage);
             is_crit = crit_multiplier > 1.0;
 
-            let damage_multiplier = damage_output as i32;
-            if damage_multiplier > 0 {
-                for stack in &recipe.output_item_stacks {
-                    let mut stack = stack.clone();
-                    stack.quantity *= damage_multiplier;
-                    if stack.quantity > 0 {
-                        output.push(stack);
-                    }
-                }
-            }
-
             for experience in &recipe.experience_per_progress {
                 ExperienceState::add_experience_f32(ctx, actor_id, experience.skill_id, experience.quantity * experience_damage_output);
             }
@@ -342,6 +355,12 @@ fn reduce_with_options(
             }
 
             health.add_health_delta(-damage_output, ctx.timestamp);
+            output = collect_output_stacks(
+                &recipe.output_item_stacks,
+                recipe.on_destroy_yield.as_deref(),
+                damage_output as i32,
+                health.health <= 0.0,
+            );
             if health.health <= 0.0 {
                 placeable.despawn(ctx);
                 if let Some(outcome) = PlaceableState::pick_growth_outcome(ctx, recipe.on_destroy_outcomes) {

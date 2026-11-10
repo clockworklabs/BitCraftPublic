@@ -2,20 +2,15 @@ use bitcraft_macro::feature_gate;
 use spacetimedb::{ReducerContext, Table};
 
 use crate::{
-    game::{
-        game_state::{self, game_state_filters},
-        reducer_helpers::player_action_helpers,
-    },
+    game::{game_state, reducer_helpers::player_action_helpers},
     messages::{
         action_request::PlayerPostOrderRequest,
         components::{
-            building_state, buy_order_state, closed_listing_state, sell_order_state, AuctionListingState, ClosedListingState, HealthState,
-            InventoryState,
+            buy_order_state, closed_listing_state, sell_order_state, AuctionListingState, ClosedListingState, HealthState, InventoryState,
         },
         events::{market_trade_event, MarketOrderType, MarketTradeEvent},
         game_util::{ItemStack, ItemType},
     },
-    unwrap_or_err,
 };
 
 #[spacetimedb::reducer]
@@ -36,14 +31,7 @@ pub fn order_post_sell_order(ctx: &ReducerContext, request: PlayerPostOrderReque
         return Err("Invalid coins".into());
     }
 
-    let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(request.building_entity_id),
-        "Building does not exist"
-    );
-
-    if building.distance_to(ctx, &game_state_filters::coordinates_float(ctx, actor_id).into()) > 2 {
-        return Err("Too far".into());
-    }
+    let building = AuctionListingState::marketplace_for_action(ctx, actor_id, request.building_entity_id, 2)?;
 
     let claim_entity_id = building.claim_entity_id;
 
@@ -55,6 +43,11 @@ pub fn order_post_sell_order(ctx: &ReducerContext, request: PlayerPostOrderReque
     })?;
 
     resolve_sell_order(ctx, actor_id, &mut required_item, claim_entity_id, request.max_unit_price);
+
+    // An instant sale must roll back if a concurrent fill removed the requested liquidity.
+    if required_item.quantity > 0 && !request.persist_order {
+        return Err("Orders are no longer available for this price".into());
+    }
 
     // Post the remaining sell order
     if required_item.quantity > 0 && request.persist_order {
@@ -91,8 +84,8 @@ pub fn resolve_sell_order(
     let mut matching_orders: Vec<AuctionListingState> = ctx
         .db
         .buy_order_state()
-        .item_for_claim()
-        .filter((item_id, item_type as i32, claim_entity_id))
+        .item()
+        .filter((item_id, item_type as i32))
         .filter(|order| order.price_threshold >= price_threshold)
         .collect();
     matching_orders.sort_by(|a, b| b.price_threshold.cmp(&a.price_threshold).then(a.timestamp.cmp(&b.timestamp)));
@@ -108,7 +101,7 @@ pub fn resolve_sell_order(
         let buyer_items = ClosedListingState {
             entity_id: game_state::create_entity(ctx),
             owner_entity_id: matching_order.owner_entity_id,
-            claim_entity_id,
+            claim_entity_id: matching_order.claim_entity_id,
             item_stack: ItemStack::new(ctx, required_item.item_id, required_item.item_type, quantity_sold),
             timestamp: ctx.timestamp,
         };
@@ -132,7 +125,7 @@ pub fn resolve_sell_order(
         matching_order.stored_coins -= sale_coins_amount;
 
         ctx.db.market_trade_event().insert(MarketTradeEvent {
-            claim_entity_id,
+            claim_entity_id: matching_order.claim_entity_id,
             listing_entity_id: matching_order.entity_id,
             listing_type: MarketOrderType::BuyOrder,
             buyer_entity_id: matching_order.owner_entity_id,
@@ -153,7 +146,7 @@ pub fn resolve_sell_order(
                 let left_over_coins = ClosedListingState {
                     entity_id: game_state::create_entity(ctx),
                     owner_entity_id: matching_order.owner_entity_id,
-                    claim_entity_id,
+                    claim_entity_id: matching_order.claim_entity_id,
                     item_stack: ItemStack::hex_coins(matching_order.stored_coins),
                     timestamp: ctx.timestamp,
                 };

@@ -6,9 +6,10 @@ use crate::{
         authentication::Role,
         moderation_config::{
             mod_consequence_state, mod_enforcement_config_state, mod_flag_level_threshold_state, mod_flagged_word_state,
-            mod_replacement_text_state, mod_report_config_state, mod_threshold_state, mod_violation_state, mod_word_replacement_state,
-            ModConsequenceState, ModEnforcementConfigState, ModFlagLevelThresholdState, ModFlaggedWordState, ModReplacementTextState,
-            ModReportConfigState, ModThresholdState, ModViolationState, ModWordReplacementState,
+            mod_playtime_threshold_state, mod_replacement_text_state, mod_report_config_state, mod_threshold_state, mod_violation_state,
+            mod_word_replacement_state, ModConsequenceState, ModEnforcementConfigState, ModFlagLevelThresholdState, ModFlaggedWordState,
+            ModPlaytimeThresholdState, ModReplacementTextState, ModReportConfigState, ModThresholdState, ModViolationState,
+            ModWordReplacementState,
         },
     },
 };
@@ -433,4 +434,38 @@ pub fn admin_remove_moderation_flag_level_threshold(ctx: &ReducerContext, flag_l
     } else {
         Err("Flag level threshold not found".into())
     }
+}
+
+// ============================================================================
+// Playtime Threshold Management
+// ============================================================================
+
+#[spacetimedb::reducer]
+pub fn admin_update_playtime_threshold(ctx: &ReducerContext, metric: u8, threshold_hours: i32, alert_enabled: bool) -> Result<(), String> {
+    if !has_role(ctx, &ctx.sender(), Role::Admin) {
+        return Err("Unauthorized".into());
+    }
+
+    if metric > 3 {
+        return Err(format!("Invalid playtime metric {}", metric));
+    }
+    if threshold_hours <= 0 {
+        return Err("Threshold must be at least 1 hour".into());
+    }
+
+    // Upsert: delete existing if present, then insert
+    ctx.db.mod_playtime_threshold_state().metric().delete(&metric);
+    ctx.db.mod_playtime_threshold_state().insert(ModPlaytimeThresholdState {
+        metric,
+        threshold_hours,
+        alert_enabled,
+    });
+
+    log::info!(
+        "[Admin] Updated playtime threshold metric={} hours={} alert={}",
+        metric,
+        threshold_hours,
+        alert_enabled
+    );
+    Ok(())
 }

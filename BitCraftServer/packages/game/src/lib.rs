@@ -363,6 +363,14 @@ fn insert_buildings(ctx: &ReducerContext, buildings: Vec<WorldGenGeneratedBuildi
             0,
         );
 
+        BuildingState::create_bank(
+            ctx,
+            entity_id,
+            claim_entity_id,
+            building_description,
+            SmallHexTile::from(offset).into(),
+        )
+        .expect("Invalid generated bank placement");
         create_building_footprint(ctx, entity_id, building_component.direction_index, building_description, &None);
 
         if !ignore_claim_creation {

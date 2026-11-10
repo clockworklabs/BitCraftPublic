@@ -48,6 +48,7 @@ pub mod admin_restore_all_collapsed_ruins;
 pub mod admin_restore_player_state;
 pub mod admin_set_region_control_state;
 pub mod admin_set_resource_world_target;
+pub mod admin_set_resources_to_max_health;
 pub mod admin_set_sign_text;
 pub mod admin_shared;
 pub mod admin_sign_out;

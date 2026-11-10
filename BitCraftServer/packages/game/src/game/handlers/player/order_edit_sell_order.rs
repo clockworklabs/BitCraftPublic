@@ -5,7 +5,7 @@ use crate::{
     game::{game_state, reducer_helpers::player_action_helpers},
     messages::{
         action_request::PlayerEditOrderRequest,
-        components::{building_state, closed_listing_state, sell_order_state, ClosedListingState, HealthState, InventoryState},
+        components::{closed_listing_state, sell_order_state, AuctionListingState, ClosedListingState, HealthState, InventoryState},
         game_util::{ItemStack, ItemType},
     },
     unwrap_or_err,
@@ -26,10 +26,7 @@ pub fn order_edit_sell_order(ctx: &ReducerContext, request: PlayerEditOrderReque
         return Err("Invalid coins".into());
     }
 
-    let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(request.building_entity_id),
-        "Building does not exist"
-    );
+    let building = AuctionListingState::marketplace_for_action(ctx, actor_id, request.building_entity_id, 2)?;
 
     let claim_entity_id = building.claim_entity_id;
 
@@ -45,6 +42,9 @@ pub fn order_edit_sell_order(ctx: &ReducerContext, request: PlayerEditOrderReque
     let new_threshold = request.coins;
     let new_quantity = request.quantity;
     let process_order = new_threshold < sell_order.price_threshold;
+    if sell_order.claim_entity_id != claim_entity_id {
+        return Err("You cannot edit this listing from there".into());
+    }
 
     if new_quantity == sell_order.quantity && new_threshold == sell_order.price_threshold {
         return Err("No change".into());
@@ -82,7 +82,7 @@ pub fn order_edit_sell_order(ctx: &ReducerContext, request: PlayerEditOrderReque
     sell_order.price_threshold = new_threshold;
     sell_order.quantity = new_quantity;
 
-    // Try resolving the sell order with the new values. In all honesty, it can only self-resolve if the new price decreased
+    // Only retry matching when the sell price decreases.
     let mut required_item = ItemStack::new(
         ctx,
         sell_order.item_id,

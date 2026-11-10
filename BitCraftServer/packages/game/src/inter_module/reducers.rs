@@ -1,11 +1,12 @@
 use bitcraft_macro::shared_table_reducer;
 use spacetimedb::{ReducerContext, Table};
-use crate::inter_module::_autogen::InterModuleTableUpdatesV2;
+use crate::inter_module::_autogen::{InterModuleTableUpdatesV2, UserModerationStateOp};
 
 use crate::{
     game::handlers::{authentication::has_role, empires::*, player::sign_out::sign_out_internal, queue::player_queue},
     messages::{
         authentication::{Role, ServerIdentity},
+        components::UserModerationState,
         events::{player_signed_out_event, PlayerSignedOutEvent, PlayerSignedOutReason},
         inter_module::{
             inter_module_message_counter, inter_module_message_errors, inter_module_message_v5, InterModuleMessageCounter,
@@ -165,10 +166,23 @@ fn validate_relay_identity(ctx: &ReducerContext) -> Result<(), String> {
 
 fn apply_inter_module_table_update(ctx: &ReducerContext, inter_module_table_updates: InterModuleTableUpdatesV2) {
     let is_region_sign_in_parameters = inter_module_table_updates.region_sign_in_parameters.is_some();
+    let chat_blocked_identities: Vec<_> = inter_module_table_updates
+        .user_moderation_state
+        .iter()
+        .flatten()
+        .filter_map(|op| match op {
+            UserModerationStateOp::Insert(state) if state.user_moderation_policy.deletes_chat() => Some(state.target_identity),
+            _ => None,
+        })
+        .collect();
 
     inter_module_table_updates.apply_updates(ctx);
 
     if is_region_sign_in_parameters {
         player_queue::process_queue(ctx);
+    }
+
+    for identity in chat_blocked_identities {
+        UserModerationState::delete_region_chat_messages(ctx, &identity);
     }
 }

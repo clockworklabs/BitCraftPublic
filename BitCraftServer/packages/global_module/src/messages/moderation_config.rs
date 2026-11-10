@@ -159,3 +159,17 @@ pub struct ModFlagLevelThresholdState {
     pub flag_level: u8,
     pub point_threshold: i32,
 }
+
+// ============================================================================
+// Playtime Threshold Table (individual entries)
+// ============================================================================
+
+/// Online time thresholds the CS portal uses to flag likely botting.
+#[spacetimedb::table(accessor = mod_playtime_threshold_state)]
+#[derive(Clone, Debug)]
+pub struct ModPlaytimeThresholdState {
+    #[primary_key]
+    pub metric: u8,
+    pub threshold_hours: i32,
+    pub alert_enabled: bool,
+}

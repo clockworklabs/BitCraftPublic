@@ -236,6 +236,22 @@ fn validate_location_rules(
 
     PlaceableState::validate_spawn_terrain(terrain_cache, ctx, coordinates, placeable_desc)?;
 
+    if let Some(acceptable_pavements) = &recipe.acceptable_pavements {
+        if !acceptable_pavements.is_empty()
+            && !PavedTileState::get_at_location(ctx, &coordinates)
+                .is_some_and(|tile| acceptable_pavements.contains(&tile.tile_type_id))
+        {
+            let pavement_name = ctx
+                .db
+                .paving_tile_desc()
+                .id()
+                .find(&acceptable_pavements[0])
+                .map(|pavement| pavement.name)
+                .unwrap_or_else(|| "the required pavement".into());
+            return Err(format!("This placeable must be placed on {{0}}!|~{}", pavement_name));
+        }
+    }
+
     if recipe.required_paving_tier >= 0 {
         let valid = match PavedTileState::get_at_location(ctx, &coordinates) {
             Some(tile) => ctx.db.paving_tile_desc().id().find(&tile.tile_type_id).unwrap().tier >= recipe.required_paving_tier,

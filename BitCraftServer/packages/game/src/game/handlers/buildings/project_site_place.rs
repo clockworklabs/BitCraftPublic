@@ -58,6 +58,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
     let mut is_empire_foundry = false;
     let mut is_claim_totem = false;
     let mut is_bank = false;
+    let mut is_regional_bank = false;
     let mut is_market = false;
 
     //let mut is_empire_stockpile = false;
@@ -84,11 +85,6 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
             None,
         )?;
         if ctx.db.floating_platform_desc().building_id().find(&building.id).is_some() {
-            // Floating platforms are placed from land (or from another platform), not while swimming
-            let player_cell = game_state::game_state_filters::coordinates_float(ctx, actor_id).parent_large_tile();
-            if terrain_cache.get_terrain_cell(ctx, &player_cell).map_or(false, |c| c.player_should_swim()) {
-                return Err("Platforms must be placed from land.".into());
-            }
             floating_platform_helpers::validate_platform_limit(ctx, building.id, actor_id)?;
         }
         is_rent_terminal = building.has_category(ctx, BuildingCategory::RentTerminal);
@@ -97,7 +93,8 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         // It's possible to start two bank/market project sites at the same time
         // However attempting to complete the 2nd one will show the error. Too bad for the lost materials,
         // but this would obvisouly be done on purpose in an attempt to circumvent the limitation.
-        is_bank = building.has_category(ctx, BuildingCategory::Bank);
+        is_regional_bank = building.has_category(ctx, BuildingCategory::RegionalBank);
+        is_bank = building.has_category(ctx, BuildingCategory::Bank) && !is_regional_bank;
         is_market = building.has_category(ctx, BuildingCategory::TownMarket);
         validate_knowledge(ctx, actor_id, &recipe.required_knowledges)?;
     } else if let Some(ref recipe) = resource_placement_recipe {
@@ -297,13 +294,13 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         });
     }
 
-    if is_bank || is_market {
+    if is_bank || is_regional_bank || is_market {
         if existing_claims_id.len() != 1 {
             return Err("This building can only be built on a claim".into());
         }
         let claim_entity_id = existing_claims_id[0];
         if is_bank {
-            if ctx.db.bank_state().claim_entity_id().filter(claim_entity_id).next().is_some() {
+            if claim_entity_id != 0 && ctx.db.bank_state().claim_entity_id().filter(claim_entity_id).next().is_some() {
                 return Err("Claims can only have one bank".into());
             }
             for project_site in ctx.db.project_site_state().owner_id().filter(claim_entity_id) {

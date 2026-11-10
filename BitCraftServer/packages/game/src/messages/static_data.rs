@@ -51,6 +51,8 @@ pub enum BuildingCategory {
     RecoveryChest,
     PlayerHousing,
     PremiumBuilding,
+    OneWayWaystone,
+    RegionalBank,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
@@ -293,6 +295,14 @@ pub enum EnemyType {
     DistractedElderScrofa = 51,
     DistractedTundraOx = 52,
     DistractedDesertTerrorbird = 53,
+    StarseekerBaseT1 = 54,
+    StarseekerLightT1 = 55,
+    ImmortalBaseT1 = 56,
+    ImmortalHeavyT1 = 57,
+    ImmortalBaseT2 = 58,
+    ImmortalHeavyT2 = 59,
+    SentinelStarseekerSkirmisher = 60,
+    SentinelStarseekerCaptain = 61,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
@@ -732,6 +742,8 @@ pub struct PlaceablePlacementDesc {
     pub recipe_performance_id: i32,
     #[default(None::<Vec<PlaceableSelfBuffChance>>)]
     pub self_buffs: Option<Vec<PlaceableSelfBuffChance>>,
+    #[default(None::<Vec<i32>>)]
+    pub acceptable_pavements: Option<Vec<i32>>, // None or empty = any pavement (subject to required_paving_tier).
 }
 
 #[static_data_staging_table(placeable_interaction_desc)]
@@ -762,6 +774,10 @@ pub struct PlaceableInteractionDesc {
     pub on_destroy_outcomes: Option<Vec<PlaceableGrowthOutcomeV2>>,
     #[default(None::<Vec<PlaceableSelfBuffChance>>)]
     pub self_buffs: Option<Vec<PlaceableSelfBuffChance>>,
+    #[default(0)]
+    pub tool_mesh_index: i32,
+    #[default(None::<Vec<ItemStack>>)]
+    pub on_destroy_yield: Option<Vec<ItemStack>>,
 }
 
 #[static_data_staging_table(cargo_desc)]
@@ -1341,6 +1357,18 @@ pub struct ParametersDesc {
     pub traveler_task_weekly_credits: Option<Vec<TravelerWeeklyTaskCredits>>,
     #[default(0)]
     pub traveler_task_reroll_credit_cost: i32,
+    #[default(8)]
+    pub min_distance_to_neutral_claims: i32,
+    #[default(100)]
+    pub claim_totem_spacing: i32,
+    /// Base hourly watchtower upkeep per assigned chunk (B).
+    #[default(0.1f64)]
+    pub empire_watchtower_upkeep_per_chunk: f64,
+    /// Multiplies the square of currently occupied empire chunks (C).
+    #[default(0.0000000375f64)]
+    pub empire_watchtower_upkeep_per_total_chunks: f64,
+    #[default(48)]
+    pub empire_siege_delay_ticks: i32,
 }
 
 #[spacetimedb::table(accessor = parameters_player_move_desc)]
@@ -1814,6 +1842,17 @@ pub struct EmoteDesc {
     pub tool_mesh_index: i32,
 }
 
+#[static_data_staging_table(furniture_emote_desc)]
+#[spacetimedb::table(accessor = furniture_emote_desc, public)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct FurnitureEmoteDesc {
+    #[primary_key]
+    pub emote_id: i32,
+    pub emote_location_object_name: String,
+    pub action_name: String,
+    pub furniture_type: String,
+}
+
 #[static_data_staging_table(empire_notification_desc)]
 #[spacetimedb::table(accessor = empire_notification_desc, public)]
 #[derive(Clone, PartialEq, Debug)]
@@ -2134,6 +2173,8 @@ pub struct InteriorSpawnDestroyTriggerDesc {
     pub destroyed_interior_spawn_ids: Vec<i32>,
     pub trigger_interior_spawn_ids: Vec<i32>,
     pub require_all_triggers: bool,
+    #[default(false)]
+    pub track_on_destroy_spawned_resources: bool,
 }
 
 #[static_data_staging_table(interior_portal_connections_desc)]
@@ -2330,6 +2371,12 @@ pub struct ClaimTechDesc {
     pub supplies: i32,
     pub xp_to_mint_hex_coin: u32,
     pub unlocks_techs: Vec<i32>,
+    #[default(false)]
+    pub cannot_be_researched: bool,
+    #[default(None)]
+    pub blocking_claim_techs: Option<Vec<i32>>,
+    #[default(false)]
+    pub not_shown_in_ui: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
@@ -2363,6 +2410,15 @@ pub enum ClaimTechType {
     TownBank,
     LargeHouse,
     TownMarket,
+
+    //Generic homestead techs for every tier
+    Homestead,
+
+    OneWayWaystones,
+    DestinationWaystones,
+
+    StarterTech,
+    RegionalBank,
 }
 
 #[static_data_staging_table(climb_requirement_desc)]
@@ -2842,4 +2898,6 @@ pub struct FloatingPlatformDesc {
     pub allowed_biomes: Vec<Biome>, //Empty = any biome.
     pub supports_buildings: bool,
     pub max_per_player: i32, //0 = unlimited
+    #[default(0i16)]
+    pub target_elevation: i16, //Offset from water level; negative values leave shallow water above the terrain.
 }

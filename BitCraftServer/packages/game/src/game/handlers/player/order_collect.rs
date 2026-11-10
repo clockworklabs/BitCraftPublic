@@ -5,7 +5,7 @@ use crate::{
     game::{game_state, reducer_helpers::player_action_helpers},
     messages::{
         action_request::PlayerOrderCollectRequest,
-        components::{building_state, closed_listing_state, HealthState, InventoryState},
+        components::{closed_listing_state, AuctionListingState, HealthState, InventoryState},
     },
     unwrap_or_err,
 };
@@ -16,14 +16,10 @@ pub fn order_collect(ctx: &ReducerContext, request: PlayerOrderCollectRequest) -
     let actor_id = game_state::actor_id(&ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
-    let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(request.building_entity_id),
-        "Building does not exist"
-    );
+    let building = AuctionListingState::marketplace_for_action(ctx, actor_id, request.building_entity_id, 2)?;
 
     let claim_entity_id = building.claim_entity_id;
 
-    // Find all sell_orders matching the price and item id, and collect items from those, sorted by increasing price (with timestamp for tie-breaking)
     let mut order = unwrap_or_err!(
         ctx.db.closed_listing_state().entity_id().find(request.closed_listing_entity_id),
         "This listing does not exist"

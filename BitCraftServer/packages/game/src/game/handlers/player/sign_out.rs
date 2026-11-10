@@ -6,6 +6,7 @@ use crate::game::handlers::player_vault::deployable_hide::{hide_deployable_timer
 use crate::game::handlers::queue::end_grace_period::{EndGracePeriodTimer, GracePeriodType};
 use crate::game::handlers::server::player_clear_action_state;
 use crate::messages::queue::player_queue_state;
+use crate::messages::region::{player_session_log, PlayerSessionLog};
 use crate::{
     game::{
         game_state::{self, game_state_filters},
@@ -61,6 +62,14 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
                 let time_played = game_state::unix(ctx.timestamp) - player.session_start_timestamp;
                 player.time_played += time_played;
                 player.session_start_timestamp = 0;
+            }
+            if player.sign_in_timestamp != 0 {
+                ctx.db.player_session_log().insert(PlayerSessionLog {
+                    id: 0,
+                    entity_id: player_entity_id,
+                    sign_in_timestamp: player.sign_in_timestamp,
+                    sign_out_timestamp: game_state::unix(ctx.timestamp),
+                });
             }
             player.time_signed_in += game_state::unix(ctx.timestamp) - player.sign_in_timestamp;
             player.sign_in_timestamp = 0;

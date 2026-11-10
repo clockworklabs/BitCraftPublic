@@ -46,46 +46,30 @@ impl<'a> ClaimTileStateCache<'a> {
         ctx: &ReducerContext,
         coord: SmallHexTile,
         radius: i32,
+        neutral_radius: i32,
         ignore_neutral_claims: bool,
-    ) -> Option<u64> {
-        if coord.dimension != dimensions::OVERWORLD {
-            panic!("claims_in_radius should only be called in overworld");
-        }
-
-        if ignore_neutral_claims {
-            return SmallHexTile::coordinates_in_radius_with_center_iter(coord, radius)
-                .filter_map(|t| {
-                    if let Some(claim_entity_id) = self.get_claim_on_tile(ctx, t) {
-                        let claim = ctx.db.claim_state().entity_id().find(claim_entity_id).unwrap();
-                        if !claim.neutral {
-                            return Some(claim_entity_id);
-                        }
-                    }
-                    None
-                })
-                .next();
-        } else {
-            return SmallHexTile::coordinates_in_radius_with_center_iter(coord, radius)
-                .filter_map(|t| self.get_claim_on_tile(ctx, t))
-                .next();
-        }
-    }
-
-    pub fn any_claim_in_radius_except(
-        &mut self,
-        ctx: &ReducerContext,
-        coord: SmallHexTile,
-        radius: i32,
         claim_to_exclude: u64,
     ) -> Option<u64> {
         if coord.dimension != dimensions::OVERWORLD {
             panic!("claims_in_radius should only be called in overworld");
         }
 
-        return SmallHexTile::coordinates_in_radius_with_center_iter(coord, radius)
-            .filter_map(|t| self.get_claim_on_tile(ctx, t))
-            .filter(|t| *t != claim_to_exclude)
-            .next();
+        let search_radius = if ignore_neutral_claims { radius } else { radius.max(neutral_radius) };
+        let mut neutral_by_claim = HashMap::new();
+        SmallHexTile::coordinates_in_radius_with_center_iter(coord, search_radius).find_map(|tile| {
+            let claim_id = self.get_claim_on_tile(ctx, tile)?;
+            if claim_id == claim_to_exclude {
+                return None;
+            }
+            let neutral = *neutral_by_claim.entry(claim_id).or_insert_with(|| {
+                ctx.db.claim_state().entity_id().find(claim_id).unwrap().neutral
+            });
+            if neutral && ignore_neutral_claims {
+                return None;
+            }
+            let required_distance = if neutral { neutral_radius } else { radius };
+            (tile.distance_to(coord) <= required_distance).then_some(claim_id)
+        })
     }
 
     pub fn get_num_adjacent_tiles(&mut self, ctx: &ReducerContext, coord: SmallHexTile) -> usize {

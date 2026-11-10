@@ -570,6 +570,12 @@ fn reduce_with_options(
             deposit_health.health = i32::max(deposit_health.health - damage_output, 0);
 
             if deposit_health.health <= 0 {
+                let interior_spawned_resource = ctx
+                    .db
+                    .interior_spawned_resource_state()
+                    .entity_id()
+                    .find(&deposit_entity_id);
+
                 // Give end of resource items (unless demolishing on claim)
                 if !resource.on_destroy_yield.is_empty() && !request.clear_from_claim {
                     for stack in resource.on_destroy_yield {
@@ -585,8 +591,6 @@ fn reduce_with_options(
                     interior_trigger_collapse(ctx, collapse_trigger.dimension_network_entity_id)?;
                 }
 
-                handle_interior_spawn_resource_destroyed(ctx, deposit_entity_id)?;
-
                 // delete the deposit along its footprints and location then spawn the replacement resource if needed
                 let resource_id = deposit.resource_id;
                 let resource_direction = deposit.direction_index;
@@ -597,7 +601,20 @@ fn reduce_with_options(
                     show_time_left: resource.show_time_left,
                 });
                 deposit.despawn_self(ctx);
-                ResourceState::produce_offspawn(ctx, resource_id, coordinates, resource_direction);
+                // Clearing a claim skips all on-destroy resource and building spawns.
+                let replacement_entity_id = if request.clear_from_claim {
+                    None
+                } else {
+                    ResourceState::produce_offspawn(ctx, resource_id, coordinates, resource_direction)
+                };
+                if let Some(interior_spawned_resource) = interior_spawned_resource {
+                    handle_interior_spawn_resource_destroyed(
+                        ctx,
+                        interior_spawned_resource,
+                        resource_id,
+                        replacement_entity_id,
+                    )?;
+                }
                 PlayerActionState::success(
                     ctx,
                     actor_id,

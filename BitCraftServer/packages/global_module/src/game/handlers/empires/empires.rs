@@ -78,16 +78,17 @@ pub fn empire_submit(ctx: &ReducerContext, new_empire_entity_id: u64) -> Result<
 pub fn empire_player_join(ctx: &ReducerContext, request: EmpirePlayerJoinRequest) -> Result<(), String> {
     let actor_id = game_state::actor_id(&ctx, true)?;
 
-    if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(&actor_id) {
-        empire_player_leave_impl(ctx, rank.empire_entity_id)?;
-    }
-
     if ctx.db.empire_state().entity_id().find(&request.empire_entity_id).is_none() {
         return Err("This empire does not exist.".into());
     }
 
     if npc_empire::is_npc_empire(ctx, request.empire_entity_id) {
         return Err("Cannot join an NPC empire.".into());
+    }
+
+    validate_not_blacklisted(ctx, request.empire_entity_id, actor_id)?;
+    if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(&actor_id) {
+        empire_player_leave_impl(ctx, rank.empire_entity_id)?;
     }
 
     EmpirePlayerDataState::new(ctx, actor_id, request.empire_entity_id, 9 /*Citizen*/)?;
@@ -114,8 +115,118 @@ pub fn empire_player_leave(ctx: &ReducerContext, request: EmpirePlayerLeaveReque
     return empire_player_leave_impl(ctx, request.empire_entity_id);
 }
 
+pub fn validate_not_blacklisted(ctx: &ReducerContext, empire_entity_id: u64, player_entity_id: u64) -> Result<(), String> {
+    if ctx
+        .db
+        .empire_blacklist_state()
+        .empire_player()
+        .filter((empire_entity_id, player_entity_id))
+        .next()
+        .is_some()
+    {
+        return Err("You are blocked from this empire.".into());
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+#[shared_table_reducer]
+#[feature_gate("empire")]
+pub fn empire_blacklist_add(ctx: &ReducerContext, empire_entity_id: u64, player_entity_id: u64) -> Result<(), String> {
+    let actor_id = game_state::actor_id(ctx, true)?;
+
+    if actor_id == player_entity_id {
+        return Err("You cannot block yourself".into());
+    }
+
+    let empire_player_data_state = unwrap_or_err!(
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
+        "Not part of an empire"
+    );
+
+    if empire_player_data_state.empire_entity_id != empire_entity_id {
+        return Err("Not part of this empire".into());
+    }
+
+    if !EmpirePlayerDataState::has_permission(ctx, actor_id, EmpirePermission::ManageBlacklist) {
+        return Err("You don't have permission to manage this empire's blocklist".into());
+    }
+
+    if ctx.db.player_username_state().entity_id().find(player_entity_id).is_none() {
+        return Err("Player not found".into());
+    }
+
+    if let Some(target) = ctx.db.empire_player_data_state().entity_id().find(player_entity_id) {
+        if target.empire_entity_id == empire_entity_id {
+            if target.rank <= empire_player_data_state.rank {
+                return Err("Cannot block an equal or higher rank".into());
+            }
+            remove_empire_citizen(ctx, player_entity_id, empire_entity_id, false)?;
+        }
+    }
+    if ctx
+        .db
+        .empire_blacklist_state()
+        .empire_player()
+        .filter((empire_entity_id, player_entity_id))
+        .next()
+        .is_none()
+    {
+        ctx.db.empire_blacklist_state().insert(EmpireBlacklistState {
+            entity_id: 0,
+            empire_entity_id,
+            player_entity_id,
+        });
+    }
+    Ok(())
+}
+
+#[spacetimedb::reducer]
+#[feature_gate("empire")]
+pub fn empire_blacklist_remove(ctx: &ReducerContext, empire_entity_id: u64, player_entity_id: u64) -> Result<(), String> {
+    let actor_id = game_state::actor_id(ctx, true)?;
+
+    if actor_id == player_entity_id {
+        return Err("You cannot unblock yourself".into());
+    }
+
+    let empire_player_data_state = unwrap_or_err!(
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
+        "Not part of an empire"
+    );
+    if empire_player_data_state.empire_entity_id != empire_entity_id {
+        return Err("Not part of this empire".into());
+    }
+
+    if !EmpirePlayerDataState::has_permission(ctx, actor_id, EmpirePermission::ManageBlacklist) {
+        return Err("You don't have permission to manage this empire's blocklist".into());
+    }
+
+    for entry in ctx
+        .db
+        .empire_blacklist_state()
+        .empire_player()
+        .filter((empire_entity_id, player_entity_id))
+    {
+        ctx.db.empire_blacklist_state().entity_id().delete(entry.entity_id);
+    }
+    Ok(())
+}
+
 pub fn empire_player_leave_impl(ctx: &ReducerContext, empire_entity_id: u64) -> Result<(), String> {
     let actor_id = game_state::actor_id(&ctx, true)?;
+
+    remove_empire_citizen(ctx, actor_id, empire_entity_id, false)
+}
+
+// Callers must authorize removal. Merges may remove the submitting emperor.
+pub fn remove_empire_citizen(
+    ctx: &ReducerContext,
+    player_entity_id: u64,
+    empire_entity_id: u64,
+    allow_emperor: bool,
+) -> Result<(), String> {
+    let actor_id = player_entity_id;
 
     let rank = unwrap_or_err!(
         ctx.db.empire_player_data_state().entity_id().find(&actor_id),
@@ -125,7 +236,7 @@ pub fn empire_player_leave_impl(ctx: &ReducerContext, empire_entity_id: u64) -> 
         return Err("Not a citizen of that empire".into());
     }
 
-    if rank.rank == 0 {
+    if rank.rank == 0 && !allow_emperor {
         return Err("Emperor cannot leave their empire".into());
     }
 
@@ -139,7 +250,8 @@ pub fn empire_player_leave_impl(ctx: &ReducerContext, empire_entity_id: u64) -> 
     let player_name = ctx.db.player_username_state().entity_id().find(&actor_id).unwrap().username;
     EmpireNotificationState::new(ctx, EmpireNotificationType::MemberLeft, empire_entity_id, vec![player_name]);
 
-    let region = unwrap_or_err!(ctx.db.user_region_state().identity().find(ctx.sender()), "Region not found").region_id;
+    let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(actor_id), "Player not found");
+    let region = unwrap_or_err!(ctx.db.user_region_state().identity().find(user.identity), "Region not found").region_id;
     send_inter_module_message(
         ctx,
         crate::messages::inter_module::MessageContentsV5::OnPlayerLeftEmpire(OnPlayerLeftEmpireMsg {
@@ -227,7 +339,7 @@ pub fn empire_update_permissions(ctx: &ReducerContext, request: EmpireUpdatePerm
         return Err("Cannot edit Emperor rank's permissions".into());
     }
 
-    if !request.permissions[0] {
+    if request.permissions.first() != Some(&true) {
         return Err("Supply node permission can't be removed.".into());
     }
 
@@ -970,8 +1082,10 @@ pub fn empire_transfer_watchtower_ownership(
 
     if npc_empire::is_npc_empire(ctx, target_empire_entity_id) {
         // Neutral empire automatically accept
+        let previous_empire_entity_id = empire_node.empire_entity_id;
         empire_node.convert(ctx, empire_node.energy, target_empire_entity_id);
         EmpireNodeState::update_shared(ctx, empire_node, crate::inter_module::InterModuleDestination::AllOtherRegions);
+        EmpireState::update_empire_upkeep(ctx, previous_empire_entity_id);
         return Ok(());
     }
 
@@ -1025,12 +1139,10 @@ pub fn delete_empire_building(ctx: &ReducerContext, player_entity_id: u64, build
     // delete empire stuff
     if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(&building_entity_id) {
         let empire_entity_id = empire_node.empire_entity_id;
-        let should_recalculate_upkeep = empire_node.active;
-
         empire_node.delete(ctx);
         // If the node belongs to an empire that still exists, update that empire's upkeep.
         // The node might exist because of Empire Tech without being part of an empire or be the capital that was deleted in the previous call.
-        if should_recalculate_upkeep && ctx.db.empire_state().entity_id().find(&empire_entity_id).is_some() {
+        if ctx.db.empire_state().entity_id().find(&empire_entity_id).is_some() {
             EmpireState::update_empire_upkeep(ctx, empire_entity_id);
         }
 

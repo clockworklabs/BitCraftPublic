@@ -29,5 +29,15 @@ opt-level = 's'
 lto = true
 overflow-checks = true
 
+[profile.dev-fast]
+inherits = "release"
+opt-level = 's'
+lto = "off"
+incremental = true
+debug = 0
+codegen-units = 256
+overflow-checks = true
+debug-assertions = false
+
 [build-dependencies]
 glob = "0.3.0"

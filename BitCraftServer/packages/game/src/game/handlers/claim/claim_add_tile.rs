@@ -66,10 +66,17 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64, t: SmallHex
     }
 
     // Make sure the location is not within range of a different claim
-    let min_distance_between_claims = ctx.db.parameters_desc().version().find(0).unwrap().min_distance_between_claims;
+    let parameters = ctx.db.parameters_desc().version().find(0).unwrap();
 
     let is_close_to_other_claim = claim_cache
-        .any_claim_in_radius_except(ctx, t, min_distance_between_claims, claim_entity_id)
+        .any_claim_in_radius(
+            ctx,
+            t,
+            parameters.min_distance_between_claims,
+            parameters.min_distance_to_neutral_claims,
+            false,
+            claim_entity_id,
+        )
         .is_some();
     if is_close_to_other_claim {
         return Err("Cannot claim land too close to another claimed area".into());

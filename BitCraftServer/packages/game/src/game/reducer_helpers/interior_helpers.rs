@@ -808,6 +808,8 @@ pub(crate) fn spawn_interior_resource(
                         entity_id,
                         interior_spawn_desc_id: spawn.id,
                         dimension_id: location.dimension,
+                        destroy_trigger_completed: false,
+                        original_resource_id: resource_id,
                     });
                 add_interior_collapse_trigger(ctx, spawn, entity_id, dimension_network_descriptor_id);
             }
@@ -815,21 +817,56 @@ pub(crate) fn spawn_interior_resource(
     }
 }
 
-pub fn handle_interior_spawn_resource_destroyed(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
-    if ctx.db.interior_spawned_resource_state().entity_id().find(&entity_id).is_none() {
-        return Ok(());
+pub fn handle_interior_spawn_resource_destroyed(
+    ctx: &ReducerContext,
+    mut spawned_resource: InteriorSpawnedResourceState,
+    destroyed_resource_id: i32,
+    replacement_entity_id: Option<u64>,
+) -> Result<(), String> {
+    let destroy_triggers: Vec<_> = ctx
+        .db
+        .interior_spawn_destroy_trigger_desc()
+        .iter()
+        .filter(|trigger| {
+            trigger
+                .trigger_interior_spawn_ids
+                .contains(&spawned_resource.interior_spawn_desc_id)
+        })
+        .collect();
+
+    if destroy_triggers
+        .iter()
+        .any(|trigger| trigger.track_on_destroy_spawned_resources)
+    {
+        if let Some(replacement_entity_id) = replacement_entity_id {
+            if spawned_resource.original_resource_id == 0 {
+                spawned_resource.original_resource_id = destroyed_resource_id;
+            }
+            ctx.db
+                .interior_spawned_resource_state()
+                .insert(InteriorSpawnedResourceState {
+                    entity_id: replacement_entity_id,
+                    interior_spawn_desc_id: spawned_resource.interior_spawn_desc_id,
+                    dimension_id: spawned_resource.dimension_id,
+                    destroy_trigger_completed: true,
+                    original_resource_id: spawned_resource.original_resource_id,
+                });
+        }
     }
 
-    let mut pending_resources = vec![(entity_id, false)];
-    while let Some((destroyed_entity_id, should_despawn)) = pending_resources.pop() {
-        let Some(spawned_resource) = ctx
-            .db
-            .interior_spawned_resource_state()
-            .entity_id()
-            .find(&destroyed_entity_id)
-        else {
+    let mut pending_resources = vec![(spawned_resource, false)];
+    while let Some((spawned_resource, should_despawn)) = pending_resources.pop() {
+        let destroyed_entity_id = spawned_resource.entity_id;
+        if should_despawn
+            && ctx
+                .db
+                .interior_spawned_resource_state()
+                .entity_id()
+                .find(&destroyed_entity_id)
+                .is_none()
+        {
             continue;
-        };
+        }
 
         ctx.db
             .interior_spawned_resource_state()
@@ -855,7 +892,9 @@ pub fn handle_interior_spawn_resource_destroyed(ctx: &ReducerContext, entity_id:
                         .interior_spawned_resource_state()
                         .dimension_id()
                         .filter(spawned_resource.dimension_id)
-                        .any(|resource| resource.interior_spawn_desc_id == *spawn_id)
+                        .any(|resource| {
+                            resource.interior_spawn_desc_id == *spawn_id && !resource.destroy_trigger_completed
+                        })
                 });
             if !is_triggered {
                 continue;
@@ -871,7 +910,7 @@ pub fn handle_interior_spawn_resource_destroyed(ctx: &ReducerContext, entity_id:
                             .destroyed_interior_spawn_ids
                             .contains(&resource.interior_spawn_desc_id)
                     })
-                    .map(|resource| (resource.entity_id, true)),
+                    .map(|resource| (resource, true)),
             );
         }
 
@@ -891,6 +930,39 @@ pub fn handle_interior_spawn_resource_destroyed(ctx: &ReducerContext, entity_id:
     }
 
     Ok(())
+}
+
+pub fn transfer_interior_spawn_tracking_after_growth(
+    ctx: &ReducerContext,
+    tracking: Option<InteriorSpawnedResourceState>,
+    previous_resource_id: i32,
+    grown_entity_id: Option<u64>,
+    grown_resource_id: i32,
+) {
+    let (Some(mut tracking), Some(grown_entity_id)) = (tracking, grown_entity_id) else {
+        return;
+    };
+
+    update_interior_spawn_tracking_after_growth(
+        &mut tracking,
+        previous_resource_id,
+        grown_entity_id,
+        grown_resource_id,
+    );
+    ctx.db.interior_spawned_resource_state().insert(tracking);
+}
+
+fn update_interior_spawn_tracking_after_growth(
+    tracking: &mut InteriorSpawnedResourceState,
+    previous_resource_id: i32,
+    grown_entity_id: u64,
+    grown_resource_id: i32,
+) {
+    if tracking.original_resource_id == 0 {
+        tracking.original_resource_id = previous_resource_id;
+    }
+    tracking.entity_id = grown_entity_id;
+    tracking.destroy_trigger_completed = grown_resource_id != tracking.original_resource_id;
 }
 
 fn resolve_random_group_resources(ctx: &ReducerContext, spawns: &[InteriorSpawnDesc]) -> HashMap<i32, i32> {

@@ -291,13 +291,15 @@ pub fn claim_area_around_totem(ctx: &ReducerContext, claim_entity_id: u64, radiu
         let mut claim_cache = ClaimTileStateCache::new(&mut location_cache);
 
         if DONT_CHECK_AREA_AROUND_CLAIM_COUNTER.get() <= 0 {
-            let min_distance_between_claims = ctx.db.parameters_desc().version().find(&0).unwrap().min_distance_between_claims;
+            let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
             if claim_cache
                 .any_claim_in_radius(
                     ctx,
                     claim_building_coordinates,
-                    min_distance_between_claims + radius,
+                    parameters.min_distance_between_claims + radius,
+                    parameters.min_distance_to_neutral_claims + radius,
                     ignore_neutral_claims,
+                    0,
                 )
                 .is_some()
             {
@@ -323,23 +325,27 @@ pub fn claim_area_around_totem(ctx: &ReducerContext, claim_entity_id: u64, radiu
     false
 }
 
-const MIN_CLAIM_TOTEM_SMALL_TILE_DISTANCE: i32 = 100;
-
 pub fn can_place_claim_totem(
     ctx: &ReducerContext,
     coordinates: SmallHexTile,
     claim_info: &BuildingClaimDesc,
     terrain_cache: &mut TerrainChunkCache,
 ) -> Result<(), String> {
-    if game_state_filters::any_claim_totems_in_radius(ctx, coordinates, MIN_CLAIM_TOTEM_SMALL_TILE_DISTANCE) {
+    let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
+    if game_state_filters::any_claim_totems_in_radius(ctx, coordinates, parameters.claim_totem_spacing) {
         return Err("Cannot start a settlement too close to another player’s settlement".into());
     }
 
-    if game_state_filters::any_claims_in_radius(
+    let mut location_cache = LocationStateCache::new();
+    let mut claim_cache = ClaimTileStateCache::new(&mut location_cache);
+    if claim_cache.any_claim_in_radius(
         ctx,
         coordinates,
-        ctx.db.parameters_desc().version().find(&0).unwrap().min_distance_between_claims + claim_info.radius,
-    ) {
+        parameters.min_distance_between_claims + claim_info.radius,
+        parameters.min_distance_to_neutral_claims + claim_info.radius,
+        false,
+        0,
+    ).is_some() {
         return Err("Claimed area would be too close to another claim".into());
     }
 

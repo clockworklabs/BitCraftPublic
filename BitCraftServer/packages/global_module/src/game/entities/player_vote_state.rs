@@ -90,15 +90,16 @@ impl PlayerVoteState {
         }
     }
 
-    pub fn play_outcome(&mut self, ctx: &ReducerContext) {
+    pub fn play_outcome(&mut self, ctx: &ReducerContext) -> Result<(), String> {
         match self.vote_type {
-            PlayerVoteType::JoinEmpire => self.join_empire(ctx),
-            PlayerVoteType::SubmitEmpire => self.join_empire(ctx),
+            PlayerVoteType::JoinEmpire => self.join_empire(ctx)?,
+            PlayerVoteType::SubmitEmpire => self.join_empire(ctx)?,
             PlayerVoteType::SubmitWatchtower => self.submit_watchtower(ctx),
         }
+        Ok(())
     }
 
-    fn join_empire(&mut self, ctx: &ReducerContext) {
+    fn join_empire(&mut self, ctx: &ReducerContext) -> Result<(), String> {
         if self.outcome == PlayerVoteAnswer::Yes {
             let acceptor_entity_id = self
                 .participants_entity_id
@@ -110,7 +111,7 @@ impl PlayerVoteState {
                 if let Some(empire) = ctx.db.empire_state().capital_building_entity_id().find(self.argument1) {
                     if let Some(emperor) = ctx.db.empire_player_data_state().entity_id().find(acceptor_entity_id) {
                         log::info!("Merging empire {} into {}", empire.entity_id, emperor.empire_entity_id);
-                        empire.merge_into(ctx, emperor.empire_entity_id);
+                        empire.merge_into(ctx, emperor.empire_entity_id)?;
                     }
                 }
             } else {
@@ -120,6 +121,7 @@ impl PlayerVoteState {
             self.outcome_str = "Owner declined the invitation.".to_string();
             log::info!("Join empire error - {}", self.outcome_str);
         }
+        Ok(())
     }
 
     fn submit_watchtower(&mut self, ctx: &ReducerContext) {
@@ -135,8 +137,11 @@ impl PlayerVoteState {
                 let new_empire_entity_id = acceptor_emperor.empire_entity_id;
                 let watchtower_entity_id = self.argument1;
                 if let Some(mut empire_node) = ctx.db.empire_node_state().entity_id().find(watchtower_entity_id) {
+                    let previous_empire_entity_id = empire_node.empire_entity_id;
                     empire_node.convert(ctx, empire_node.energy, new_empire_entity_id);
                     EmpireNodeState::update_shared(ctx, empire_node, crate::inter_module::InterModuleDestination::AllOtherRegions);
+                    EmpireState::update_empire_upkeep(ctx, previous_empire_entity_id);
+                    EmpireState::update_empire_upkeep(ctx, new_empire_entity_id);
                     self.outcome_str = "The offer has been accepted".to_string();
                 }
             }

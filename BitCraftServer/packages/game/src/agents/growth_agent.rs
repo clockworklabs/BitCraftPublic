@@ -4,7 +4,9 @@ use spacetimedb::rand::Rng;
 use spacetimedb::{log, ReducerContext, Table};
 
 use crate::{
-    agents, growth_state, location_state,
+    agents,
+    game::reducer_helpers::interior_helpers::transfer_interior_spawn_tracking_after_growth,
+    growth_state, interior_spawned_resource_state, location_state,
     messages::{
         authentication::ServerIdentity,
         components::{PlaceableState, ResourceState},
@@ -84,6 +86,11 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
             };
             let coordinates = loc.coordinates();
             let direction = deposit.direction_index;
+            let interior_tracking = ctx
+                .db
+                .interior_spawned_resource_state()
+                .entity_id()
+                .find(&grown.entity_id);
             deposit.despawn_self(ctx);
 
             let recipe = ctx.db.resource_growth_recipe_desc().id().find(&grown.growth_recipe_id).unwrap();
@@ -96,9 +103,8 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
                 ctx.rng().gen_range(0.0..=1.0) <= recipe.grown_resource_chance
             };
 
-            if target_resource_id != 0
-                && should_spawn
-                && !ResourceState::spawn_in_radius_band_with_fallback(
+            let grown_entity_id = if target_resource_id != 0 && should_spawn {
+                ResourceState::spawn_in_radius_band_with_fallback_entity(
                     ctx,
                     target_resource_id,
                     coordinates,
@@ -106,9 +112,19 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
                     recipe.grown_resource_min_radius,
                     recipe.grown_resource_max_radius,
                 )
-            {
+            } else {
+                None
+            };
+            if target_resource_id != 0 && should_spawn && grown_entity_id.is_none() {
                 log::error!("Unable to grow resource {} into {}", grown.entity_id, target_resource_id);
             }
+            transfer_interior_spawn_tracking_after_growth(
+                ctx,
+                interior_tracking,
+                deposit.resource_id,
+                grown_entity_id,
+                target_resource_id,
+            );
         } else if let Some(placeable) = ctx.db.placeable_state().entity_id().find(&grown.entity_id) {
             let loc = match ctx.db.location_state().entity_id().find(&grown.entity_id) {
                 Some(l) => l,

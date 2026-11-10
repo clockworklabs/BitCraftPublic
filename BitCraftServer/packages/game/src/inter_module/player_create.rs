@@ -220,6 +220,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
 
     for collectible in granted_collectibles {
         let activated = collectible.max_equip_count > 0
+            && collectible.collectible_type != CollectibleType::FacialHair
             && collectible.collectible_type != CollectibleType::ClothesHead
             && collectible.collectible_type != CollectibleType::ClothesTorso
             && collectible.collectible_type != CollectibleType::ClothesBelt

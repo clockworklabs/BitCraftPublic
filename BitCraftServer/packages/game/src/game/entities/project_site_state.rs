@@ -177,10 +177,8 @@ impl ProjectSiteState {
                     }
                 }
             } else if *footprint_type != FootprintType::Perimeter {
-                if let Some((_, platform)) = game_state_filters::floating_platform_at_coordinates(ctx, *coords) {
-                    if !platform.supports_buildings {
-                        return Err("Can't build on this platform.".into());
-                    }
+                if game_state_filters::floating_platforms_at_coordinates(ctx, *coords).any(|(_, platform)| !platform.supports_buildings) {
+                    return Err("Can't build on this platform.".into());
                 }
 
                 if !game_state_filters::is_interior_tile_walkable(ctx, *coords) {

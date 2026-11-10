@@ -19,6 +19,21 @@ if [[ -z "$host" ]]; then
   read -r -p "Enter the spacetime server name (e.g. bitcraft-staging): " host
 fi
 
+while true; do
+  read -r -p "Enter the world to publish (ea2 or release): " world
+  case "$world" in
+    ea2) prefix="bitcraft-live"; break ;;
+    release) prefix="idc"; break ;;
+    *) echo "Invalid world: '$world'" >&2 ;;
+  esac
+done
+
+read -r -p "You are about to publish to world '$world' (prefix: $prefix-) on server '$host'. Continue? (yes/no): " confirm
+if [[ "$confirm" != "yes" ]]; then
+  echo "Publish cancelled."
+  exit 1
+fi
+
 if [[ -z "$bin_path" ]]; then
   if [[ -f "$wasm_dir/bitcraft_spacetimedb.opt.wasm" ]]; then
     bin_path="$wasm_dir/bitcraft_spacetimedb.opt.wasm"
@@ -38,10 +53,10 @@ fi
 declare -a pids=()
 declare -a modules=()
 
-echo "Publishing bitcraft-live-2..25 to '$host' in parallel using: $bin_path"
+echo "Publishing $prefix-2..25 to '$host' in parallel using: $bin_path"
 
 for i in {2..25}; do
-  module="bitcraft-live-$i"
+  module="$prefix-$i"
   (
     spacetime publish -s "$host" --bin-path "$bin_path" "$module" -y
   ) &

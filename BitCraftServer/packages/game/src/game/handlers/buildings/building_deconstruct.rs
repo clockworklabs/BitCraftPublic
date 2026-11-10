@@ -197,7 +197,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
             grant_deconstructed_items(ctx, actor_id, &recipe);
         }
         // dont' drop items for bank inventories, these will go into the recovery chest
-        let drop_inventory_items = !building_desc.has_category(ctx, BuildingCategory::Bank);
+        let drop_inventory_items = !building_desc.has_category(ctx, BuildingCategory::Bank) && !building_desc.has_category(ctx, BuildingCategory::RegionalBank);
         delete_building(ctx, actor_id, building_entity_id, None, false, drop_inventory_items);
 
         if building_desc.has_category(ctx, BuildingCategory::Elevator) {

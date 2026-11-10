@@ -8,10 +8,21 @@ use crate::{
     parameters_desc,
 };
 
-fn cost_for_next_tick(empire_siege_tick: i32, empire_siege_raise_pct: f32, start_time: Timestamp, now: Timestamp) -> i32 {
+fn cost_for_next_tick(
+    empire_siege_tick: i32,
+    empire_siege_raise_pct: f32,
+    empire_siege_delay_ticks: i32,
+    start_time: Timestamp,
+    now: Timestamp,
+) -> i32 {
     let secs = now.duration_since(start_time).unwrap().as_secs() as i32;
     let cycles = secs / empire_siege_tick;
-    let cost = f32::round(cycles as f32 * empire_siege_raise_pct);
+    if cycles < empire_siege_delay_ticks {
+        return 0;
+    }
+
+    let cycles_after_delay = cycles - empire_siege_delay_ticks + 1;
+    let cost = f32::round(cycles_after_delay as f32 * empire_siege_raise_pct);
     cost as i32
 }
 
@@ -79,6 +90,7 @@ fn empire_siege_agent_loop(ctx: &ReducerContext, timer: EmpireSiegeLoopTimer) {
     let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
     let empire_siege_tick = parameters.empire_siege_tick_millis / 1000;
     let empire_siege_raise_pct = parameters.empire_siege_raise_pct;
+    let empire_siege_delay_ticks = parameters.empire_siege_delay_ticks;
     let now = ctx.timestamp;
 
     let mut ended_sieges: HashMap<u64, u64> = HashMap::new(); // BuildingEntityId, Attacking Empire
@@ -88,7 +100,16 @@ fn empire_siege_agent_loop(ctx: &ReducerContext, timer: EmpireSiegeLoopTimer) {
         let siege_empire_entity_id = siege.empire_entity_id;
         let building_entity_id = siege.building_entity_id;
 
-        let cost = cost_for_next_tick(empire_siege_tick, empire_siege_raise_pct, siege.start_timestamp.unwrap(), now);
+        let cost = cost_for_next_tick(
+            empire_siege_tick,
+            empire_siege_raise_pct,
+            empire_siege_delay_ticks,
+            siege.start_timestamp.unwrap(),
+            now,
+        );
+        if cost == 0 {
+            continue;
+        }
         if cost > siege.energy {
             let drain = cost - siege.energy;
             let mut empire_node = ctx.db.empire_node_state().entity_id().find(&building_entity_id).unwrap();
