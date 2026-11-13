@@ -18,7 +18,7 @@ pub fn admin_migrate_deployable_state_v2(ctx: &ReducerContext) -> Result<(), Str
     let mut skipped = 0;
 
     for deployable in ctx.db.deployable_state().iter() {
-        if ctx.db.deployable_state_v2().entity_id().find(&deployable.entity_id).is_some() {
+        if ctx.db.deployable_state_v2().entity_id().find(deployable.entity_id).is_some() {
             skipped += 1;
             continue;
         }

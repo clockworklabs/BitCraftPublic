@@ -43,6 +43,7 @@ impl Drop for SharedTransactionAccumulator<'_> {
     }
 }
 
+#[expect(clippy::large_enum_variant, reason = "values are short-lived messages, so boxing the large variants isn't worth the churn")]
 enum InterModuleAccumulator {
     None,                                 //This is not a shared reducer
     Uninitialized,                        //This is a shared reducer, but no shared operations have been performed yet
@@ -50,10 +51,10 @@ enum InterModuleAccumulator {
 }
 
 thread_local! {
-    static TABLE_UPDATES_GLOBAL: RefCell<InterModuleAccumulator> = RefCell::new(InterModuleAccumulator::None);
-    static TABLE_UPDATES_OTHER_REGIONS: RefCell<InterModuleAccumulator> = RefCell::new(InterModuleAccumulator::None);
-    static DELAYED_MESSAGES: RefCell<Vec<(crate::messages::inter_module::MessageContentsV5, crate::inter_module::InterModuleDestination)>> = RefCell::new(Vec::new());
-    static TIMESTAMP: RefCell<i64> = RefCell::new(0);
+    static TABLE_UPDATES_GLOBAL: RefCell<InterModuleAccumulator> = const { RefCell::new(InterModuleAccumulator::None) };
+    static TABLE_UPDATES_OTHER_REGIONS: RefCell<InterModuleAccumulator> = const { RefCell::new(InterModuleAccumulator::None) };
+    static DELAYED_MESSAGES: RefCell<Vec<(crate::messages::inter_module::MessageContentsV5, crate::inter_module::InterModuleDestination)>> = const { RefCell::new(Vec::new()) };
+    static TIMESTAMP: RefCell<i64> = const { RefCell::new(0) };
 }
 
 #[derive(Clone, Copy)]
@@ -100,7 +101,7 @@ impl SharedTransactionAccumulator<'_> {
         });
 
         DELAYED_MESSAGES.with_borrow_mut(|v| {
-            if v.len() > 0 {
+            if !v.is_empty() {
                 if TIMESTAMP.with_borrow(|t| *t == ts) {
                     spacetimedb::log::error!("Function with `#[shared_table_reducer]` attribute called by another shared reducer. This **WILL** cause a panic.");
                 }
@@ -194,7 +195,7 @@ where
     T: Into<crate::messages::inter_module::MessageContentsV5>,
 {
     let contents = contents.into();
-    let is_none = TABLE_UPDATES_OTHER_REGIONS.with_borrow(|t| if let InterModuleAccumulator::None = t { true } else { false });
+    let is_none = TABLE_UPDATES_OTHER_REGIONS.with_borrow(|t| matches!(t, InterModuleAccumulator::None));
     if !is_none {
         DELAYED_MESSAGES.with_borrow_mut(|v| v.push((contents, dst)));
         return;
@@ -236,7 +237,7 @@ where
     }
 
     if let crate::inter_module::InterModuleDestination::Region(region_id) = dst {
-        if region_id <= 0 {
+        if region_id == 0 {
             panic!("Region id must be > 0");
         }
         let region_info = ctx.db.world_region_state().iter().next().unwrap();
@@ -254,7 +255,7 @@ where
             .insert(crate::messages::inter_module::InterModuleMessageV5 {
                 id: 0,
                 to: region_id,
-                contents: contents,
+                contents,
             });
     }
 }

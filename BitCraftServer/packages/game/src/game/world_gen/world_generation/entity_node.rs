@@ -28,7 +28,7 @@ impl HexNode for EntityNode {
     }
 
     fn get_coordinates(&self) -> HexCoordinates {
-        return self.coordinates.clone();
+        self.coordinates
     }
 }
 
@@ -76,7 +76,7 @@ impl EntityNode {
             return -1;
         }
 
-        return elevations[0];
+        elevations[0]
     }
 
     pub fn min_max_elevation(&self, terrain_graph: &HexGraph<TerrainNode>) -> Vec<i16> {
@@ -144,7 +144,7 @@ impl EntityNode {
             total_biomes_multipliers += mult;
         }
 
-        return biome_multiplier / total_biomes_multipliers;
+        biome_multiplier / total_biomes_multipliers
     }
 
     pub fn is_underwater(&self, terrain_graph: &HexGraph<TerrainNode>) -> bool {
@@ -173,7 +173,7 @@ impl EntityNode {
             return true;
         }
 
-        return false;
+        false
     }
 
     pub fn get_water_level(&self, terrain_graph: &HexGraph<TerrainNode>) -> i16 {
@@ -191,17 +191,17 @@ impl EntityNode {
         ];
 
         let mut water_level = i16::MAX;
-        for node in terrain_nodes {
-            if node.is_some() && node.unwrap().water_level < water_level {
-                water_level = node.unwrap().water_level;
+        for node in terrain_nodes.into_iter().flatten() {
+            if node.water_level < water_level {
+                water_level = node.water_level;
             }
         }
 
-        return water_level;
+        water_level
     }
 
     pub fn get_water_depth(&self, terrain_graph: &HexGraph<TerrainNode>) -> i16 {
-        return self.get_water_level(terrain_graph) - self.get_elevation(terrain_graph);
+        self.get_water_level(terrain_graph) - self.get_elevation(terrain_graph)
     }
 
     pub fn is_valid_elevation(&self, terrain_graph: &HexGraph<TerrainNode>, resource_details: &ResourceDetails) -> bool {
@@ -225,7 +225,7 @@ impl EntityNode {
             }
         }
 
-        return false;
+        false
     }
 
     // fn get_terrain_nodes(&self, terrain_graph: &HexGraph<TerrainNode>) -> [Option<&TerrainNode>; 3] {

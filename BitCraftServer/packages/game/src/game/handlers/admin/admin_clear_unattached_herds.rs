@@ -16,8 +16,8 @@ pub fn admin_clear_unattached_herds(ctx: &ReducerContext) -> Result<(), String> 
 
     let mut delete_count = 0;
     for attached_herd in ctx.db.attached_herds_state().iter() {
-        if ctx.db.resource_state().entity_id().find(attached_herd.entity_id).is_none() {
-            if ctx.db.building_state().entity_id().find(attached_herd.entity_id).is_none() {
+        if ctx.db.resource_state().entity_id().find(attached_herd.entity_id).is_none()
+            && ctx.db.building_state().entity_id().find(attached_herd.entity_id).is_none() {
                 if ctx.db.placeable_state().entity_id().find(attached_herd.entity_id).is_some() {
                     continue;
                 }
@@ -26,7 +26,6 @@ pub fn admin_clear_unattached_herds(ctx: &ReducerContext) -> Result<(), String> 
                 AttachedHerdsState::delete(ctx, attached_herd.entity_id);
                 delete_count += 1;
             }
-        }
     }
 
     log::info!("Deleted {delete_count} unattached herds");

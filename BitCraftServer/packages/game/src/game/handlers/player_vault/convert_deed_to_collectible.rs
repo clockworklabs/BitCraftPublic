@@ -12,13 +12,13 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn convert_deed_to_collectible(ctx: &ReducerContext, request: PlayerConvertDeedToCollectibleRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     let mut inventory = unwrap_or_err!(InventoryState::get_player_inventory(ctx, actor_id), "Player has no inventory");
-    let mut stack = unwrap_or_err!(inventory.get_at(request.pocket_index as usize), "Pocket cannot be empty").clone();
+    let mut stack = *unwrap_or_err!(inventory.get_at(request.pocket_index as usize), "Pocket cannot be empty");
 
     if stack.item_type != ItemType::Item {
         return Err("Deed is not an item".into());

@@ -26,7 +26,7 @@ impl PlayerState {
     pub fn get_skill_level(ctx: &ReducerContext, entity_id: u64, skill_id: i32) -> i32 {
         let mut skill_id = skill_id;
 
-        let experience_state = ctx.db.experience_state().entity_id().find(&entity_id).unwrap();
+        let experience_state = ctx.db.experience_state().entity_id().find(entity_id).unwrap();
 
         // ANY skill means highest level skill
         if skill_id == ANY_SKILL_ID {
@@ -45,7 +45,7 @@ impl PlayerState {
 
         let stack = stack.unwrap();
 
-        return ExperienceStack::level_for_experience(stack.quantity);
+        ExperienceStack::level_for_experience(stack.quantity)
     }
 
     pub fn meets_level_requirement(ctx: &ReducerContext, entity_id: u64, level_requirement: &LevelRequirement) -> bool {
@@ -71,7 +71,7 @@ impl PlayerState {
             .db
             .dimension_description_state()
             .dimension_id()
-            .find(&start_coordinates.dimension);
+            .find(start_coordinates.dimension);
 
         let dimension_desc_target = if start_coordinates.dimension == target_coordinates.dimension {
             dimension_desc_start.as_ref().unwrap().clone()
@@ -79,7 +79,7 @@ impl PlayerState {
             ctx.db
                 .dimension_description_state()
                 .dimension_id()
-                .find(&target_coordinates.dimension)
+                .find(target_coordinates.dimension)
                 .unwrap()
         };
 
@@ -116,7 +116,7 @@ impl PlayerState {
             InteriorPlayerCountState::inc(ctx, dimension_desc_target.dimension_network_entity_id);
         }
 
-        return Self::move_player_and_explore_unsafe(
+        Self::move_player_and_explore_unsafe(
             ctx,
             entity_id,
             start_coordinates,
@@ -124,7 +124,7 @@ impl PlayerState {
             stamina_delta,
             is_walking,
             timestamp,
-        );
+        )
     }
 
     pub fn move_player_and_explore_unsafe(
@@ -146,7 +146,7 @@ impl PlayerState {
         let in_overworld = target_coordinates.dimension == dimensions::OVERWORLD;
         if in_overworld & ((previous_chunk.x != entered_chunk.x) | (previous_chunk.z != entered_chunk.z)) {
             let mut exploration_chunks = unwrap_or_err!(
-                ctx.db.exploration_chunks_state_v2().entity_id().find(&entity_id),
+                ctx.db.exploration_chunks_state_v2().entity_id().find(entity_id),
                 "Missing exploration_chunks_state in move_player_and_explore"
             );
             if exploration_chunks.explore_chunk(ctx, &entered_chunk, None) {
@@ -192,8 +192,7 @@ impl PlayerState {
                     ctx.db.claim_state().entity_id().find(claim_tile.claim_id),
                     "Missing claim_state in move_player_and_explore"
                 );
-                let heals_rez_sickness;
-                if claim.owner_player_entity_id == 0 {
+                let heals_rez_sickness = if claim.owner_player_entity_id == 0 {
                     // Check if owner building is the ancient ruins one.
                     let building = unwrap_or_err!(
                         ctx.db.building_state().entity_id().find(claim.owner_building_entity_id),
@@ -203,10 +202,10 @@ impl PlayerState {
                         ctx.db.building_desc().id().find(building.building_description_id),
                         "Missing building_desc in move_player_and_explore"
                     );
-                    heals_rez_sickness = building_desc.has_category(ctx, BuildingCategory::Bed);
+                    building_desc.has_category(ctx, BuildingCategory::Bed)
                 } else {
-                    heals_rez_sickness = true;
-                }
+                    true
+                };
                 if heals_rez_sickness {
                     let mut active_buff_state = unwrap_or_err!(
                         ctx.db.active_buff_state().entity_id().find(entity_id),
@@ -238,7 +237,7 @@ impl PlayerState {
 
     pub fn discover_ruins_in_chunk(ctx: &ReducerContext, entity_id: u64, chunk_coordinates: ChunkCoordinates) {
         let ruins = unwrap_or_return!(
-            ctx.db.location_cache().version().find(&0),
+            ctx.db.location_cache().version().find(0),
             "Missing location_cache in discover_ruins_in_chunk"
         )
         .all_ruins;
@@ -260,7 +259,7 @@ impl PlayerState {
     }
 
     pub fn collect_deployable_stats(ctx: &ReducerContext, deployable_desc_id: i32, bonuses: &mut HashMap<CharacterStatType, (f32, f32)>) {
-        let deployable_desc = ctx.db.deployable_desc().id().find(&deployable_desc_id).unwrap();
+        let deployable_desc = ctx.db.deployable_desc().id().find(deployable_desc_id).unwrap();
         for stat_delta in &deployable_desc.stats {
             let entry = bonuses.entry(stat_delta.id).or_insert((0.0, 0.0));
             if stat_delta.is_pct {
@@ -305,7 +304,7 @@ impl PlayerState {
     }
 
     pub fn get_stat(ctx: &ReducerContext, entity_id: u64, stat: CharacterStatType) -> f32 {
-        let stats = ctx.db.character_stats_state().entity_id().find(&entity_id).unwrap();
+        let stats = ctx.db.character_stats_state().entity_id().find(entity_id).unwrap();
         stats.get(stat)
     }
 
@@ -342,8 +341,8 @@ impl PlayerState {
     pub fn init_toolbelt(ctx: &ReducerContext, actor_id: u64, item_id: i32) {
         // Add all actions related to that item
         // (for now only weapons give actions; ideally we might want to list actions per item)
-        if let Some(weapon) = ctx.db.weapon_desc().item_id().find(&item_id) {
-            if let Some(weapon_type) = ctx.db.weapon_type_desc().id().find(&weapon.weapon_type) {
+        if let Some(weapon) = ctx.db.weapon_desc().item_id().find(item_id) {
+            if let Some(weapon_type) = ctx.db.weapon_type_desc().id().find(weapon.weapon_type) {
                 // All player potential actions, mapped on a toolbar or not
                 // Reset Hunting or Combat toolbar (for now)
                 let mut toolbar_abilities = Vec::new();
@@ -403,8 +402,8 @@ impl PlayerState {
     }
 
     pub fn on_added_to_toolbelt(ctx: &ReducerContext, actor_id: u64, item_id: i32) {
-        if let Some(weapon) = ctx.db.weapon_desc().item_id().find(&item_id) {
-            if let Some(weapon_type) = ctx.db.weapon_type_desc().id().find(&weapon.weapon_type) {
+        if let Some(weapon) = ctx.db.weapon_desc().item_id().find(item_id) {
+            if let Some(weapon_type) = ctx.db.weapon_type_desc().id().find(weapon.weapon_type) {
                 PlayerState::collect_stats(ctx, actor_id);
 
                 for combat_action in ctx.db.combat_action_desc().iter() {
@@ -437,24 +436,21 @@ impl PlayerState {
 
                 // Reset all combat abilities when equipping a new weapon
                 for mut ability in ctx.db.ability_state().owner_entity_id().filter(actor_id) {
-                    match ability.ability {
-                        AbilityType::CombatAction(id) => {
-                            let combat_action = ctx.db.combat_action_desc().id().find(id).unwrap();
+                    if let AbilityType::CombatAction(id) = ability.ability {
+                        let combat_action = ctx.db.combat_action_desc().id().find(id).unwrap();
 
-                            // Default is combat weapon, unless it's a huntable enemy
-                            let is_huntable = weapon_type.hunting;
-                            let (cooldown_multiplier, weapon_cooldown_multiplier) =
-                                CharacterStatsState::get_cooldown_and_weapon_cooldown_multipliers(ctx, actor_id, is_huntable);
-                            ability.set_combat_action_cooldown(
-                                &combat_action,
-                                cooldown_multiplier,
-                                weapon_cooldown_multiplier,
-                                ctx.timestamp,
-                                true,
-                            );
-                            ability.update(ctx);
-                        }
-                        _ => {}
+                        // Default is combat weapon, unless it's a huntable enemy
+                        let is_huntable = weapon_type.hunting;
+                        let (cooldown_multiplier, weapon_cooldown_multiplier) =
+                            CharacterStatsState::get_cooldown_and_weapon_cooldown_multipliers(ctx, actor_id, is_huntable);
+                        ability.set_combat_action_cooldown(
+                            &combat_action,
+                            cooldown_multiplier,
+                            weapon_cooldown_multiplier,
+                            ctx.timestamp,
+                            true,
+                        );
+                        ability.update(ctx);
                     }
                 }
             }
@@ -463,8 +459,8 @@ impl PlayerState {
 
     pub fn on_removed_from_toolbelt(ctx: &ReducerContext, actor_id: u64, item_id: i32) {
         // Remove all actions related to that item
-        if let Some(weapon) = ctx.db.weapon_desc().item_id().find(&item_id) {
-            if let Some(weapon_type) = ctx.db.weapon_type_desc().id().find(&weapon.weapon_type) {
+        if let Some(weapon) = ctx.db.weapon_desc().item_id().find(item_id) {
+            if let Some(weapon_type) = ctx.db.weapon_type_desc().id().find(weapon.weapon_type) {
                 // Find active toolbar (hunting or combat) and clear abilities from it
                 let toolbar_index = if weapon_type.hunting { 0 } else { 1 };
                 let mut toolbar = ctx
@@ -487,8 +483,8 @@ impl PlayerState {
     }
 
     pub fn on_updated_toolbelt(ctx: &ReducerContext, actor_id: u64, previous_item_id: i32, new_item_id: i32) {
-        let prev_weapon = ctx.db.weapon_desc().item_id().find(&previous_item_id);
-        let new_weapon = ctx.db.weapon_desc().item_id().find(&new_item_id);
+        let prev_weapon = ctx.db.weapon_desc().item_id().find(previous_item_id);
+        let new_weapon = ctx.db.weapon_desc().item_id().find(new_item_id);
         if prev_weapon.is_some() && new_weapon.is_some() {
             //In order to prevent resetting cooldowns when swapping weapons, we do this for same weapon types now
             Self::on_removed_from_toolbelt(ctx, actor_id, previous_item_id);
@@ -500,7 +496,7 @@ impl PlayerState {
 
     pub fn collect_stats_with_uncommited_buffs(ctx: &ReducerContext, active_buffs: &ActiveBuffState) {
         let player_entity_id = active_buffs.entity_id;
-        let equipment = ctx.db.equipment_state().entity_id().find(&player_entity_id).unwrap();
+        let equipment = ctx.db.equipment_state().entity_id().find(player_entity_id).unwrap();
 
         let mut bonuses = HashMap::new();
         // Collect stats from equipment
@@ -513,8 +509,8 @@ impl PlayerState {
         PavedTileState::collect_stats(&coords, &mut bonuses);
         */
         // Collect stats from deployable
-        if let Some(mounting) = ctx.db.mounting_state().entity_id().find(&player_entity_id) {
-            if let Some(deployable) = ctx.db.deployable_state_v2().entity_id().find(&mounting.deployable_entity_id) {
+        if let Some(mounting) = ctx.db.mounting_state().entity_id().find(player_entity_id) {
+            if let Some(deployable) = ctx.db.deployable_state_v2().entity_id().find(mounting.deployable_entity_id) {
                 Self::collect_deployable_stats(ctx, deployable.deployable_description_id, &mut bonuses);
             }
         }
@@ -535,35 +531,34 @@ impl PlayerState {
         }
 
         // Queue update with all different stats
-        let stats = ctx.db.character_stats_state().entity_id().find(&player_entity_id).unwrap();
+        let stats = ctx.db.character_stats_state().entity_id().find(player_entity_id).unwrap();
         if !new_stats.equals(&stats) {
             ctx.db.character_stats_state().entity_id().update(new_stats);
         }
 
         // Possibly remove the rez sickness from the table
-        if ctx.db.rez_sick_long_term_state().entity_id().find(player_entity_id).is_some() {
-            if !ActiveBuff::has_active_buff_of_category(ctx, player_entity_id, BuffCategory::RezSicknessLongTerm) {
+        if ctx.db.rez_sick_long_term_state().entity_id().find(player_entity_id).is_some()
+            && !ActiveBuff::has_active_buff_of_category(ctx, player_entity_id, BuffCategory::RezSicknessLongTerm) {
                 ctx.db.rez_sick_long_term_state().entity_id().delete(player_entity_id);
             }
-        }
     }
 
     pub fn collect_stats(ctx: &ReducerContext, player_entity_id: u64) {
-        if let Some(active_buff_state) = ctx.db.active_buff_state().entity_id().find(&player_entity_id) {
+        if let Some(active_buff_state) = ctx.db.active_buff_state().entity_id().find(player_entity_id) {
             Self::collect_stats_with_uncommited_buffs(ctx, &active_buff_state);
         }
     }
 
     pub fn username(&self, ctx: &ReducerContext) -> String {
-        return ctx.db.player_username_state().entity_id().find(&self.entity_id).unwrap().username;
+        ctx.db.player_username_state().entity_id().find(self.entity_id).unwrap().username
     }
 
     pub fn username_by_id(ctx: &ReducerContext, player_entity_id: u64) -> Option<String> {
-        return ctx
+        ctx
             .db
             .player_username_state()
             .entity_id()
-            .find(&player_entity_id)
-            .map(|u| u.username);
+            .find(player_entity_id)
+            .map(|u| u.username)
     }
 }

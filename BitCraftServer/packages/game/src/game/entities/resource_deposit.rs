@@ -38,7 +38,7 @@ pub struct ResourceSpawnTimer {
 
 #[spacetimedb::reducer]
 pub fn resource_spawn_scheduled(ctx: &ReducerContext, timer: ResourceSpawnTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     if ResourceState::spawn(
         ctx,
         timer.entity_id,
@@ -62,7 +62,7 @@ impl ResourceState {
     }
 
     pub fn footprint(&self, ctx: &ReducerContext, center: SmallHexTile) -> Vec<(SmallHexTile, FootprintType)> {
-        if let Some(resource_desc) = ctx.db.resource_desc().id().find(&self.resource_id) {
+        if let Some(resource_desc) = ctx.db.resource_desc().id().find(self.resource_id) {
             return resource_desc.get_footprint(&center, self.direction_index);
         }
 
@@ -71,7 +71,7 @@ impl ResourceState {
 
     pub fn get_at_location(ctx: &ReducerContext, coordinates: &SmallHexTile) -> Option<ResourceState> {
         LocationState::select_all(ctx, coordinates)
-            .filter_map(|ls| ctx.db.resource_state().entity_id().find(&ls.entity_id))
+            .filter_map(|ls| ctx.db.resource_state().entity_id().find(ls.entity_id))
             .next()
     }
 
@@ -118,10 +118,10 @@ impl ResourceState {
             if coord.dimension == dimensions::OVERWORLD {
                 if let Some(resource) = ctx.db.resource_state().entity_id().find(entity_id) {
                     let resource_id = resource.resource_id;
-                    let resource_desc = ctx.db.resource_desc().id().find(&resource_id).unwrap();
+                    let resource_desc = ctx.db.resource_desc().id().find(resource_id).unwrap();
                     if resource_desc.scheduled_respawn_time > 0.0 {
                         // Only spawn single-resource clumps
-                        if let Some(resource_clump_desc) = ctx.db.single_resource_to_clump_desc().resource_id().find(&resource_id) {
+                        if let Some(resource_clump_desc) = ctx.db.single_resource_to_clump_desc().resource_id().find(resource_id) {
                             let chunk_index = location.chunk_index;
                             ctx.db
                                 .respawn_resource_in_chunk_timer()
@@ -145,7 +145,7 @@ impl ResourceState {
                 .db
                 .resource_count()
                 .resource_id()
-                .find(&resource_id)
+                .find(resource_id)
                 .unwrap_or_else(|| panic!("No ResourceCount for resource_id: {}", resource_id));
             count.num_in_world -= 1;
             ctx.db.resource_count().resource_id().update(count);
@@ -196,10 +196,10 @@ impl ResourceState {
         // As far as server is concerned, the falling tree no longer exists.
 
         // Growing resources are player made and are not part of the eco-system.
-        if ctx.db.growth_state().entity_id().find(&deposit_entity_id).is_some()
-            || ctx.db.resource_growth_timer().entity_id().find(&deposit_entity_id).is_some()
+        if ctx.db.growth_state().entity_id().find(deposit_entity_id).is_some()
+            || ctx.db.resource_growth_timer().entity_id().find(deposit_entity_id).is_some()
         {
-            ctx.db.resource_state().entity_id().delete(&deposit_entity_id);
+            ctx.db.resource_state().entity_id().delete(deposit_entity_id);
             delete_resource_growth_timer(ctx, deposit_entity_id);
         } else if deposit_resource_id != 0 && !Self::delete_one_by_entity_id_with_type(ctx, &deposit_entity_id, deposit_resource_id) {
             log::error!(
@@ -211,7 +211,7 @@ impl ResourceState {
         }
 
         crumb_trail_clean_up_agent::clean_up_if_final_prize_resource_deleted(ctx, deposit_entity_id);
-        ctx.db.light_source_state().entity_id().delete(&deposit_entity_id);
+        ctx.db.light_source_state().entity_id().delete(deposit_entity_id);
         delete_footprint(ctx, deposit_entity_id);
         AttachedHerdsState::delete(ctx, deposit_entity_id);
         delete_entity(ctx, deposit_entity_id);
@@ -219,23 +219,23 @@ impl ResourceState {
     }
 
     pub fn despawn_growing(&self, ctx: &ReducerContext) -> bool {
-        if !ctx.db.resource_state().entity_id().delete(&self.entity_id) {
+        if !ctx.db.resource_state().entity_id().delete(self.entity_id) {
             return false;
         }
-        ctx.db.light_source_state().entity_id().delete(&self.entity_id);
+        ctx.db.light_source_state().entity_id().delete(self.entity_id);
         delete_footprint(ctx, self.entity_id);
         AttachedHerdsState::delete(ctx, self.entity_id);
-        ctx.db.distant_visible_entity().entity_id().delete(&self.entity_id);
-        ctx.db.growth_state().entity_id().delete(&self.entity_id);
-        ctx.db.resource_health_state().entity_id().delete(&self.entity_id);
-        ctx.db.location_state().entity_id().delete(&self.entity_id);
+        ctx.db.distant_visible_entity().entity_id().delete(self.entity_id);
+        ctx.db.growth_state().entity_id().delete(self.entity_id);
+        ctx.db.resource_health_state().entity_id().delete(self.entity_id);
+        ctx.db.location_state().entity_id().delete(self.entity_id);
         true
     }
 
     pub fn produce_offspawn(ctx: &ReducerContext, resource_id: i32, coord: SmallHexTile, deposit_direction: i32) -> Option<u64> {
         // Respawn resource right away since it's likely a resource that undergoes a state change.
         // We assume the footprint will be the same or included within the original shape.
-        let resource_desc = ctx.db.resource_desc().id().find(&resource_id).unwrap();
+        let resource_desc = ctx.db.resource_desc().id().find(resource_id).unwrap();
         let respawn_resource_id = resource_desc.on_destroy_yield_resource_id;
         let should_spawn = if resource_desc.on_destroy_yield_resource_chance >= 1.0 {
             true
@@ -313,7 +313,7 @@ impl ResourceState {
             return false;
         }
 
-        let building_desc = match ctx.db.building_desc().id().find(&building_id) {
+        let building_desc = match ctx.db.building_desc().id().find(building_id) {
             Some(desc) => desc,
             None => return false,
         };
@@ -360,7 +360,7 @@ impl ResourceState {
     }
 
     fn is_resource_spawn_safe_building(ctx: &ReducerContext, building_desc: &BuildingDesc) -> bool {
-        if ctx.db.building_claim_desc().building_id().find(&building_desc.id).is_some() {
+        if ctx.db.building_claim_desc().building_id().find(building_desc.id).is_some() {
             return false;
         }
 
@@ -395,13 +395,13 @@ impl ResourceState {
         for (coords, footprint_type) in footprint {
             let existing_footprints = FootprintTileState::get_at_location(ctx, coords);
             for existing in existing_footprints {
-                let resource = ctx.db.resource_state().entity_id().find(&existing.owner_entity_id);
+                let resource = ctx.db.resource_state().entity_id().find(existing.owner_entity_id);
                 if resource.is_none() && !FootprintTile::is_compatible(&existing.footprint_type, footprint_type) {
                     return false;
                 }
 
                 if let Some(deposit) = resource {
-                    let Some(resource_desc) = ctx.db.resource_desc().id().find(&deposit.resource_id) else {
+                    let Some(resource_desc) = ctx.db.resource_desc().id().find(deposit.resource_id) else {
                         return false;
                     };
 
@@ -438,7 +438,7 @@ impl ResourceState {
             }
 
             if LocationState::select_all(ctx, coords)
-                .any(|location| ctx.db.deployable_state_v2().entity_id().find(&location.entity_id).is_some())
+                .any(|location| ctx.db.deployable_state_v2().entity_id().find(location.entity_id).is_some())
             {
                 return false;
             }
@@ -478,7 +478,7 @@ impl ResourceState {
             return None;
         }
 
-        let resource_desc = ctx.db.resource_desc().id().find(&resource_id).unwrap();
+        let resource_desc = ctx.db.resource_desc().id().find(resource_id).unwrap();
         let resource_health = resource_desc.max_health;
         let min_radius = min_radius.max(0);
         let max_radius = max_radius.max(min_radius);
@@ -486,7 +486,7 @@ impl ResourceState {
             .db
             .parameters_desc()
             .version()
-            .find(&0)
+            .find(0)
             .map(|params| params.auto_respawn_attempts.max(0) as usize);
         let mut terrain_cache = TerrainChunkCache::empty();
 
@@ -517,7 +517,7 @@ impl ResourceState {
     }
 
     pub fn schedule_resource_spawn(ctx: &ReducerContext, resource_id: i32, coordinates: SmallHexTileMessage, direction_index: i32) {
-        let health = ctx.db.resource_desc().id().find(&resource_id).unwrap().max_health;
+        let health = ctx.db.resource_desc().id().find(resource_id).unwrap().max_health;
         let _ = ctx.db.resource_spawn_timer().try_insert(ResourceSpawnTimer {
             entity_id: None,
             resource_id,
@@ -558,11 +558,12 @@ impl ResourceState {
         footprint_helpers::update_footprint_after_resource_completion(ctx, entity_id, coordinates, direction_index, resource);
 
         Self::add_growth_timer(ctx, entity_id, resource.id);
-        Self::create_distant_visibile_resource(ctx, &resource, entity_id, coordinates);
+        Self::create_distant_visibile_resource(ctx, resource, entity_id, coordinates);
 
         Ok(())
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn spawn(
         ctx: &ReducerContext,
         entity_id: Option<u64>,
@@ -589,7 +590,7 @@ impl ResourceState {
             resource_id,
             direction_index,
         };
-        let resource_desc = unwrap_or_err!(ctx.db.resource_desc().id().find(&deposit_state.resource_id), "Unknown resource");
+        let resource_desc = unwrap_or_err!(ctx.db.resource_desc().id().find(deposit_state.resource_id), "Unknown resource");
 
         if check_buildings || check_resources {
             // destroy all resources under the footprint (ignore priority, the priority is used in the agent)
@@ -597,7 +598,7 @@ impl ResourceState {
             let mut resources_to_delete: HashSet<u64> = HashSet::new();
 
             for delta in resource_footprints
-                .into_iter()
+                .iter()
                 .filter(|f| f.footprint_type != FootprintType::Perimeter)
             {
                 let footprint_coordinates = (SmallHexTile {
@@ -605,14 +606,14 @@ impl ResourceState {
                     z: coordinates.z + delta.z,
                     dimension: coordinates.dimension,
                 })
-                .rotate_around(&coordinates, (deposit_state.direction_index as i32) / 2);
+                .rotate_around(&coordinates, deposit_state.direction_index / 2);
 
                 let footprints = FootprintTileState::get_at_location(ctx, &footprint_coordinates);
                 for footprint in footprints {
-                    if check_buildings && ctx.db.building_state().entity_id().find(&footprint.owner_entity_id).is_some() {
+                    if check_buildings && ctx.db.building_state().entity_id().find(footprint.owner_entity_id).is_some() {
                         return Err("Cannot spawn a resource over a building".into());
                     }
-                    if check_resources && ctx.db.resource_state().entity_id().find(&footprint.owner_entity_id).is_some() {
+                    if check_resources && ctx.db.resource_state().entity_id().find(footprint.owner_entity_id).is_some() {
                         resources_to_delete.insert(footprint.owner_entity_id);
                     }
                 }
@@ -646,11 +647,11 @@ impl ResourceState {
             footprint_helpers::create_resource_footprint(ctx, entity_id, &resource_desc, direction_index);
             // TODO: flatten footprint
         }
-        if resource_desc.enemy_params_id.len() > 0 {
+        if !resource_desc.enemy_params_id.is_empty() {
             HerdState::attach(ctx, entity_id, resource_desc.enemy_params_id, offset);
         }
 
-        return Ok(entity_id);
+        Ok(entity_id)
     }
 
     fn add_growth_timer(ctx: &ReducerContext, entity_id: u64, resource_id: i32) {
@@ -671,7 +672,7 @@ impl ResourceState {
             .any(|x| x.entity_type == EntityType::Resource)
         {
             ctx.db.distant_visible_entity().insert(DistantVisibleEntity {
-                entity_id: entity_id,
+                entity_id,
                 chunk_index: coordinates.chunk_coordinates().chunk_index(),
             });
         }

@@ -10,7 +10,7 @@ const CONTEXT_SIZE: usize = 5;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn report_targeted_chat_message(ctx: &ReducerContext, chat_message_id: u64, report_type: String, message: String) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
 
     let chat_message = ctx.db.chat_message_state().entity_id().find(chat_message_id);
@@ -39,7 +39,7 @@ pub fn report_targeted_chat_message(ctx: &ReducerContext, chat_message_id: u64, 
             reporter_entity_id: actor_id,
             reported_player_entity_id: direct_message.sender_entity_id,
             reported_player_username: username.username,
-            report_type: report_type,
+            report_type,
             report_message: message,
             reported_chat_message: Some(direct_message.into_chat_message_state()),
             chat_channel_context: Some(
@@ -59,7 +59,7 @@ pub fn report_targeted_chat_message(ctx: &ReducerContext, chat_message_id: u64, 
 
         ctx.db.player_report_state().try_insert(report_state)?;
         ctx.db.player_report_state_timestamp().try_insert(PlayerReportStateTimestamp {
-            entity_id: entity_id,
+            entity_id,
             timestamp: game_state::unix(ctx.timestamp),
         })?;
 
@@ -88,7 +88,7 @@ pub fn report_targeted_chat_message(ctx: &ReducerContext, chat_message_id: u64, 
         reporter_entity_id: actor_id,
         reported_player_entity_id: chat_message.owner_entity_id,
         reported_player_username: username.username,
-        report_type: report_type,
+        report_type,
         report_message: message,
         reported_chat_message: Some(chat_message),
         chat_channel_context: Some(channel_messages),
@@ -98,7 +98,7 @@ pub fn report_targeted_chat_message(ctx: &ReducerContext, chat_message_id: u64, 
 
     ctx.db.player_report_state().try_insert(report_state)?;
     ctx.db.player_report_state_timestamp().try_insert(PlayerReportStateTimestamp {
-        entity_id: entity_id,
+        entity_id,
         timestamp: game_state::unix(ctx.timestamp),
     })?;
 

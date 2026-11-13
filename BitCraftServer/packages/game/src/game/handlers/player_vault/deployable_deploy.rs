@@ -17,12 +17,12 @@ use crate::{
 use super::collectible_activate;
 
 pub fn event_delay(ctx: &ReducerContext, actor_id: u64, request: &DeployableDeployRequest) -> Duration {
-    if let Some(vault) = ctx.db.vault_state().entity_id().find(&actor_id) {
+    if let Some(vault) = ctx.db.vault_state().entity_id().find(actor_id) {
         let collectibles = &vault.collectibles;
         let collectible_id = collectibles.get(request.vault_index as usize).unwrap().id;
-        if let Some(collectible_desc) = ctx.db.collectible_desc().id().find(&collectible_id) {
+        if let Some(collectible_desc) = ctx.db.collectible_desc().id().find(collectible_id) {
             if collectible_desc.collectible_type == CollectibleType::Deployable {
-                let deployable_description = ctx.db.deployable_desc().deploy_from_collectible_id().find(&collectible_id).unwrap();
+                let deployable_description = ctx.db.deployable_desc().deploy_from_collectible_id().find(collectible_id).unwrap();
                 return Duration::from_secs_f32(deployable_description.deploy_time);
             }
         }
@@ -33,7 +33,7 @@ pub fn event_delay(ctx: &ReducerContext, actor_id: u64, request: &DeployableDepl
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_deploy_start(ctx: &ReducerContext, request: DeployableDeployRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let delay = event_delay(ctx, actor_id, &request);
@@ -58,7 +58,7 @@ pub fn deployable_deploy_start(ctx: &ReducerContext, request: DeployableDeployRe
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_deploy(ctx: &ReducerContext, request: DeployableDeployRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     player_action_helpers::schedule_clear_player_action(
@@ -82,7 +82,7 @@ fn reduce(
         PlayerActionState::validate(ctx, actor_id, PlayerActionType::DeployDeployable, None)?;
     }
 
-    if ctx.db.mounting_state().entity_id().find(&actor_id).is_some() {
+    if ctx.db.mounting_state().entity_id().find(actor_id).is_some() {
         return Err("Can't place a deployable while in a deployable".into());
     }
 
@@ -90,7 +90,7 @@ fn reduce(
 
     let mut terrain_cache = TerrainChunkCache::empty();
 
-    let vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(&actor_id), "Vault not initialized");
+    let vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(actor_id), "Vault not initialized");
     let collectibles = vault.collectibles;
     let collectible_id = collectibles.get(request.vault_index as usize).unwrap().id;
 

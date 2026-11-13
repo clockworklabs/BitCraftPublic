@@ -97,7 +97,7 @@ impl AbilityState {
             0
         };
         let combat_action_id = if let Some(combat_weapon) = PlayerState::get_combat_weapon(ctx, player_entity_id) {
-            if let None = ctx.db.weapon_desc().item_id().find(combat_weapon.item_id) {
+            if ctx.db.weapon_desc().item_id().find(combat_weapon.item_id).is_none() {
                 spacetimedb::log::info!(
                     "Player {} has invalid weapon id {} in combat slot",
                     player_entity_id,

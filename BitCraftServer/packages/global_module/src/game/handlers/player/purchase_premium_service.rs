@@ -15,7 +15,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn purchase_character_rename(ctx: &ReducerContext, premium_service_desc_id: i32, new_character_name: String) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let player_username_state = unwrap_or_err!(ctx.db.player_username_state().entity_id().find(actor_id), "Unknown player");
     if player_username_state.username == new_character_name {
@@ -47,7 +47,7 @@ fn purchase_premium_service(
     premium_service_desc: &PremiumServiceDesc,
     deduct_hub_shards: bool,
 ) -> Result<(), String> {
-    let mut player_shard_state = unwrap_or_err!(ctx.db.player_shard_state().entity_id().find(&actor_id), "Unknown PlayerShardState");
+    let mut player_shard_state = unwrap_or_err!(ctx.db.player_shard_state().entity_id().find(actor_id), "Unknown PlayerShardState");
 
     if player_shard_state.shards < premium_service_desc.price {
         return Err("Not enough shards".into());

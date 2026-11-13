@@ -61,7 +61,7 @@ fn crumb_tail_cleanup_agent_insert(ctx: &ReducerContext) -> Result<(), String> {
 
 #[spacetimedb::reducer]
 fn crumb_tail_cleanup_agent_loop(ctx: &ReducerContext, _timer: CrumbTrailCleanupTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to crumb_tail cleanup agent");
         return;
     }
@@ -126,7 +126,7 @@ pub fn delete_crumb_trail(ctx: &ReducerContext, crumb_trail: &CrumbTrailState) {
 }
 
 pub fn clean_up_if_final_prize_resource_deleted(ctx: &ReducerContext, prize_entity_id: u64) {
-    let Some(contribution_lock) = ctx.db.crumb_trail_contribution_lock_state().entity_id().find(&prize_entity_id) else {
+    let Some(contribution_lock) = ctx.db.crumb_trail_contribution_lock_state().entity_id().find(prize_entity_id) else {
         return;
     };
 
@@ -134,7 +134,7 @@ pub fn clean_up_if_final_prize_resource_deleted(ctx: &ReducerContext, prize_enti
         .db
         .crumb_trail_state()
         .entity_id()
-        .find(&contribution_lock.crumb_trail_entity_id)
+        .find(contribution_lock.crumb_trail_entity_id)
     else {
         return;
     };

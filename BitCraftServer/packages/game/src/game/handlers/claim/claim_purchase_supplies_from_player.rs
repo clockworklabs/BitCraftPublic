@@ -14,13 +14,13 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_purchase_supplies_from_player(ctx: &ReducerContext, request: ClaimPurchaseSuppliesFromPlayerRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let building_entity_id = request.building_entity_id;
-    let building = unwrap_or_err!(ctx.db.building_state().entity_id().find(&building_entity_id), "No such building.");
+    let building = unwrap_or_err!(ctx.db.building_state().entity_id().find(building_entity_id), "No such building.");
 
-    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&building.claim_entity_id), "No such claim.");
+    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(building.claim_entity_id), "No such claim.");
     let mut claim_local = claim.local_state(ctx);
 
     let max_supplies = ctx
@@ -61,7 +61,7 @@ pub fn claim_purchase_supplies_from_player(ctx: &ReducerContext, request: ClaimP
     if stack.item_type != ItemType::Cargo {
         return Err("Claims can only be charged with supplies.".into());
     }
-    let repair_value = match ctx.db.building_repairs_desc().cargo_id().find(&stack.item_id) {
+    let repair_value = match ctx.db.building_repairs_desc().cargo_id().find(stack.item_id) {
         Some(rep) => rep.repair_value,
         None => return Err("Claims can only be charged with supplies.".into()),
     };

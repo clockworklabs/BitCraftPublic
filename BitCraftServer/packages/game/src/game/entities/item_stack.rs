@@ -22,7 +22,7 @@ impl ItemType {
 impl ItemStack {
     pub fn new(ctx: &ReducerContext, item_id: i32, item_type: ItemType, quantity: i32) -> ItemStack {
         let durability = if item_type == ItemType::Item {
-            let d = ctx.db.item_desc().id().find(&item_id).unwrap().durability;
+            let d = ctx.db.item_desc().id().find(item_id).unwrap().durability;
             if d <= 0 {
                 None
             } else {
@@ -84,7 +84,7 @@ impl ItemStack {
     }
 
     pub fn clone_with_quantity(&self, quantity: i32) -> Self {
-        let mut item_stack = self.clone();
+        let mut item_stack = *self;
         item_stack.quantity = quantity;
         item_stack
     }
@@ -106,9 +106,9 @@ impl ItemStack {
         true
     }
 
-    pub fn merge_multiple(item_stacks: &Vec<ItemStack>) -> Vec<ItemStack> {
+    pub fn merge_multiple(item_stacks: &[ItemStack]) -> Vec<ItemStack> {
         let mut merged_stacks: Vec<ItemStack> = Vec::new();
-        for stack in item_stacks.clone() {
+        for stack in item_stacks.iter().copied() {
             let merged_index = merged_stacks
                 .iter()
                 .position(|&st| st.item_id == stack.item_id && st.item_type == stack.item_type);
@@ -129,7 +129,7 @@ impl ItemStack {
                 if collectible.auto_collect {
                     return true;
                 }
-            } else if let Some(scroll) = ctx.db.knowledge_scroll_desc().item_id().find(&self.item_id) {
+            } else if let Some(scroll) = ctx.db.knowledge_scroll_desc().item_id().find(self.item_id) {
                 return scroll.auto_collect;
             }
         }
@@ -143,10 +143,10 @@ impl ItemStack {
             // parse and remove all items that are automatically turned into collectibles
             if let Some(collectible) = ctx.db.collectible_desc().item_deed_id().filter(self.item_id).next() {
                 if collectible.auto_collect {
-                    let vault_state = ctx.db.vault_state().entity_id().find(&player_entity_id).unwrap();
+                    let vault_state = ctx.db.vault_state().entity_id().find(player_entity_id).unwrap();
                     return (true, vault_state.collectibles.iter().find(|c| c.id == collectible.id).is_some());
                 }
-            } else if let Some(scroll) = ctx.db.knowledge_scroll_desc().item_id().find(&self.item_id) {
+            } else if let Some(scroll) = ctx.db.knowledge_scroll_desc().item_id().find(self.item_id) {
                 if scroll.auto_collect {
                     if scroll.secondary_knowledge_id != 0 {
                         return (
@@ -167,12 +167,12 @@ impl ItemStack {
             // parse and remove all items that are automatically turned into collectibles
             if let Some(collectible) = ctx.db.collectible_desc().item_deed_id().filter(self.item_id).next() {
                 if collectible.auto_collect {
-                    let mut vault_state = ctx.db.vault_state().entity_id().find(&player_entity_id).unwrap();
+                    let mut vault_state = ctx.db.vault_state().entity_id().find(player_entity_id).unwrap();
                     let _ = vault_state.add_collectible(ctx, collectible.id, false);
                     ctx.db.vault_state().entity_id().update(vault_state);
                     self.quantity = 0; // this will consume all instances of this item but those stacks should only have 1 anyways
                 }
-            } else if let Some(scroll) = ctx.db.knowledge_scroll_desc().item_id().find(&self.item_id) {
+            } else if let Some(scroll) = ctx.db.knowledge_scroll_desc().item_id().find(self.item_id) {
                 if scroll.auto_collect {
                     discovery.acquire_lore(ctx, scroll.item_id);
                     if scroll.secondary_knowledge_id != 0 {
@@ -180,7 +180,7 @@ impl ItemStack {
                     }
                     self.quantity = 0; // this will consume all instances of this item but those stacks should only have 1 anyways
                 }
-            } else if let Some(food_desc) = ctx.db.food_desc().item_id().find(&self.item_id) {
+            } else if let Some(food_desc) = ctx.db.food_desc().item_id().find(self.item_id) {
                 if food_desc.auto_consume {
                     food::consume(ctx, player_entity_id, &food_desc, self.quantity)
                         .expect("Auto-consume food failed to apply its effects or outputs");
@@ -193,7 +193,7 @@ impl ItemStack {
 
     pub fn get_item_list_id(&self, ctx: &ReducerContext) -> i32 {
         match &self.item_type {
-            ItemType::Item => ctx.db.item_desc().id().find(&self.item_id).unwrap().item_list_id,
+            ItemType::Item => ctx.db.item_desc().id().find(self.item_id).unwrap().item_list_id,
             ItemType::Cargo => 0,
         }
     }
@@ -204,7 +204,7 @@ impl ItemStack {
     }
 
     pub fn fix_durability(&self) -> ItemStack {
-        let mut item_stack = self.clone();
+        let mut item_stack = *self;
         item_stack.fix_durability_self();
         item_stack
     }
@@ -222,7 +222,7 @@ impl ItemStack {
         // Discover
         if discovery.is_some() {
             let d = discovery.as_mut().unwrap();
-            d.acquire_item_stack(ctx, &self);
+            d.acquire_item_stack(ctx, self);
             player_id = Some(d.player_entity_id);
         }
 
@@ -240,7 +240,7 @@ impl ItemStack {
 
                 d.acquire_item_stack(ctx, item_stack);
             }
-            d.acquire_item_stack(ctx, &self);
+            d.acquire_item_stack(ctx, self);
         }
 
         // Fix Durability
@@ -283,8 +283,8 @@ pub fn test() {
         durability: None,
     };
 
-    assert_eq!(stack_1.merge(stack_2), false, "cannot merge, item_id are different");
-    assert_eq!(stack_1.merge(stack_3), true, "should merge successfully, item_id are the same");
+    assert!(!stack_1.merge(stack_2), "cannot merge, item_id are different");
+    assert!(stack_1.merge(stack_3), "should merge successfully, item_id are the same");
     assert_eq!(stack_1.quantity, 4, "stack should now have 4 items");
 
     let stack_4 = stack_1;
@@ -294,10 +294,10 @@ pub fn test() {
     assert_eq!(stack_1.quantity, 3, "stack 1 should now have 3 items");
     assert_eq!(stack_4.quantity, 4, "copied stack should still have 4 items");
 
-    let stacks_vec = ItemStack::merge_multiple(&vec![stack_1, stack_2, stack_3, stack_4]);
+    let stacks_vec = ItemStack::merge_multiple(&[stack_1, stack_2, stack_3, stack_4]);
     assert_eq!(stacks_vec[0].quantity, 10, "stacks_vec[0] should now have 3 + 0 + 3 + 4 = 10 items");
     assert_eq!(stacks_vec[0].item_id, 1, "stacks_vec[0] item_id should be 1");
     assert_eq!(stacks_vec[1].quantity, 2, "stacks_vec[1] should now have 0 + 2 + 0 + 0 = 2 items");
     assert_eq!(stacks_vec[1].item_id, 2, "stacks_vec[1] item_id should be 2");
-    assert_eq!(stacks_vec.iter().count(), 2, "stacks_vec should only have 2 elements in it");
+    assert_eq!(stacks_vec.len(), 2, "stacks_vec should only have 2 elements in it");
 }

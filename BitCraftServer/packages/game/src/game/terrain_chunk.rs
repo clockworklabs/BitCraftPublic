@@ -53,10 +53,8 @@ impl TerrainChunkCache {
 
     /// Persist whatever changes where made to all cached chunks
     pub fn consume_and_persist_all(self, ctx: &ReducerContext) {
-        for (_, item) in self.0.iter() {
-            if let Some(item) = item {
-                ctx.db.terrain_chunk_state().chunk_index().update(item.clone());
-            }
+        for item in self.0.values().flatten() {
+            ctx.db.terrain_chunk_state().chunk_index().update(item.clone());
         }
     }
 
@@ -68,7 +66,7 @@ impl TerrainChunkCache {
     pub fn filter_by_chunk_index(&mut self, ctx: &ReducerContext, index: u64) -> Option<&mut TerrainChunkState> {
         self.0
             .entry(index)
-            .or_insert_with(|| ctx.db.terrain_chunk_state().chunk_index().find(&index))
+            .or_insert_with(|| ctx.db.terrain_chunk_state().chunk_index().find(index))
             .as_mut()
     }
 
@@ -114,7 +112,7 @@ impl TerrainChunkState {
     }
 
     pub fn chunk_index_from_coords(coords: &ChunkCoordinates) -> u64 {
-        return coords.chunk_index();
+        coords.chunk_index()
     }
 
     pub fn get_entity(&self, offset: &OffsetCoordinatesLarge) -> Option<TerrainCell> {
@@ -126,7 +124,7 @@ impl TerrainChunkState {
 
     pub fn get_entity_static(ctx: &ReducerContext, coord: &LargeHexTile) -> Option<TerrainCell> {
         let index = Self::chunk_index_from_coords(&coord.chunk_coordinates());
-        if let Some(chunk) = ctx.db.terrain_chunk_state().chunk_index().find(&index) {
+        if let Some(chunk) = ctx.db.terrain_chunk_state().chunk_index().find(index) {
             return chunk.get_entity(&coord.to_offset_coordinates());
         }
         None
@@ -198,11 +196,11 @@ impl TerrainChunkState {
     }
 
     pub fn coordinates(&self) -> ChunkCoordinates {
-        return ChunkCoordinates {
+        ChunkCoordinates {
             x: self.chunk_x,
             z: self.chunk_z,
             dimension: self.dimension,
-        };
+        }
     }
 
     pub fn chunk_indexes_near_chunk_index(ctx: &ReducerContext, chunk_index: u64, radius: i32) -> Vec<u64> {
@@ -211,7 +209,7 @@ impl TerrainChunkState {
     }
 
     pub fn chunk_indexes_near(ctx: &ReducerContext, chunk_x: i32, chunk_z: i32, dimension: u32, radius: i32) -> Vec<u64> {
-        let dimension_state = ctx.db.dimension_description_state().dimension_id().find(&dimension).unwrap();
+        let dimension_state = ctx.db.dimension_description_state().dimension_id().find(dimension).unwrap();
 
         let min_x = (chunk_x - radius).max(dimension_state.dimension_position_large_x as i32);
         let min_z = (chunk_z - radius).max(dimension_state.dimension_position_large_z as i32);
@@ -239,32 +237,31 @@ impl TerrainChunkState {
         let offset = coord.to_offset_coordinates();
         let local_x = offset.x % TerrainChunkState::WIDTH as i32;
         let local_z = offset.z % TerrainChunkState::HEIGHT as i32;
-        let index = (local_z * TerrainChunkState::WIDTH as i32 + local_x) as usize;
-        return index;
+        (local_z * TerrainChunkState::WIDTH as i32 + local_x) as usize
     }
 
     pub fn get_water_body_type(&self, coord: LargeHexTile) -> Option<u8> {
         let index = self.get_index(coord);
-        return self.get_water_body_type_index(index);
+        self.get_water_body_type_index(index)
     }
 
     pub fn get_water_body_type_index(&self, index: usize) -> Option<u8> {
         if !self.is_submerged_index(index) {
             return None;
         }
-        return Some(self.water_body_types[index]);
+        Some(self.water_body_types[index])
     }
 
     pub fn is_submerged_index(&self, index: usize) -> bool {
-        return self.water_levels[index] > self.elevations[index];
+        self.water_levels[index] > self.elevations[index]
     }
 
     pub fn get_water_depth_index(&self, index: usize) -> i16 {
-        return (self.water_levels[index] - self.elevations[index]).max(0);
+        (self.water_levels[index] - self.elevations[index]).max(0)
     }
 
     pub fn get_biome_index(&self, index: usize) -> u32 {
-        return self.biomes[index];
+        self.biomes[index]
     }
 }
 

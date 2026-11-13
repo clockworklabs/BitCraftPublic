@@ -13,7 +13,7 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn terraform_set_final_target(ctx: &ReducerContext, request: PlayerTerraformSetFinalTargetRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let mut cache = TerrainChunkCache::empty();
     player_action_helpers::schedule_clear_player_action_on_err(
@@ -38,6 +38,9 @@ fn reduce(
 
     let offset_coordinates = terrain_coordinates;
     let terrain_cell = unwrap_or_err!(terrain_chunk.get_entity(&offset_coordinates), "Invalid terrain chunk");
+    if game_state_filters::floating_platform_on_cell(ctx, terrain_coordinates.into()).is_some() {
+        return Err("Can't terraform on a floating platform".into());
+    }
     if terrain_cell.water_level > request.final_height_target {
         return Err("Can't dig below water level".into());
     }
@@ -69,11 +72,11 @@ fn reduce(
         "Player has to be in a building"
     );
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "Invalid terraforming building"
     );
     let building_description = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Invalid building description"
     );
 
@@ -82,7 +85,7 @@ fn reduce(
     }
 
     let terraform_progress_state = unwrap_or_err!(
-        ctx.db.terraform_progress_state().entity_id().find(&building_entity_id),
+        ctx.db.terraform_progress_state().entity_id().find(building_entity_id),
         "terraform progress action not found"
     );
 

@@ -30,8 +30,7 @@ pub fn generate(world_definition: &WorldDefinition, world_graph: &WorldGraph) ->
     // world_hex_graph_generator::set_resources(world_definition, &mut graph);
     // //_dbg_render_graph(world_definition, &graph, "../b.png"); //docker cp bitcraft-game-1:/usr/src/app/b.png .
     // log::info!("[3/3] Generating chunks...");
-    let generated_world = generate_chunks(world_definition, &world_graph);
-    return generated_world;
+    generate_chunks(world_definition, world_graph)
 }
 
 // fn _dbg_render_graph(
@@ -92,8 +91,7 @@ pub fn generate(world_definition: &WorldDefinition, world_graph: &WorldGraph) ->
 // }
 
 fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> GeneratedWorld {
-    let mut dimensions: Vec<DimensionDescriptionState> = Vec::new();
-    dimensions.push(DimensionDescriptionState {
+    let dimensions: Vec<DimensionDescriptionState> = vec![DimensionDescriptionState {
         entity_id: 1,
         dimension_id: 1,
         dimension_type: DimensionType::Overworld,
@@ -104,7 +102,7 @@ fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> Ge
         dimension_size_large_z: world_definition.size.y as u32,
         dimension_network_entity_id: 0,
         collapse_timestamp: 0,
-    });
+    }];
 
     let biomes_map = &world_definition.biomes_map;
 
@@ -129,8 +127,8 @@ fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> Ge
         let coordinates = node.coordinates;
         let offset = coordinates.to_offset_coordinates();
         let chunk_indices = Vector2Int::new(
-            offset.x as i32 / world_definition::TERRAIN_CHUNK_WIDTH,
-            offset.z as i32 / world_definition::TERRAIN_CHUNK_HEIGHT,
+            offset.x / world_definition::TERRAIN_CHUNK_WIDTH,
+            offset.z / world_definition::TERRAIN_CHUNK_HEIGHT,
         );
 
         let chunk = &mut chunks[chunk_indices.x as usize][chunk_indices.y as usize];
@@ -147,8 +145,8 @@ fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> Ge
         } as u8;
 
         let terrain_cell = TerrainCell {
-            x: offset.x as i32,
-            z: offset.z as i32,
+            x: offset.x,
+            z: offset.z,
             elevation: node.elevation,
             water_level: node.water_level,
             water_body_type,
@@ -185,8 +183,8 @@ fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> Ge
                 }
 
                 let building_state = WorldGenGeneratedBuilding {
-                    x: offset.x as i32,
-                    z: offset.z as i32,
+                    x: offset.x,
+                    z: offset.z,
                     building: Some(BuildingState {
                         building_description_id: b.id,
                         direction_index: b.direction,
@@ -204,8 +202,8 @@ fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> Ge
                     Some(r) => match r.details {
                         Some(_rd) => {
                             let resource_deposit = WorldGenGeneratedResourceDeposit {
-                                x: offset.x as i32,
-                                z: offset.z as i32,
+                                x: offset.x,
+                                z: offset.z,
                                 deposit: Some(ResourceState {
                                     resource_id: r.resource_id,
                                     direction_index: r.direction,
@@ -225,7 +223,7 @@ fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> Ge
         }
     }
 
-    return GeneratedWorld {
+    GeneratedWorld {
         chunks,
         buildings,
         deposits,
@@ -234,5 +232,5 @@ fn generate_chunks(world_definition: &WorldDefinition, graph: &WorldGraph) -> Ge
         dropped_inventories: vec![],
         enemies: vec![],
         ignore_claim_creation: false,
-    };
+    }
 }

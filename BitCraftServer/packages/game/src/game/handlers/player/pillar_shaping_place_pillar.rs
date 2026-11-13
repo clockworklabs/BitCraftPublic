@@ -22,7 +22,7 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn pillar_shaping_place_pillar_start(ctx: &ReducerContext, request: PlayerPillarShapingPlaceRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let target = Some(request.pillar_type_id as u64);
@@ -49,7 +49,7 @@ pub fn pillar_shaping_place_pillar_start(ctx: &ReducerContext, request: PlayerPi
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn pillar_shaping_place_pillar(ctx: &ReducerContext, request: PlayerPillarShapingPlaceRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let mut terrain_cache = TerrainChunkCache::empty();
     player_action_helpers::schedule_clear_player_action(
@@ -60,13 +60,13 @@ pub fn pillar_shaping_place_pillar(ctx: &ReducerContext, request: PlayerPillarSh
 }
 
 fn event_delay(ctx: &ReducerContext, request: &PlayerPillarShapingPlaceRequest) -> Duration {
-    let recipe = ctx.db.pillar_shaping_desc().id().find(&request.pillar_type_id);
+    let recipe = ctx.db.pillar_shaping_desc().id().find(request.pillar_type_id);
     if recipe.is_none() {
         return Duration::ZERO;
     }
 
     let recipe = recipe.unwrap();
-    return Duration::from_secs_f32(recipe.duration);
+    Duration::from_secs_f32(recipe.duration)
 }
 
 fn reduce(
@@ -90,7 +90,7 @@ fn reduce(
 
     // Verify distance to paving target
     let coordinates: LargeHexTile = request.coordinates.into();
-    let player_mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Invalid player");
+    let player_mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Invalid player");
     let player_coord = player_mobile.coordinates();
     let target_coord = coordinates.center_small_tile();
 
@@ -137,7 +137,7 @@ fn reduce(
     let mut item_inventory = unwrap_or_err!(InventoryState::get_player_inventory(ctx, actor_id), "Player has no inventory");
 
     let pillar_shaping_recipe = unwrap_or_err!(
-        ctx.db.pillar_shaping_desc().id().find(&request.pillar_type_id),
+        ctx.db.pillar_shaping_desc().id().find(request.pillar_type_id),
         "Invalid paving tile type"
     );
     let consumed_item_stacks: Vec<ItemStack> = pillar_shaping_recipe
@@ -146,7 +146,7 @@ fn reduce(
         .map(|i| ItemStack::new(ctx, i.item_id, i.item_type, i.quantity))
         .collect();
 
-    let remove_items = consumed_item_stacks.len() > 0;
+    let remove_items = !consumed_item_stacks.is_empty();
 
     if !item_inventory.has(&consumed_item_stacks) {
         return Err("You don't have the required items.".into());
@@ -200,7 +200,7 @@ fn reduce(
     discovery.commit(ctx);
 
     // Grant experience
-    if let Some(experience_per_progress) = pillar_shaping_recipe.experience_per_progress.get(0) {
+    if let Some(experience_per_progress) = pillar_shaping_recipe.experience_per_progress.first() {
         ExperienceState::add_experience(
             ctx,
             actor_id,

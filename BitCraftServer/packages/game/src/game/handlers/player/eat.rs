@@ -13,7 +13,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn eat(ctx: &ReducerContext, request: PlayerEatRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
@@ -30,7 +30,7 @@ pub fn eat(ctx: &ReducerContext, request: PlayerEatRequest) -> Result<(), String
         return Err("Nothing to eat".into());
     }
 
-    let food = unwrap_or_err!(ctx.db.food_desc().item_id().find(&contents.item_id), "Item can't be eaten");
+    let food = unwrap_or_err!(ctx.db.food_desc().item_id().find(contents.item_id), "Item can't be eaten");
 
     if !food.consumable_while_in_combat && ThreatState::in_combat(ctx, actor_id) {
         return Err("Cannot eat this while in combat".into());

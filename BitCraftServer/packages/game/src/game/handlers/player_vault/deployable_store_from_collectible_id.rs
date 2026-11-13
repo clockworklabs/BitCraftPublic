@@ -16,15 +16,15 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_store_from_collectible_id(ctx: &ReducerContext, collectible_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
-    let collectible_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(&collectible_id), "Invalid collectible id");
+    let collectible_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(collectible_id), "Invalid collectible id");
     if collectible_desc.collectible_type != CollectibleType::Deployable {
         return Err("Collectible is not a deployable".into());
     };
 
     // First check that the colectible is active in the player's vault
-    let mut player_vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(&actor_id), "Player vault not found for actor");
+    let mut player_vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(actor_id), "Player vault not found for actor");
     if !player_vault.collectibles.iter().any(|c| c.id == collectible_id && c.activated) {
         return Err("Collectible not found or inactive in player vault".into());
     }

@@ -15,7 +15,7 @@ pub fn cheat_quest_clear(ctx: &ReducerContext, player_entity_id: u64, quest_desc
         "Cannot clear quest. Quest not started."
     );
 
-    ctx.db.quest_chain_state().entity_id().delete(&quest_chain_state.entity_id);
+    ctx.db.quest_chain_state().entity_id().delete(quest_chain_state.entity_id);
     
     Ok(())
 }

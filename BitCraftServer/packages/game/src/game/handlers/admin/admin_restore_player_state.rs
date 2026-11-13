@@ -51,6 +51,7 @@ pub fn admin_restore_player_state_scheduled(ctx: &ReducerContext, timer: AdminRe
 
 #[spacetimedb::reducer]
 #[shared_table_reducer]
+#[expect(clippy::too_many_arguments, reason = "reducer arguments are part of the client API")]
 pub fn admin_restore_player_state(
     ctx: &ReducerContext,
     username: String,
@@ -71,15 +72,15 @@ pub fn admin_restore_player_state(
         .db
         .player_lowercase_username_state()
         .username_lowercase()
-        .find(&username.to_lowercase().to_string())
+        .find(username.to_lowercase().to_string())
     {
         Some(player) => player.entity_id,
-        None => return Err(format!("Could not find player with username {}", username).into()),
+        None => return Err(format!("Could not find player with username {}", username)),
     };
 
     if force_signout {
         //Sign player out and reschedule this reducer after a short delay
-        let identity = ctx.db.user_state().entity_id().find(&entity_id).unwrap().identity;
+        let identity = ctx.db.user_state().entity_id().find(entity_id).unwrap().identity;
         sign_out_internal(ctx, identity, true);
         ctx.db.player_signed_out_event().insert(PlayerSignedOutEvent {
             identity,
@@ -109,10 +110,10 @@ pub fn admin_restore_player_state(
     }
 
     if store_deployables || restore_all_deployables_positions {
-        let player_mobile_entity_state = ctx.db.mobile_entity_state().entity_id().find(&entity_id).unwrap();
+        let player_mobile_entity_state = ctx.db.mobile_entity_state().entity_id().find(entity_id).unwrap();
 
         for deployable_state in ctx.db.deployable_state_v2().owner_id().filter(entity_id) {
-            let mut deployable_mobile_entity_state = ctx.db.mobile_entity_state().entity_id().find(&deployable_state.entity_id).unwrap();
+            let mut deployable_mobile_entity_state = ctx.db.mobile_entity_state().entity_id().find(deployable_state.entity_id).unwrap();
             deployable_mobile_entity_state.set_location(player_mobile_entity_state.offset_coordinates_float());
             deployable_mobile_entity_state.set_destination(player_mobile_entity_state.offset_destination_float());
             ctx.db.mobile_entity_state().entity_id().update(deployable_mobile_entity_state);
@@ -131,10 +132,7 @@ pub fn admin_restore_player_state(
         let mut inventory = InventoryState::get_player_inventory(ctx, entity_id).unwrap();
         for pocket in &mut inventory.pockets {
             if let Some(contents) = pocket.contents {
-                if contents.item_type == ItemType::Cargo && clear_cargo {
-                    pocket.contents = None;
-                    pocket.locked = false;
-                } else if contents.item_type == ItemType::Item && clear_items {
+                if (contents.item_type == ItemType::Cargo && clear_cargo) || (contents.item_type == ItemType::Item && clear_items) {
                     pocket.contents = None;
                     pocket.locked = false;
                 }

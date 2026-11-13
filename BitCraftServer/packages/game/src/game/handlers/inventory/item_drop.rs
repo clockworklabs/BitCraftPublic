@@ -14,7 +14,7 @@ use super::inventory_helper;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn item_drop(ctx: &ReducerContext, request: PlayerItemDropRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
@@ -65,7 +65,7 @@ pub fn item_drop(ctx: &ReducerContext, request: PlayerItemDropRequest) -> Result
     } else {
         // Inventory slot
         let mut source_inventory = unwrap_or_err!(
-            ctx.db.inventory_state().entity_id().find(&request.pocket.inventory_entity_id),
+            ctx.db.inventory_state().entity_id().find(request.pocket.inventory_entity_id),
             "Invalid source inventory"
         );
         inventory_helper::validate_interact(
@@ -89,17 +89,16 @@ pub fn item_drop(ctx: &ReducerContext, request: PlayerItemDropRequest) -> Result
             PlayerState::on_removed_from_toolbelt(ctx, actor_id, item_stack.item_id);
         }
 
-        if source_inventory.is_empty() {
-            if ctx
+        if source_inventory.is_empty()
+            && ctx
                 .db
                 .loot_chest_state()
                 .entity_id()
-                .find(&source_inventory.owner_entity_id)
+                .find(source_inventory.owner_entity_id)
                 .is_some()
             {
                 loot_chest_helpers::on_item_taken_from_loot_chest(ctx, source_inventory.owner_entity_id, true)?;
             }
-        }
 
         source_inventory.update(ctx);
     }

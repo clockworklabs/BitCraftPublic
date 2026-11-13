@@ -13,7 +13,7 @@ const CONTEXT_SIZE: usize = 5;
 #[shared_table_reducer]
 #[feature_gate]
 pub fn report_chat_message(ctx: &ReducerContext, request: ReportPlayerChatMessage) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     let chat = unwrap_or_err!(
         ctx.db.chat_message_state().entity_id().find(request.chat_message_id),
         "Chat message not found"
@@ -66,7 +66,7 @@ pub fn report_chat_message(ctx: &ReducerContext, request: ReportPlayerChatMessag
 #[shared_table_reducer]
 #[feature_gate]
 pub fn report_player(ctx: &ReducerContext, request: ReportPlayerMessage) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     let username = unwrap_or_err!(
         ctx.db.player_username_state().entity_id().find(request.player_entity_id),
         "Player not found"

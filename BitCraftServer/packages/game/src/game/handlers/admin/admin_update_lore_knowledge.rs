@@ -30,15 +30,14 @@ fn admin_update_lore_knowledge(ctx: &ReducerContext) -> Result<(), String> {
         let mut updated = false;
         for knowledge_entry in knowledge_secondary_state.entries {
             if let Some(item_id) = knowledge_to_lore_ids.get(&knowledge_entry.id) {
-                if knowledge_entry.state == KnowledgeState::Acquired {
-                    if knowledge_lore_state.entries.iter().find(|e| e.id == *item_id).is_none() {
+                if knowledge_entry.state == KnowledgeState::Acquired
+                    && knowledge_lore_state.entries.iter().find(|e| e.id == *item_id).is_none() {
                         knowledge_lore_state.entries.push(KnowledgeEntry {
                             id: *item_id,
                             state: KnowledgeState::Acquired,
                         });
                         updated = true;
                     }
-                }
             }
         }
         if updated {

@@ -34,7 +34,7 @@ impl ActionLogState {
                 subject_entity_id: player_entity_id,
                 subject_name: player_name.clone(),
                 subject_type: ActionLogSubjectType::Player,
-                data: ActionLogData::WithdrawItem(item.clone()),
+                data: ActionLogData::WithdrawItem(*item),
                 timestamp: ctx.timestamp,
                 days_since_epoch: game_state::days_since_unix_epoch(ctx.timestamp),
             });
@@ -46,7 +46,7 @@ impl ActionLogState {
                 subject_entity_id: player_entity_id,
                 subject_name: player_name,
                 subject_type: ActionLogSubjectType::Player,
-                data: ActionLogData::DepositItem(item.clone()),
+                data: ActionLogData::DepositItem(*item),
                 timestamp: ctx.timestamp,
                 days_since_epoch: game_state::days_since_unix_epoch(ctx.timestamp),
             });
@@ -54,6 +54,6 @@ impl ActionLogState {
     }
 
     fn should_log(inventory: &InventoryState, inventory_type: InventoryType) -> bool {
-        return inventory_type == InventoryType::Building && inventory.player_owner_entity_id == 0;
+        inventory_type == InventoryType::Building && inventory.player_owner_entity_id == 0
     }
 }

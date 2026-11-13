@@ -75,8 +75,8 @@ pub fn generate() -> GeneratedWorld {
             };
 
             let chunk_indices = (
-                offset.x as i32 / TerrainChunkState::WIDTH as i32,
-                offset.z as i32 / TerrainChunkState::HEIGHT as i32,
+                offset.x / TerrainChunkState::WIDTH as i32,
+                offset.z / TerrainChunkState::HEIGHT as i32,
             );
 
             let chunk = &mut generated_world.chunks[chunk_indices.0 as usize][chunk_indices.1 as usize];
@@ -84,5 +84,5 @@ pub fn generate() -> GeneratedWorld {
         }
     }
 
-    return generated_world;
+    generated_world
 }

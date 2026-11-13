@@ -28,7 +28,7 @@ pub fn event_delay(ctx: &ReducerContext) -> Duration {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_resupply_start(ctx: &ReducerContext, request: ClaimResupplyRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let target = Some(request.building_entity_id);
     let delay = event_delay(ctx);
@@ -53,7 +53,7 @@ pub fn claim_resupply_start(ctx: &ReducerContext, request: ClaimResupplyRequest)
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_resupply(ctx: &ReducerContext, request: ClaimResupplyRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     player_action_helpers::schedule_clear_player_action(
         actor_id,
@@ -71,7 +71,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, _timestamp: u64, request: &Cl
 
     let building_entity_id = request.building_entity_id;
     let building_state = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "No such building to repair."
     );
 
@@ -101,13 +101,13 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, _timestamp: u64, request: &Cl
         None => 0,
     };
 
-    let claim_desc = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&claim_desc_id), "Claim doesn't exist");
+    let claim_desc = unwrap_or_err!(ctx.db.claim_state().entity_id().find(claim_desc_id), "Claim doesn't exist");
     let claim_local = claim_desc.local_state(ctx);
     let max_supplies = ctx
         .db
         .claim_tech_state()
         .entity_id()
-        .find(&claim_desc_id)
+        .find(claim_desc_id)
         .unwrap()
         .max_supplies(ctx);
     let supplies = claim_local.supplies as f32;
@@ -149,7 +149,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, _timestamp: u64, request: &Cl
     if stack.item_type != ItemType::Cargo {
         return Err("Claims can only be charged with supplies.".into());
     }
-    let repair_value = match ctx.db.building_repairs_desc().cargo_id().find(&stack.item_id) {
+    let repair_value = match ctx.db.building_repairs_desc().cargo_id().find(stack.item_id) {
         Some(rep) => rep.repair_value,
         None => return Err("Claims can only be charged with supplies.".into()),
     };

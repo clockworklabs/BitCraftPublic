@@ -293,9 +293,9 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                 let deci = downscaled - downscaled.floor();
 
                 if deci < 0.6f32 && deci > 0.4f32 {
-                    return downscaled * round_factor;
+                    downscaled * round_factor
                 } else {
-                    return half_to_even(downscaled) * round_factor;
+                    half_to_even(downscaled) * round_factor
                 }
             };
 
@@ -380,7 +380,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
 
                     s += multiplier;
                     from_biome += (distance_to_sea_curve as f32 + distance_to_biome_curve as f32) * multiplier;
-                    biome_noise += from_biome_noise as f32 * multiplier;
+                    biome_noise += from_biome_noise * multiplier;
                 }
                 from_biome /= s;
                 biome_noise /= s;
@@ -614,8 +614,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                     if neighbor.node_type == terrain_node::NodeType::Sea {
                         let mut create_lake_ocean_barrier = false;
 
-                        for k in 0..node_biomes_multipliers.len() {
-                            let multiplier = node_biomes_multipliers[k];
+                        for (k, &multiplier) in node_biomes_multipliers.iter().enumerate() {
                             if multiplier < 0f32 {
                                 continue;
                             }
@@ -701,7 +700,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                     let node = graph.get(node_index).unwrap();
                     let river_generation_settings = &biomes_map.get_biome(node.biome() as i32).unwrap().river_generation_settings;
 
-                    if river_generation_settings.is_none() || !is_lake_border(&node, graph) {
+                    if river_generation_settings.is_none() || !is_lake_border(node, graph) {
                         return;
                     }
 
@@ -745,7 +744,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                             }
                         }
 
-                        return false;
+                        false
                     }
                 }
             }
@@ -851,7 +850,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                                 let elevation_difference = neighbor.elevation - lake_node.elevation;
                                 let mut pathfinding_costs = river_generation_settings.get_pathfinding_costs(elevation_difference as i32);
 
-                                if let Some(existing) = pathfinding_costs_by_lake_node_index.get(&lake_node_index) {
+                                if let Some(existing) = pathfinding_costs_by_lake_node_index.get(lake_node_index) {
                                     pathfinding_costs = pathfinding_costs.min(*existing);
                                 }
 
@@ -863,9 +862,9 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
             }
 
             //Using Kruskal's algorithm for calculating a minimum-spanning-tree
-            fn filter_rivers(lakes: &Vec<Lake>, rivers: &mut Vec<River>) {
+            fn filter_rivers(lakes: &[Lake], rivers: &mut Vec<River>) {
                 let mut hierarchy: Vec<usize> = (0..lakes.len()).collect();
-                rivers.sort_by(|a, b| b.length.cmp(&a.length));
+                rivers.sort_by_key(|b| std::cmp::Reverse(b.length));
 
                 for i in (0..rivers.len()).rev() {
                     let river = &rivers[i];
@@ -880,19 +879,19 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                     hierarchy[source_root] = target_root;
                 }
 
-                fn find_hierarchy_root(hierarchy: &Vec<usize>, node_index: usize) -> usize {
+                fn find_hierarchy_root(hierarchy: &[usize], node_index: usize) -> usize {
                     let mut result = node_index;
 
                     while result != hierarchy[result] {
                         result = hierarchy[result];
                     }
 
-                    return result;
+                    result
                 }
             }
 
             // Run A* pathfinding that connects the two lakes, using the the RiverGenerationSettings
-            fn compute_river_paths(biomes_map: &BiomesMapDefinition, graph: &HexGraph<TerrainNode>, rivers: &mut Vec<River>) {
+            fn compute_river_paths(biomes_map: &BiomesMapDefinition, graph: &HexGraph<TerrainNode>, rivers: &mut [River]) {
                 let mut pathfinder: Pathfinder<i32> = Pathfinder::with_capacity(1000);
 
                 for i in (0..rivers.len()).rev() {
@@ -934,7 +933,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                     let current = graph.get(*current).unwrap();
                     let target = graph.get(target).unwrap();
 
-                    return current.coordinates.distance_to(target.coordinates) as f32;
+                    current.coordinates.distance_to(target.coordinates) as f32
                 }
 
                 fn get_edges(
@@ -975,7 +974,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                         edges.push(Edge::new(neighbor_index, pathfinding_costs));
                     }
 
-                    return edges;
+                    edges
                 }
             }
 
@@ -992,8 +991,8 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                     }
 
                     compute_elevation_and_water_level(biomes_map, graph, river);
-                    apply_elevation_and_water_level(graph, &river);
-                    set_surrounding_water_level(biomes_map, graph, &river);
+                    apply_elevation_and_water_level(graph, river);
+                    set_surrounding_water_level(biomes_map, graph, river);
                     raise_lake_borders(graph, lakes);
 
                     // Walk the path and apply the correct elevation and water-level using the RiverGenerationSettings
@@ -1119,7 +1118,7 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                             let node = graph.get_mut(*node_index).unwrap();
 
                             node.elevation = *elevation;
-                            node.water_level = *water_level_by_node_index.get(&node_index).unwrap();
+                            node.water_level = *water_level_by_node_index.get(node_index).unwrap();
                             node.node_type = NodeType::River;
                         }
                     }
@@ -1128,8 +1127,8 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
                     fn set_surrounding_water_level(biomes_map: &BiomesMapDefinition, graph: &mut HexGraph<TerrainNode>, river: &River) {
                         let river_path = river.path.as_ref().unwrap();
 
-                        for i in 1..river_path.len() - 1 {
-                            let path_node = graph.get(river_path[i]).unwrap();
+                        for &path_node_index in river_path.iter().take(river_path.len() - 1).skip(1) {
+                            let path_node = graph.get(path_node_index).unwrap();
                             let water_level = path_node.water_level;
                             let radius = biomes_map
                                 .get_biome(path_node.biome() as i32)
@@ -1213,9 +1212,9 @@ fn compute_terrain_graph(world_definition: &WorldDefinition, graph: &mut HexGrap
 
             let values = top_multipliers.len().min(4);
             node.biomes = 0;
-            for j in 0..values {
-                node.biome_density += ((top_multipliers[j].1 * 128.0) as u32) << (j * 8);
-                node.biomes += (top_multipliers[j].0 as u32) << (j * 8);
+            for (j, multiplier) in top_multipliers.iter().enumerate().take(values) {
+                node.biome_density += ((multiplier.1 * 128.0) as u32) << (j * 8);
+                node.biomes += (multiplier.0 as u32) << (j * 8);
             }
         }
     }
@@ -1230,7 +1229,7 @@ fn compute_buildings(world_definition: &WorldDefinition, graph: &mut HexGraph<En
             continue;
         }
         let node = graph.get_mut(index).unwrap();
-        node.building = Some(building.clone());
+        node.building = Some(*building);
     }
 }
 
@@ -1238,7 +1237,7 @@ fn is_valid_resource_footprint(
     graph: &HexGraph<EntityNode>,
     terrain_graph: &HexGraph<TerrainNode>,
     center_node: &EntityNode,
-    footprint: &Vec<FootprintTile>,
+    footprint: &[FootprintTile],
     direction: HexDirection,
     resource: &ResourceDetails,
 ) -> bool {
@@ -1247,7 +1246,7 @@ fn is_valid_resource_footprint(
     let mut min_elevation = i16::MAX;
     let mut max_elevation = i16::MIN;
     for delta in footprint
-        .into_iter()
+        .iter()
         .filter(|f| f.footprint_type != (FootprintType::Perimeter) && !(f.x == 0 && f.z == 0))
     {
         let coordinates = (HexCoordinates {
@@ -1268,7 +1267,7 @@ fn is_valid_resource_footprint(
             return false;
         }
 
-        let elevations = footprint_node.min_max_elevation(&terrain_graph);
+        let elevations = footprint_node.min_max_elevation(terrain_graph);
         min_elevation = min_elevation.min(elevations[0]);
         max_elevation = max_elevation.max(elevations[1]);
 
@@ -1285,7 +1284,7 @@ fn is_valid_resource_footprint(
         }
     }
 
-    return true;
+    true
 }
 
 fn is_valid_resource_node(
@@ -1325,7 +1324,7 @@ fn is_valid_resource_node(
         return false;
     }
 
-    return true;
+    true
 }
 
 fn compute_resources(
@@ -1353,7 +1352,7 @@ fn compute_resources(
     for i in 0..resources_map.count() {
         let map_seed = map_random.i32(i32::MIN, i32::MAX);
         let resource_definition = resources_map.get_resource(i).unwrap();
-        let resource = resource_definition.resource_details.clone();
+        let resource = resource_definition.resource_details;
         if resource.clump_id < 0 {
             continue;
         }
@@ -1373,13 +1372,13 @@ fn compute_resources(
             let seed = (Wrapping(resource_biome.noise_specs.seed) + Wrapping(map_seed)).0;
             let mut random = CommonRNG::from_seed(seed);
 
-            let clump = ctx.db.resource_clump_desc().id().find(&resource.clump_id).unwrap();
+            let clump = ctx.db.resource_clump_desc().id().find(resource.clump_id).unwrap();
             let footprint = clump.footprints(ctx);
 
             for k in 0..graph.count() {
                 let node = graph.get_mut(k).unwrap().clone();
 
-                if !is_valid_resource_node(terrain_graph, &node, biome_index as usize, &resource, &resource_biome, &mut random) {
+                if !is_valid_resource_node(terrain_graph, &node, biome_index as usize, &resource, resource_biome, &mut random) {
                     continue;
                 }
 
@@ -1392,7 +1391,7 @@ fn compute_resources(
                     }
 
                     // If failed, rotate and try again (unless it's a single footprint centered footprint)
-                    if footprint.len() == 0 || (footprint.len() == 1 && footprint[0].x == 0 && footprint[0].z == 0) {
+                    if footprint.is_empty() || (footprint.len() == 1 && footprint[0].x == 0 && footprint[0].z == 0) {
                         break;
                     }
                     facing_direction = HexDirection::next_flat(facing_direction);
@@ -1410,8 +1409,8 @@ fn compute_resources(
                     let offset_z = clump.z[i];
                     let resource_dir = clump.direction[i];
 
-                    let mut res_footprint = &ctx.db.resource_desc().id().find(&resource_id).unwrap().footprint;
-                    if res_footprint.len() == 0 {
+                    let mut res_footprint = &ctx.db.resource_desc().id().find(resource_id).unwrap().footprint;
+                    if res_footprint.is_empty() {
                         // default: single-tile hitbox resource
                         res_footprint = &default_footprint
                     }
@@ -1483,5 +1482,5 @@ fn point_on_circumference(peak_position: Vector2, p: Vector2, center: Vector2, r
 
     let d0 = int0 - p;
     let d1 = int0 - peak_position;
-    return if d0.sqr_magnitude() < d1.sqr_magnitude() { int0 } else { int1 };
+    if d0.sqr_magnitude() < d1.sqr_magnitude() { int0 } else { int1 }
 }

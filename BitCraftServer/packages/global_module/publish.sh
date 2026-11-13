@@ -27,8 +27,8 @@ while true; do
   esac
 done
 
-read -r -p "You are about to publish to world '$world' (prefix: $prefix-) on server '$host'. Continue? (yes/no): " confirm
-if [[ "$confirm" != "yes" ]]; then
+read -r -p "You are about to publish to world '$world' (prefix: $prefix-) on server '$host'. Continue? (y/n): " confirm
+if [[ "$confirm" != "y" ]]; then
   echo "Publish cancelled."
   exit 1
 fi

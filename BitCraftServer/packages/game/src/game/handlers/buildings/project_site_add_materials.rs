@@ -12,13 +12,13 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate("build")]
 pub fn project_site_add_materials(ctx: &ReducerContext, request: PlayerProjectSiteAddMaterialsRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     let location = unwrap_or_err!(
-        ctx.db.location_state().entity_id().find(&request.owner_entity_id),
+        ctx.db.location_state().entity_id().find(request.owner_entity_id),
         "Invalid project site"
     );
 
@@ -33,7 +33,7 @@ pub fn project_site_add_materials(ctx: &ReducerContext, request: PlayerProjectSi
     }
 
     let mut project_site = unwrap_or_err!(
-        ctx.db.project_site_state().entity_id().find(&request.owner_entity_id),
+        ctx.db.project_site_state().entity_id().find(request.owner_entity_id),
         "Invalid project site"
     );
 
@@ -41,13 +41,13 @@ pub fn project_site_add_materials(ctx: &ReducerContext, request: PlayerProjectSi
         return Err("Too far".into());
     }
 
-    let construction_recipe = ctx.db.construction_recipe_desc().id().find(&project_site.construction_recipe_id);
+    let construction_recipe = ctx.db.construction_recipe_desc().id().find(project_site.construction_recipe_id);
 
     let resource_placement_recipe = ctx
         .db
         .resource_placement_recipe_desc()
         .id()
-        .find(&project_site.resource_placement_recipe_id);
+        .find(project_site.resource_placement_recipe_id);
 
     let consumed_cargo_stacks: Vec<InputItemStack>;
     let consumed_item_stacks: Vec<InputItemStack>;
@@ -98,8 +98,7 @@ pub fn project_site_add_materials(ctx: &ReducerContext, request: PlayerProjectSi
             let cargos = &mut project_site.cargos;
 
             let current_position = cargos.iter().position(|s| s.item_id == cargo_id);
-            if current_position.is_some() {
-                let current_position = current_position.unwrap();
+            if let Some(current_position) = current_position {
                 let required = target.quantity - cargos[current_position].quantity;
                 if required < 1 {
                     if single_pocket_request {
@@ -132,8 +131,7 @@ pub fn project_site_add_materials(ctx: &ReducerContext, request: PlayerProjectSi
             let items = &mut project_site.items;
 
             let current_position = items.iter().position(|s| s.item_id == item_stack.item_id);
-            if current_position.is_some() {
-                let current_position = current_position.unwrap();
+            if let Some(current_position) = current_position {
                 let quantity = i32::min(target.quantity - items[current_position].quantity, item_stack.quantity);
                 if quantity <= 0 {
                     if single_pocket_request {

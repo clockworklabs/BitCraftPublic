@@ -15,9 +15,9 @@ pub fn edit_chat_channel_member_permission(ctx: &ReducerContext, channel_entity_
         return Err("Invalid target rank.".into());
     }
 
-    unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(&channel_entity_id), "Invalid chat channel");
+    unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(channel_entity_id), "Invalid chat channel");
 
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if actor_id == player_entity_id {
         return Err("You can't edit your own permission level.".into());

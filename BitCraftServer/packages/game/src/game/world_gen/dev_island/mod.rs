@@ -232,8 +232,8 @@ fn generate_terrain(height: i32, width: i32, center: HexCoordinates, water_x: i3
             };
 
             let chunk_indices = (
-                offset.x as i32 / TerrainChunkState::WIDTH as i32,
-                offset.z as i32 / TerrainChunkState::HEIGHT as i32,
+                offset.x / TerrainChunkState::WIDTH as i32,
+                offset.z / TerrainChunkState::HEIGHT as i32,
             );
 
             let chunk = &mut generated_world.chunks[chunk_indices.0 as usize][chunk_indices.1 as usize];
@@ -242,6 +242,7 @@ fn generate_terrain(height: i32, width: i32, center: HexCoordinates, water_x: i3
     }
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn place_buildings(
     ctx: &ReducerContext,
     generated_world: &mut GeneratedWorld,
@@ -314,6 +315,7 @@ fn place_buildings(
     );
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn place_resources(
     ctx: &ReducerContext,
     generated_world: &mut GeneratedWorld,
@@ -333,11 +335,11 @@ fn place_resources(
         .filter(|res| {
             //note: hacky, fishing rod requirement for water-only resources
             let mut recipes = ctx.db.extraction_recipe_desc().resource_id().filter(res.id);
-            return if recipes.any(|a| a.tool_requirements.iter().any(|b| b.tool_type == 10)) {
+            if recipes.any(|a| a.tool_requirements.iter().any(|b| b.tool_type == 10)) {
                 !land_only
             } else {
                 land_only
-            };
+            }
         })
         .collect();
 
@@ -388,6 +390,7 @@ fn place_resources(
     );
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn place_dropped_inventories(
     ctx: &ReducerContext,
     generated_world: &mut GeneratedWorld,
@@ -451,6 +454,7 @@ fn place_dropped_inventories(
     );
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn place_npcs(
     ctx: &ReducerContext,
     generated_world: &mut GeneratedWorld,
@@ -476,7 +480,7 @@ fn place_npcs(
                 z: small_offset_coords.z,
                 npc: Some(NpcState {
                     entity_id: 0,
-                    npc_type: npc_type,
+                    npc_type,
                     direction: 0,
                     building_entity_id: 0,
                     next_action_timestamp: NpcState::get_next_timestamp(ctx, npc_type),
@@ -507,6 +511,7 @@ fn place_npcs(
     );
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn place_enemies(
     ctx: &ReducerContext,
     generated_world: &mut GeneratedWorld,
@@ -536,7 +541,7 @@ fn place_enemies(
                     status: EnemyStatus::Inactive,
                     herd_entity_id: 0,
                     last_ranged_attack_timestamp: Timestamp::UNIX_EPOCH,
-                    enemy_type: enemy_type,
+                    enemy_type,
                 }),
                 dimension: 1,
             });
@@ -559,6 +564,7 @@ fn place_enemies(
     );
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn place_entities<T>(
     generated_world: &mut GeneratedWorld,
     entities: &[T],
@@ -610,27 +616,27 @@ fn place_entities<T>(
 
 fn can_place_npc(center: SmallHexTile, _npc: &NpcDesc, occupied_positions: &HashMap<SmallHexTile, i32>) -> bool {
     //validate position
-    return !occupied_positions.contains_key(&center);
+    !occupied_positions.contains_key(&center)
 }
 
 fn can_place_enemy(center: SmallHexTile, _enemy: &EnemyDesc, occupied_positions: &HashMap<SmallHexTile, i32>) -> bool {
     //validate position
-    return !occupied_positions.contains_key(&center);
+    !occupied_positions.contains_key(&center)
 }
 
 fn can_place_cargo(center: SmallHexTile, _cargo: &CargoDesc, occupied_positions: &HashMap<SmallHexTile, i32>) -> bool {
     //validate position
-    return !occupied_positions.contains_key(&center);
+    !occupied_positions.contains_key(&center)
 }
 
 fn can_place_resource(center: SmallHexTile, resource: &ResourceDesc, occupied_positions: &HashMap<SmallHexTile, i32>) -> bool {
     //validate footprint
-    return valid_footprint(center, &resource.footprint, occupied_positions);
+    valid_footprint(center, &resource.footprint, occupied_positions)
 }
 
 fn can_place_building(center: SmallHexTile, building: &BuildingDesc, occupied_positions: &HashMap<SmallHexTile, i32>) -> bool {
     //validate footprint
-    return valid_footprint(center, &building.footprint, occupied_positions);
+    valid_footprint(center, &building.footprint, occupied_positions)
 }
 
 fn valid_footprint(center: SmallHexTile, footprint: &Vec<FootprintTile>, occupied_positions: &HashMap<SmallHexTile, i32>) -> bool {
@@ -645,5 +651,5 @@ fn valid_footprint(center: SmallHexTile, footprint: &Vec<FootprintTile>, occupie
         }
     }
 
-    return true;
+    true
 }

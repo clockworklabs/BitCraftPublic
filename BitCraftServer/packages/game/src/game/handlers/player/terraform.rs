@@ -30,25 +30,25 @@ fn event_delay_recipe_id(ctx: &ReducerContext, terrain_cell: Option<TerrainCell>
         i16::abs(target - terrain_cell.original_elevation),
         TerraformRecipeDesc::max_difference(ctx),
     );
-    let recipe = ctx.db.terraform_recipe_desc().difference().find(&height_difference);
+    let recipe = ctx.db.terraform_recipe_desc().difference().find(height_difference);
     if recipe.is_none() {
         return (Duration::ZERO, None);
     }
 
     let recipe = recipe.unwrap();
     let mut time = recipe.time_per_action;
-    if let Some(stats) = ctx.db.character_stats_state().entity_id().find(&actor_id) {
+    if let Some(stats) = ctx.db.character_stats_state().entity_id().find(actor_id) {
         let skill_speed = stats.get_skill_speed(SkillType::Construction);
         let time_multiplier = 1.0 / (stats.get(CharacterStatType::BuildingSpeed) + skill_speed - 1.0);
-        time = time * time_multiplier;
+        time *= time_multiplier;
     }
-    return (Duration::from_secs_f32(time), Some(recipe.difference.into()));
+    (Duration::from_secs_f32(time), Some(recipe.difference.into()))
 }
 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn terraform_start(ctx: &ReducerContext, request: PlayerTerraformRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let mut cache = TerrainChunkCache::empty();
 
@@ -60,7 +60,7 @@ pub fn terraform_start(ctx: &ReducerContext, request: PlayerTerraformRequest) ->
     );
 
     let terraform_progress_state = unwrap_or_err!(
-        ctx.db.terraform_progress_state().entity_id().find(&building_entity_id),
+        ctx.db.terraform_progress_state().entity_id().find(building_entity_id),
         "terraform progress action not found"
     );
 
@@ -93,13 +93,13 @@ pub fn terraform_start(ctx: &ReducerContext, request: PlayerTerraformRequest) ->
 
 fn get_terraform_building_id(ctx: &ReducerContext, coordinates: OffsetCoordinatesLargeMessage) -> Option<u64> {
     let terrain_coordinates = LargeHexTile::from(coordinates);
-    game_state_filters::building_id_at_coordinates(ctx, &terrain_coordinates.center_small_tile().into())
+    game_state_filters::building_id_at_coordinates(ctx, &terrain_coordinates.center_small_tile())
 }
 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn terraform(ctx: &ReducerContext, request: PlayerTerraformRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let mut cache = TerrainChunkCache::empty();
     player_action_helpers::schedule_clear_player_action_on_err(
@@ -137,6 +137,9 @@ fn reduce(
 
     let offset_coordinates = terrain_coordinates;
     let mut terrain_cell = unwrap_or_err!(terrain_chunk.get_entity(&offset_coordinates), "Invalid terrain chunk");
+    if game_state_filters::floating_platform_on_cell(ctx, terrain_coordinates.into()).is_some() {
+        return Err("Can't terraform on a floating platform".into());
+    }
 
     let building_entity_id = unwrap_or_err!(
         game_state_filters::building_id_at_coordinates(ctx, &game_state_filters::coordinates_any(ctx, actor_id)),
@@ -144,7 +147,7 @@ fn reduce(
     );
 
     let mut terraform_progress_state = unwrap_or_err!(
-        ctx.db.terraform_progress_state().entity_id().find(&building_entity_id),
+        ctx.db.terraform_progress_state().entity_id().find(building_entity_id),
         "terraform progress action not found"
     );
 
@@ -159,7 +162,7 @@ fn reduce(
     }
 
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "Invalid terraforming building"
     );
 
@@ -201,11 +204,11 @@ fn reduce(
     }
 
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "Invalid terraforming building"
     );
     let building_description = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Invalid building description"
     );
 
@@ -220,7 +223,7 @@ fn reduce(
         TerraformRecipeDesc::max_difference(ctx),
     );
     let recipe = unwrap_or_err!(
-        ctx.db.terraform_recipe_desc().difference().find(&height_difference),
+        ctx.db.terraform_recipe_desc().difference().find(height_difference),
         "Recipe not found"
     );
 
@@ -231,7 +234,7 @@ fn reduce(
         return Err("Terraform is already completed".into());
     }
 
-    let stamina = unwrap_or_err!(ctx.db.stamina_state().entity_id().find(&actor_id), "Player not found.");
+    let stamina = unwrap_or_err!(ctx.db.stamina_state().entity_id().find(actor_id), "Player not found.");
     if stamina.stamina < recipe.stamina_per_action as f32 {
         return Err("Not enough stamina!".into());
     }
@@ -239,14 +242,11 @@ fn reduce(
     let stats = ctx.db.character_stats_state().entity_id().find(actor_id).unwrap();
     let skill_power = stats.get_skill_power(SkillType::Construction);
 
-    let tool_power = if recipe.tool_requirement.is_none() {
-        1.0
-    } else {
-        let tool = match ToolDesc::get_required_tool(ctx, actor_id, &recipe.tool_requirement.unwrap()) {
-            Ok(tool) => tool,
-            Err(err_str) => return Err(err_str.into()),
-        };
+    let tool_power = if let Some(tool_requirement) = recipe.tool_requirement {
+        let tool = ToolDesc::get_required_tool(ctx, actor_id, &tool_requirement)?;
         tool.power as f32
+    } else {
+        1.0
     } + skill_power;
 
     let actions_count = tool_power.round() as i32;
@@ -281,7 +281,7 @@ fn reduce(
         terraform_progress_state.progress += actions_count;
         if terraform_progress_state.progress >= recipe.actions_count {
             terraform_progress_state.progress = 0;
-            terraform_progress_state.next_height_target = terraform_progress_state.next_height_target + dir;
+            terraform_progress_state.next_height_target += dir;
             terrain_cell.elevation = target;
 
             let terrain_chunk = cache.filter_by_chunk_index(ctx, chunk_index).expect("the chunk should still exist");

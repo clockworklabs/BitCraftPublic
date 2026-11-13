@@ -14,7 +14,7 @@ impl EnemyState {
 
         EnemyState {
             entity_id,
-            enemy_type: enemy_type,
+            enemy_type,
             herd_entity_id,
             direction: HexDirection::random(ctx) as i32,
             last_ranged_attack_timestamp: Timestamp::UNIX_EPOCH,
@@ -56,7 +56,7 @@ impl EnemyState {
                     .db
                     .location_state()
                     .entity_id()
-                    .find(&herd.entity_id)
+                    .find(herd.entity_id)
                     .unwrap()
                     .offset_coordinates(),
                 herd_entity_id: herd.entity_id,
@@ -107,7 +107,7 @@ impl EnemyState {
     }
 
     pub fn refresh_ranged_attack_timestamp(ctx: &ReducerContext, actor_id: u64, timestamp: Timestamp) {
-        if let Some(mut entry) = ctx.db.enemy_state().entity_id().find(&actor_id) {
+        if let Some(mut entry) = ctx.db.enemy_state().entity_id().find(actor_id) {
             entry.last_ranged_attack_timestamp = timestamp;
             ctx.db.enemy_state().entity_id().update(entry);
         }

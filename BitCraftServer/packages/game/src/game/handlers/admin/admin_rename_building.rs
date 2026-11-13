@@ -27,9 +27,7 @@ pub fn admin_rename_building(ctx: &ReducerContext, building_name: String, new_na
     let entity_id = unwrap_or_err!(
         ctx.db
             .building_nickname_state()
-            .iter()
-            .filter(|d| d.nickname.to_lowercase() == name_lower)
-            .next(),
+            .iter().find(|d| d.nickname.to_lowercase() == name_lower),
         "Building not found"
     )
     .entity_id;
@@ -44,9 +42,7 @@ pub fn admin_rename_building_coord(ctx: &ReducerContext, coord: OffsetCoordinate
     }
 
     let entity_id = unwrap_or_err!(
-        LocationState::select_all(ctx, &SmallHexTile::from(coord))
-            .filter(|l| ctx.db.building_nickname_state().entity_id().find(l.entity_id).is_some())
-            .next(),
+        LocationState::select_all(ctx, &SmallHexTile::from(coord)).find(|l| ctx.db.building_nickname_state().entity_id().find(l.entity_id).is_some()),
         "No nicknamed building at this location"
     )
     .entity_id;

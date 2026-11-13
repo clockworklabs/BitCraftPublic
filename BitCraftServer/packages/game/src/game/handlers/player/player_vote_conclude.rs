@@ -15,7 +15,7 @@ pub struct PlayerVoteConcludeTimer {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_vote_conclude(ctx: &ReducerContext, timer: PlayerVoteConcludeTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     reduce(ctx, timer.vote_entity_id)
 }
 

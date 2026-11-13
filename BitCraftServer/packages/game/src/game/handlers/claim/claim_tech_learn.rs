@@ -14,7 +14,7 @@ use super::claim_tech_unlock_tech::{claim_tech_unlock_timer, ClaimTechUnlockTime
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_tech_learn(ctx: &ReducerContext, request: PlayerClaimTechLearnRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let claim_entity_id = request.claim_entity_id;
@@ -41,7 +41,7 @@ pub fn claim_tech_learn(ctx: &ReducerContext, request: PlayerClaimTechLearnReque
         return Err("This technology cannot be researched directly.".into());
     }
     let mut claim_tech = unwrap_or_err!(
-        ctx.db.claim_tech_state().entity_id().find(&claim_entity_id),
+        ctx.db.claim_tech_state().entity_id().find(claim_entity_id),
         "Claim has no tech, this should not happen"
     );
 
@@ -60,11 +60,10 @@ pub fn claim_tech_learn(ctx: &ReducerContext, request: PlayerClaimTechLearnReque
     }
 
     // make sure the player has the required items
-    if tech_desc.input.len() > 0 {
-        if !InventoryState::remove_stacks_from_player_inventory(ctx, actor_id, &tech_desc.input, true) {
+    if !tech_desc.input.is_empty()
+        && !InventoryState::remove_stacks_from_player_inventory(ctx, actor_id, &tech_desc.input, true) {
             return Err("Missing required items".into());
         }
-    }
 
     // Make sure no research is in progress
     if claim_tech.researching != 0 {

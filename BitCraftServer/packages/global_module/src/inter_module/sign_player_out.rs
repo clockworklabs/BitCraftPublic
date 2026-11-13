@@ -12,7 +12,7 @@ pub fn send_message(ctx: &ReducerContext, player_identity: Identity) -> Result<(
     send_inter_module_message(
         ctx,
         MessageContentsV5::SignPlayerOut(SignPlayerOutMsg {
-            player_identity: player_identity,
+            player_identity,
         }),
         InterModuleDestination::Region(region),
     );

@@ -62,7 +62,7 @@ impl LocationState {
     }
 
     pub fn select_all_in_chunk_iter(ctx: &ReducerContext, chunk_coordinates: &ChunkCoordinates) -> impl Iterator<Item = LocationState> {
-        let chunk_index = TerrainChunkState::chunk_index_from_coords(&chunk_coordinates);
+        let chunk_index = TerrainChunkState::chunk_index_from_coords(chunk_coordinates);
         ctx.db.location_state().chunk_index().filter(chunk_index)
     }
 
@@ -140,7 +140,7 @@ impl MobileEntityState {
             z: self.location_z,
             dimension: self.dimension,
         };
-        return SmallHexTile::from(OffsetCoordinatesSmall::from(c));
+        SmallHexTile::from(OffsetCoordinatesSmall::from(c))
     }
 
     pub fn destination(&self) -> SmallHexTile {
@@ -149,7 +149,7 @@ impl MobileEntityState {
             z: self.destination_z,
             dimension: self.dimension,
         };
-        return SmallHexTile::from(OffsetCoordinatesSmall::from(c));
+        SmallHexTile::from(OffsetCoordinatesSmall::from(c))
     }
 
     pub fn offset_coordinates(&self) -> OffsetCoordinatesSmall {
@@ -158,7 +158,7 @@ impl MobileEntityState {
             z: self.location_z,
             dimension: self.dimension,
         };
-        return c.into();
+        c.into()
     }
 
     pub fn coordinates_float(&self) -> FloatHexTile {
@@ -166,11 +166,11 @@ impl MobileEntityState {
     }
 
     pub fn offset_coordinates_float(&self) -> OffsetCoordinatesFloat {
-        return OffsetCoordinatesFloat {
+        OffsetCoordinatesFloat {
             x: self.location_x,
             z: self.location_z,
             dimension: self.dimension,
-        };
+        }
     }
 
     pub fn destination_float(&self) -> FloatHexTile {
@@ -178,11 +178,11 @@ impl MobileEntityState {
     }
 
     pub fn offset_destination_float(&self) -> OffsetCoordinatesFloat {
-        return OffsetCoordinatesFloat {
+        OffsetCoordinatesFloat {
             x: self.destination_x,
             z: self.destination_z,
             dimension: self.dimension,
-        };
+        }
     }
 
     pub fn to_location_state(&self) -> LocationState {
@@ -210,7 +210,7 @@ impl MobileEntityState {
     }
 
     pub fn select_all_in_chunk_iter(ctx: &ReducerContext, chunk_coordinates: &ChunkCoordinates) -> impl Iterator<Item = Self> {
-        let chunk_index = TerrainChunkState::chunk_index_from_coords(&chunk_coordinates);
+        let chunk_index = TerrainChunkState::chunk_index_from_coords(chunk_coordinates);
         ctx.db.mobile_entity_state().chunk_index().filter(chunk_index)
     }
 
@@ -219,24 +219,22 @@ impl MobileEntityState {
         let origin = self.coordinates_float();
         let distination = self.destination_float();
         if origin.x == distination.x && origin.z == distination.z {
-            return origin.clone();
+            origin
         } else {
             let action_state = match ctx
                 .db
                 .player_action_state()
                 .entity_id()
-                .filter(self.entity_id)
-                .filter(|a| a.action_type == PlayerActionType::PlayerMove || a.action_type == PlayerActionType::DeployableMove)
-                .next()
+                .filter(self.entity_id).find(|a| a.action_type == PlayerActionType::PlayerMove || a.action_type == PlayerActionType::DeployableMove)
             {
                 Some(a) => a,
-                None => return origin.clone(),
+                None => return origin,
             };
             let travel_time = action_state.duration as f32 / 1000.0;
             let time_diff = ((game_state::unix_ms(ctx.timestamp) - self.timestamp) as f32 / 1000.0).clamp(0.0, travel_time);
             let t = time_diff / travel_time;
-            return FloatHexTile::lerp(&origin, &distination, t);
-        };
+            FloatHexTile::lerp(&origin, &distination, t)
+        }
     }
 
     //pub fn cur_distance_traveled(&self, speed: f32) -> f32 {
@@ -273,7 +271,7 @@ impl crate::messages::components::location_state__TableHandle {
         }
 
         let chunk_coordinates = ChunkCoordinates { x: 0, z: 0, dimension };
-        return self.chunk_index().delete(chunk_coordinates.chunk_index());
+        self.chunk_index().delete(chunk_coordinates.chunk_index())
     }
 
     pub fn dimension_filter(&self, dimension: u32) -> impl Iterator<Item = LocationState> {
@@ -282,6 +280,6 @@ impl crate::messages::components::location_state__TableHandle {
         }
 
         let chunk_coordinates = ChunkCoordinates { x: 0, z: 0, dimension };
-        return self.chunk_index().filter(chunk_coordinates.chunk_index());
+        self.chunk_index().filter(chunk_coordinates.chunk_index())
     }
 }

@@ -32,7 +32,7 @@ fn day_night_agent_loop(ctx: &ReducerContext, _timer: DayNightLoopTimer) {
         return;
     }
 
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to day_night agent");
         return;
     }
@@ -77,11 +77,11 @@ pub fn night_tick(ctx: &ReducerContext) {
 }
 
 pub fn night_duration(ctx: &ReducerContext) -> i32 {
-    ctx.db.parameters_desc().version().find(&0).unwrap().nighttime
+    ctx.db.parameters_desc().version().find(0).unwrap().nighttime
 }
 
 pub fn day_duration(ctx: &ReducerContext) -> i32 {
-    ctx.db.parameters_desc().version().find(&0).unwrap().daytime
+    ctx.db.parameters_desc().version().find(0).unwrap().daytime
 }
 
 pub fn time_of_day(ctx: &ReducerContext) -> i32 {

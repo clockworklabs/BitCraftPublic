@@ -14,10 +14,9 @@ pub fn admin_restore_all_collapsed_ruins(ctx: &ReducerContext) {
     }
 
     for dimension_state in ctx.db.dimension_network_state().iter() {
-        if dimension_state.is_collapsed {
-            if interior_set_collapsed(ctx, dimension_state.entity_id, false).is_err() {
+        if dimension_state.is_collapsed
+            && interior_set_collapsed(ctx, dimension_state.entity_id, false).is_err() {
                 log::error!("Failed to uncollapse ruin {}", dimension_state.entity_id);
             }
-        }
     }
 }

@@ -38,7 +38,7 @@ impl RiverGenerationSettings {
             "RiverGenerationSettings doesn't have have a pathfinding-cost for an elevation difference of {}",
             elevation_difference
         );
-        return 0f32;
+        0f32
     }
 }
 

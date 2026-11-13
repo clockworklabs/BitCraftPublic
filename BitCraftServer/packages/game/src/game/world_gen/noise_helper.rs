@@ -7,6 +7,7 @@ use crate::game::unity_helpers::common_rng::CommonRNG;
 use super::{super::unity_helpers::vector2::Vector2, open_simplex_noise::OpenSimplex};
 
 //Returns a 2d vector of floats range 0..1 inc
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn get_map(
     width: i32,
     depth: i32,
@@ -94,7 +95,7 @@ pub fn get(position: Vector2, scale: f32, octaves: i32, persistance: f32, lacuna
 
     height /= max_amplitude;
 
-    return height;
+    height
 }
 
 fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
@@ -111,7 +112,7 @@ thread_local! {
 }
 
 thread_local! {
-    static OFFSETS: Mutex<Vec<Vector2>> = Mutex::new(vec![]);
+    static OFFSETS: Mutex<Vec<Vector2>> = const { Mutex::new(vec![]) };
 }
 
 fn random() -> f32 {

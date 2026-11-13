@@ -11,7 +11,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("build")]
 pub fn building_set_sign_text(ctx: &ReducerContext, request: BuildingSetSignTextRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     reduce(ctx, actor_id, request.building_entity_id, request.text)
 }
@@ -21,9 +21,9 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, building_entity_id: u64, text
 
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your naming privileges have been suspended")?;
 
-    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(&building_entity_id), "No such building.");
+    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(building_entity_id), "No such building.");
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state.building_description_id),
+        ctx.db.building_desc().id().find(building_state.building_description_id),
         "Invalid building description"
     );
 
@@ -39,11 +39,11 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, building_entity_id: u64, text
         return Err("You don't have permission to interact with this building".into());
     }
 
-    if let Err(_) = is_user_text_input_valid(&text, 140, true) {
+    if is_user_text_input_valid(&text, 140, true).is_err() {
         return Err("Failed to set sign text".into());
     }
 
-    if let Some(mut player_note_state) = ctx.db.player_note_state().entity_id().find(&building_entity_id) {
+    if let Some(mut player_note_state) = ctx.db.player_note_state().entity_id().find(building_entity_id) {
         player_note_state.text = text;
         ctx.db.player_note_state().entity_id().update(player_note_state);
 

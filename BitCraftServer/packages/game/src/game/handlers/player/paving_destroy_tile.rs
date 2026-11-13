@@ -14,7 +14,7 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn paving_destroy_tile_start(ctx: &ReducerContext, request: PlayerPavingDestroyTileRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let target = Some(request.coordinates.hashcode_long() as u64);
@@ -40,7 +40,7 @@ pub fn paving_destroy_tile_start(ctx: &ReducerContext, request: PlayerPavingDest
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn paving_destroy_tile(ctx: &ReducerContext, request: PlayerPavingDestroyTileRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     player_action_helpers::schedule_clear_player_action(
         actor_id,
@@ -68,7 +68,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerPavingDestroyTile
     }
 
     // Verify distance to paving target
-    let player_mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Invalid player");
+    let player_mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Invalid player");
     let player_coord = player_mobile.coordinates();
     let target_coord = request.coordinates.into();
 

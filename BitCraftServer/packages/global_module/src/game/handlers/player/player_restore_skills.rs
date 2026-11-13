@@ -15,13 +15,12 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_restore_skills(ctx: &ReducerContext, player_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
-    if !has_role(ctx, &ctx.sender(), Role::Admin) {
-        if actor_id != player_entity_id {
+    if !has_role(ctx, &ctx.sender(), Role::Admin)
+        && actor_id != player_entity_id {
             return Err("Unauthorized".into());
         }
-    }
 
     let user_state = unwrap_or_err!(ctx.db.user_state().entity_id().find(player_entity_id), "Player does not exist");
 
@@ -44,8 +43,8 @@ pub fn player_restore_skills(ctx: &ReducerContext, player_entity_id: u64) -> Res
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: RestoreSkillsMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         // This doesn't work, message is not sent (todo)
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     }
 }

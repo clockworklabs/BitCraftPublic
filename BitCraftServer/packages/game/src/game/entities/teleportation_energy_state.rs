@@ -63,10 +63,10 @@ impl TeleportationEnergyState {
         true
     }
 
-    pub fn teleport_home_cost(&self, ctx: &ReducerContext, from_death: bool) -> f32 {
+    pub fn teleport_home_cost(&self, ctx: &ReducerContext, _from_death: bool) -> f32 {
+        // Teleporting home after death currently costs the same as a regular teleport home.
         let base_cost = ctx.db.parameters_desc().version().find(0).unwrap().teleportation_home_energy_cost as i32;
-        let death_cost = if from_death { 0 } else { 0 };
-        (base_cost + death_cost) as f32
+        base_cost as f32
     }
 
     pub fn teleport_cost(&self, ctx: &ReducerContext, destination: FloatHexTile) -> Option<f32> {

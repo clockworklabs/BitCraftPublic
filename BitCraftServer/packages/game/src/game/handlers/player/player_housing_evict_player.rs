@@ -39,7 +39,7 @@ impl PlayerHousingEvictPlayerTimer {
 #[shared_table_reducer]
 #[spacetimedb::reducer]
 pub fn player_housing_evict_player_complete(ctx: &ReducerContext, timer: PlayerHousingEvictPlayerTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to player_housing_evict_player_complete");
         return;
     }
@@ -64,7 +64,7 @@ pub fn player_housing_evict_player_complete(ctx: &ReducerContext, timer: PlayerH
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_housing_evict_player(ctx: &ReducerContext, request: PlayerHousingEvictPlayerRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     if actor_id == request.owner_entity_id {
@@ -85,7 +85,7 @@ pub fn player_housing_evict_player(ctx: &ReducerContext, request: PlayerHousingE
 
     // Check for claim ownership permissions
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&building.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(building.claim_entity_id),
         "Building is not claimed"
     );
 

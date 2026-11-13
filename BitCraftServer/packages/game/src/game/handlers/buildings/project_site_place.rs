@@ -24,7 +24,7 @@ use spacetimedb::{ReducerContext, Table};
 #[shared_table_reducer]
 #[feature_gate("build")]
 pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
@@ -35,7 +35,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         }
     }
 
-    if ctx.db.mounting_state().entity_id().find(&actor_id).is_some() {
+    if ctx.db.mounting_state().entity_id().find(actor_id).is_some() {
         return Err("Can't place a building while in a deployable.".into());
     }
 
@@ -45,12 +45,12 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
     let mut is_rent_terminal = false;
     let mut footprint = Vec::new();
 
-    let construction_recipe = ctx.db.construction_recipe_desc().id().find(&request.construction_recipe_id);
+    let construction_recipe = ctx.db.construction_recipe_desc().id().find(request.construction_recipe_id);
     let resource_placement_recipe = ctx
         .db
         .resource_placement_recipe_desc()
         .id()
-        .find(&request.resource_placement_recipe_id);
+        .find(request.resource_placement_recipe_id);
 
     let mut terrain_cache = TerrainChunkCache::empty();
 
@@ -66,7 +66,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
     // Validate footprint placement for the project site
     if let Some(ref recipe) = construction_recipe {
         let building = unwrap_or_err!(
-            ctx.db.building_desc().id().find(&recipe.building_description_id),
+            ctx.db.building_desc().id().find(recipe.building_description_id),
             "Building not found."
         );
         is_empire_foundry = building.has_category(ctx, BuildingCategory::EmpireFoundry);
@@ -84,7 +84,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
             0,
             None,
         )?;
-        if ctx.db.floating_platform_desc().building_id().find(&building.id).is_some() {
+        if ctx.db.floating_platform_desc().building_id().find(building.id).is_some() {
             floating_platform_helpers::validate_platform_limit(ctx, building.id, actor_id)?;
         }
         is_rent_terminal = building.has_category(ctx, BuildingCategory::RentTerminal);
@@ -99,7 +99,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         validate_knowledge(ctx, actor_id, &recipe.required_knowledges)?;
     } else if let Some(ref recipe) = resource_placement_recipe {
         let resource = unwrap_or_err!(
-            ctx.db.resource_desc().id().find(&recipe.resource_description_id),
+            ctx.db.resource_desc().id().find(recipe.resource_description_id),
             "Resource not found."
         );
         footprint = resource.get_footprint(&coordinates, facing_direction as i32);
@@ -117,7 +117,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         // If it's rented, assert that the player is part of the whitelist
         if dimension_description_network.rent_entity_id != 0 {
             let rent = unwrap_or_err!(
-                ctx.db.rent_state().entity_id().find(&dimension_description_network.rent_entity_id),
+                ctx.db.rent_state().entity_id().find(dimension_description_network.rent_entity_id),
                 "This building is rented but the rent doesn't exist."
             );
             if !rent.white_list.contains(&actor_id) {
@@ -131,12 +131,12 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
             let all_locations = LocationState::select_all_in_interior_dimension_iter(ctx, coordinates.dimension);
 
             let mut all_construction_building_ids =
-                all_locations.filter_map(|l| match ctx.db.project_site_state().entity_id().find(&l.entity_id) {
+                all_locations.filter_map(|l| match ctx.db.project_site_state().entity_id().find(l.entity_id) {
                     Some(c) => Some(
                         ctx.db
                             .construction_recipe_desc()
                             .id()
-                            .find(&c.construction_recipe_id)
+                            .find(c.construction_recipe_id)
                             .unwrap()
                             .building_description_id,
                     ),
@@ -146,7 +146,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
                 ctx.db
                     .building_desc()
                     .id()
-                    .find(&id)
+                    .find(id)
                     .unwrap()
                     .has_category(ctx, BuildingCategory::RentTerminal)
             }) {
@@ -159,7 +159,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
 
     // Claim project site
     let existing_claims_id = claim_helper::get_partial_claims_under_footprint(ctx, &footprint);
-    let built_on_existing_claims = existing_claims_id.len() > 0;
+    let built_on_existing_claims = !existing_claims_id.is_empty();
 
     let mut project_owner_id = 0;
     let required_claim_tech_ids = if let Some(ref recipe) = construction_recipe {
@@ -181,9 +181,9 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         }
 
         project_owner_id = claim_helper::get_claim_under_footprint(ctx, &footprint);
-        if required_claim_tech_ids.len() > 0 {
+        if !required_claim_tech_ids.is_empty() {
             let claim_tech = unwrap_or_err!(
-                ctx.db.claim_tech_state().entity_id().find(&project_owner_id),
+                ctx.db.claim_tech_state().entity_id().find(project_owner_id),
                 "This project site needs to be fully under a claim in order to be built"
             );
             for required_claim_tech_id in required_claim_tech_ids {
@@ -197,13 +197,13 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         if existing_claims_id.len() > 1 {
             return Err("You cannot build a project site overlapping several claims".into());
         }
-        if required_claim_tech_ids.len() != 0 {
+        if !required_claim_tech_ids.is_empty() {
             return Err("This project site needs to be fully under a claim in order to be built".into());
         }
     }
 
     let dimension = unwrap_or_err!(
-        ctx.db.dimension_description_state().dimension_id().find(&coordinates.dimension),
+        ctx.db.dimension_description_state().dimension_id().find(coordinates.dimension),
         "Invalid dimension"
     );
     if dimension.dimension_type == DimensionType::AncientRuin || dimension.dimension_type == DimensionType::Dungeon {
@@ -215,13 +215,13 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
     // Building-specific extra validations
     if let Some(ref recipe) = construction_recipe {
         required_interior_tier = recipe.required_interior_tier;
-        if let Some(claim_building) = ctx.db.building_claim_desc().building_id().find(&recipe.building_description_id) {
+        if let Some(claim_building) = ctx.db.building_claim_desc().building_id().find(recipe.building_description_id) {
             if claim_building.claim_type == ClaimType::Source {
                 if built_on_existing_claims {
                     return Err("Can't build on an existing claim".into());
                 }
 
-                claim_helper::can_place_claim_totem(ctx, coordinates.into(), &claim_building, &mut terrain_cache)?;
+                claim_helper::can_place_claim_totem(ctx, coordinates, &claim_building, &mut terrain_cache)?;
             } else if claim_building.claim_type == ClaimType::Extension {
                 return Err("Extension totems are obsolete.".into());
             }
@@ -239,11 +239,11 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
     }
     if required_interior_tier > 0 {
         if dimension.interior_instance_id == 0 {
-            return Err(format!("Requires Tier {{0}} interior|~{}", required_interior_tier).into());
+            return Err(format!("Requires Tier {{0}} interior|~{}", required_interior_tier));
         }
-        let instance = ctx.db.interior_instance_desc().id().find(&dimension.interior_instance_id).unwrap();
+        let instance = ctx.db.interior_instance_desc().id().find(dimension.interior_instance_id).unwrap();
         if instance.tier < required_interior_tier {
-            return Err(format!("Requires Tier {{0}} interior|~{}", required_interior_tier).into());
+            return Err(format!("Requires Tier {{0}} interior|~{}", required_interior_tier));
         }
     }
 
@@ -254,13 +254,13 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
         if claim_helper::get_claim_under_footprint(ctx, &footprint) == 0 {
             return Err("This project site needs to be fully under an empire-aligned claim in order to be built".into());
         }
-        let claim_entity_id = existing_claims_id.get(0).unwrap();
+        let claim_entity_id = existing_claims_id.first().unwrap();
         if let Some(settlement) = EmpireSettlementState::from_claim(ctx, *claim_entity_id) {
             if settlement.empire_entity_id == 0 {
                 return Err("This site needs to be fully under an empire-aligned claim in order to be built".into());
             }
             let player_data = unwrap_or_err!(
-                ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+                ctx.db.empire_player_data_state().entity_id().find(actor_id),
                 "You need to be part of an empire to build this"
             );
             if settlement.empire_entity_id != player_data.empire_entity_id {
@@ -276,7 +276,7 @@ pub fn project_site_place(ctx: &ReducerContext, request: PlayerProjectSitePlaceR
                 .db
                 .empire_state()
                 .capital_building_entity_id()
-                .find(&claim.owner_building_entity_id)
+                .find(claim.owner_building_entity_id)
                 .is_none()
             {
                 return Err("This building can only be built in the capital of an Empire".into());
@@ -405,7 +405,7 @@ fn validate_knowledge(ctx: &ReducerContext, actor_id: u64, required_knowledges: 
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn discover_instant_build(ctx: &ReducerContext, actor_id: u64, building_id: i32, construction_recipe_id: i32) {
@@ -421,8 +421,8 @@ fn consume_recipe_input(ctx: &ReducerContext, actor_id: u64, recipe: Option<Cons
         let consumed_items = construction_recipe
             .consumed_item_stacks
             .iter()
-            .map(|i| ItemStack::from_input(i))
-            .collect();
+            .map(ItemStack::from_input)
+            .collect::<Vec<_>>();
         if !inventory.remove(&consumed_items) {
             return Err("Missing materials".into());
         }
@@ -430,8 +430,8 @@ fn consume_recipe_input(ctx: &ReducerContext, actor_id: u64, recipe: Option<Cons
         let consumed_cargo = construction_recipe
             .consumed_cargo_stacks
             .iter()
-            .map(|i| ItemStack::from_input(i))
-            .collect();
+            .map(ItemStack::from_input)
+            .collect::<Vec<_>>();
         if !inventory.remove(&consumed_cargo) {
             return Err("Missing materials".into());
         }
@@ -444,20 +444,20 @@ fn consume_recipe_input(ctx: &ReducerContext, actor_id: u64, recipe: Option<Cons
 }
 
 pub fn refund_recipe_input(ctx: &ReducerContext, actor_id: u64, recipe: Option<i32>) {
-    if recipe.is_some() {
-        let construction_recipe = ctx.db.construction_recipe_desc().id().find(&recipe.unwrap()).unwrap();
+    if let Some(recipe) = recipe {
+        let construction_recipe = ctx.db.construction_recipe_desc().id().find(recipe).unwrap();
         let mut inventory = unwrap_or_return!(InventoryState::get_player_inventory(ctx, actor_id), "Player has no inventory");
         let consumed_items = construction_recipe
             .consumed_item_stacks
             .iter()
-            .map(|i| ItemStack::from_input(i))
+            .map(ItemStack::from_input)
             .collect();
         inventory.add_multiple_with_overflow(ctx, &consumed_items);
 
         let consumed_cargo = construction_recipe
             .consumed_cargo_stacks
             .iter()
-            .map(|i| ItemStack::from_input(i))
+            .map(ItemStack::from_input)
             .collect();
         inventory.add_multiple_with_overflow(ctx, &consumed_cargo);
 
@@ -480,7 +480,7 @@ fn validate_rentability(ctx: &ReducerContext, dimension: u32, dimension_network:
         let interior_instance_id = dimension_description.interior_instance_id;
 
         let desc = unwrap_or_err!(
-            ctx.db.interior_instance_desc().id().find(&interior_instance_id),
+            ctx.db.interior_instance_desc().id().find(interior_instance_id),
             "This dimension has no matching instance in static data"
         );
 
@@ -505,7 +505,7 @@ fn validate_rentability(ctx: &ReducerContext, dimension: u32, dimension_network:
                         .db
                         .interior_spawn_random_group_desc()
                         .id()
-                        .find(&spawn.interior_spawn_random_group_id)
+                        .find(spawn.interior_spawn_random_group_id)
                     {
                         for resource_clump_id in group.resource_clump_ids {
                             resource_spawns.append(&mut ResourceClumpDesc::get_resource_ids(ctx, resource_clump_id));
@@ -523,15 +523,15 @@ fn validate_rentability(ctx: &ReducerContext, dimension: u32, dimension_network:
         let all_locations = LocationState::select_all_in_interior_dimension_iter(ctx, dimension);
 
         for l in all_locations {
-            if ctx.db.project_site_state().entity_id().find(&l.entity_id).is_some() {
+            if ctx.db.project_site_state().entity_id().find(l.entity_id).is_some() {
                 return Err("You need to empty the building first before adding a rent terminal".into());
             }
 
-            if let Some(building) = ctx.db.building_state().entity_id().find(&l.entity_id) {
+            if let Some(building) = ctx.db.building_state().entity_id().find(l.entity_id) {
                 if !building_spawns.contains(&building.building_description_id) {
                     return Err("You need to empty the building first before adding a rent terminal".into());
                 }
-            } else if let Some(deposit) = ctx.db.resource_state().entity_id().find(&l.entity_id) {
+            } else if let Some(deposit) = ctx.db.resource_state().entity_id().find(l.entity_id) {
                 if !resource_spawns.contains(&deposit.resource_id) {
                     return Err("You need to empty the building first before adding a rent terminal".into());
                 }

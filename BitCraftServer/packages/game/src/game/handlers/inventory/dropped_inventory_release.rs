@@ -10,7 +10,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn dropped_inventory_release(ctx: &ReducerContext, dropped_inventory_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 

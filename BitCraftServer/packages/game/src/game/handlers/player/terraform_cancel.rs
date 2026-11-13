@@ -10,7 +10,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn terraform_cancel(ctx: &ReducerContext, request: PlayerTerraformCancelRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
@@ -27,9 +27,9 @@ pub fn terraform_cancel(ctx: &ReducerContext, request: PlayerTerraformCancelRequ
         game_state_filters::building_id_at_coordinates(ctx, &player_coordinates),
         "Player has to be in a building"
     );
-    let building = ctx.db.building_state().entity_id().find(&building_entity_id).unwrap();
+    let building = ctx.db.building_state().entity_id().find(building_entity_id).unwrap();
     let building_description = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Invalid building description"
     );
 
@@ -38,7 +38,7 @@ pub fn terraform_cancel(ctx: &ReducerContext, request: PlayerTerraformCancelRequ
     }
 
     let mut terraform_progress_state = unwrap_or_err!(
-        ctx.db.terraform_progress_state().entity_id().find(&building_entity_id),
+        ctx.db.terraform_progress_state().entity_id().find(building_entity_id),
         "terraform progress state not found"
     );
 

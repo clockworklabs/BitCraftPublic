@@ -15,7 +15,7 @@ use crate::{i18n, unwrap_or_err};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn chat_post_targeted_message(ctx: &ReducerContext, request: PlayerChatPostMessageRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     // PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp); // TODO: Maybe we want to do this in the future, but not trivial. It would require sending intermodule messages.
     reduce(ctx, actor_id, request.text, request.target_id, request.language_code)
 }
@@ -23,12 +23,12 @@ pub fn chat_post_targeted_message(ctx: &ReducerContext, request: PlayerChatPostM
 pub fn reduce(ctx: &ReducerContext, actor_id: u64, text: String, target_entity_id: u64, language_code: String) -> Result<(), String> {
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your chat privileges have been suspended")?;
 
-    if text.len() <= 0 {
-        return Err(format!("Can't send empty chat message"));
+    if text.is_empty() {
+        return Err("Can't send empty chat message".to_string());
     }
 
     let sanitized_user_input = sanitize_user_inputs(&text);
-    if let Err(_) = is_user_text_input_valid(&sanitized_user_input, 250, false) {
+    if is_user_text_input_valid(&sanitized_user_input, 250, false).is_err() {
         return Err("Failed to send chat messages".into());
     }
 

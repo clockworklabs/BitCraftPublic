@@ -13,10 +13,10 @@ impl Pocket {
         };
 
         let item_volume = if is_cargo {
-            let cargo_def = ctx.db.cargo_desc().id().find(&item_stack.item_id).unwrap();
+            let cargo_def = ctx.db.cargo_desc().id().find(item_stack.item_id).unwrap();
             cargo_def.volume
         } else {
-            let item_def = ctx.db.item_desc().id().find(&item_stack.item_id).unwrap();
+            let item_def = ctx.db.item_desc().id().find(item_stack.item_id).unwrap();
             item_def.volume
         };
         self.volume - item_stack.quantity * item_volume
@@ -26,7 +26,7 @@ impl Pocket {
         if self.volume <= 0 || volume <= 0 {
             return i32::MAX;
         }
-        return self.available_space(ctx, is_cargo) / volume;
+        self.available_space(ctx, is_cargo) / volume
     }
 
     pub fn remove_quantity(&mut self, quantity: i32) -> i32 {
@@ -36,14 +36,14 @@ impl Pocket {
 
         let item_stack = self.contents.unwrap();
         if item_stack.quantity > quantity {
-            let mut copy = item_stack.clone();
+            let mut copy = item_stack;
             copy.quantity -= quantity;
             self.contents = Some(copy);
             return quantity;
         }
 
         self.contents = None;
-        return item_stack.quantity;
+        item_stack.quantity
     }
 
     pub fn add_quantity(&mut self, quantity: i32) {

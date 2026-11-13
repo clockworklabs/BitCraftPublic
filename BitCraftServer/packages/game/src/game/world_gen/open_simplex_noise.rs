@@ -138,9 +138,9 @@ impl OpenSimplex {
             Grad2::new(-0.38268343236509, 0.923879532511287),
             Grad2::new(-0.130526192220052, 0.99144486137381),
         ];
-        for i in 0..grad2.len() {
-            grad2[i].dx /= N2;
-            grad2[i].dy /= N2;
+        for grad in grad2.iter_mut() {
+            grad.dx /= N2;
+            grad.dy /= N2;
         }
         let mut gradients2d: [Grad2; PSIZE] = [Grad2::new(0.0, 0.0); PSIZE];
         for i in 0..PSIZE {
@@ -329,11 +329,11 @@ impl OpenSimplex {
             Grad4::new(0.7821684431180708, 0.4321472685365301, 0.4321472685365301, -0.12128480194602098),
             Grad4::new(0.753341017856078, 0.37968289875261624, 0.37968289875261624, 0.37968289875261624),
         ];
-        for i in 0..grad4.len() {
-            grad4[i].dx /= N4;
-            grad4[i].dy /= N4;
-            grad4[i].dz /= N4;
-            grad4[i].dw /= N4;
+        for grad in grad4.iter_mut() {
+            grad.dx /= N4;
+            grad.dy /= N4;
+            grad.dz /= N4;
+            grad.dw /= N4;
         }
         let mut gradients4d: [Grad4; PSIZE] = [Grad4::new(0.0, 0.0, 0.0, 0.0); PSIZE];
         for i in 0..PSIZE {
@@ -594,8 +594,8 @@ impl OpenSimplex {
         let mut perm_grad2 = [Grad2::new(0.0, 0.0); PSIZE];
         let mut perm_grad4 = [Grad4::new(0.0, 0.0, 0.0, 0.0); PSIZE];
         let mut source = [0i16; PSIZE];
-        for i in 0..PSIZE {
-            source[i] = i as i16;
+        for (i, value) in source.iter_mut().enumerate() {
+            *value = i as i16;
         }
         let mut seed = seed;
         for i in (0..PSIZE as isize).rev() {
@@ -610,7 +610,7 @@ impl OpenSimplex {
             source[r as usize] = source[i as usize];
         }
 
-        let r = Self {
+        Self {
             perm,
             perm_grad2,
             perm_grad4,
@@ -618,14 +618,12 @@ impl OpenSimplex {
             all4,
             lookup2d,
             lookup4d,
-        };
-
-        r
+        }
     }
 
     fn fast_floor(x: f64) -> i32 {
         let xi = x as i32;
-        return if x < xi as f64 { xi - 1 } else { xi };
+        if x < xi as f64 { xi - 1 } else { xi }
     }
 
     pub fn evaluate(&self, x: f64, y: f64) -> f64 {
@@ -672,7 +670,7 @@ impl OpenSimplex {
             c = self.all2[c.next.unwrap()].as_ref().unwrap();
         }
 
-        return value;
+        value
     }
 
     pub fn evaluate4(&self, x: f64, y: f64, z: f64, w: f64) -> f64 {
@@ -745,6 +743,6 @@ impl OpenSimplex {
             c = self.all4[c.next.unwrap()].as_ref().unwrap();
         }
 
-        return value;
+        value
     }
 }

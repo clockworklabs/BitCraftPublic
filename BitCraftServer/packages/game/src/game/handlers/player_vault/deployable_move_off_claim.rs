@@ -11,11 +11,11 @@ use crate::messages::events::*;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_move_off_claim(ctx: &ReducerContext, deployable_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let location = unwrap_or_err!(
-        ctx.db.mobile_entity_state().entity_id().find(&deployable_entity_id),
+        ctx.db.mobile_entity_state().entity_id().find(deployable_entity_id),
         "Deployable does not exist"
     );
 
@@ -24,12 +24,12 @@ pub fn deployable_move_off_claim(ctx: &ReducerContext, deployable_entity_id: u64
     let claim_tile = unwrap_or_err!(ClaimTileState::get_at_location(ctx, &center), "Deployable is not on a claim");
 
     let mut deployable = unwrap_or_err!(
-        ctx.db.deployable_state_v2().entity_id().find(&deployable_entity_id),
+        ctx.db.deployable_state_v2().entity_id().find(deployable_entity_id),
         "Deployable does not exist"
     );
     if deployable.owner_id != actor_id {
         // Make sure whoever wants the deployable removed has co-owner permission
-        let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&claim_tile.claim_id), "Claim does not exist");
+        let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(claim_tile.claim_id), "Claim does not exist");
         if !claim.has_co_owner_permissions(ctx, actor_id) {
             return Err("You need to be owner or co-owner to have the deployable removed".into());
         }
@@ -82,7 +82,7 @@ pub fn deployable_move_off_claim(ctx: &ReducerContext, deployable_entity_id: u64
         .db
         .deployable_collectible_state()
         .deployable_entity_id()
-        .find(&deployable.entity_id)
+        .find(deployable.entity_id)
         .unwrap();
     deployable_collectible.location = Some(offset);
     ctx.db

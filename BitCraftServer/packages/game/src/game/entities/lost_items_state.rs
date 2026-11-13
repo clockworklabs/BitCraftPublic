@@ -78,18 +78,17 @@ impl LostItemsState {
                 match craft.status {
                     PassiveCraftStatus::Complete => {
                         // Completed, stock recipe outcome
-                        lost_items_dict.entry(craft.owner_entity_id).or_insert(Vec::new()).extend(
+                        lost_items_dict.entry(craft.owner_entity_id).or_default().extend(
                             recipe
                                 .crafted_item_stacks
                                 // output items may be item lists, resolve them before adding them to the lost inventory state
                                 .iter()
-                                .map(|is| ItemListDesc::extract_item_stacks_from_item(ctx, *is, Some(craft.owner_entity_id)))
-                                .flatten(),
+                                .flat_map(|is| ItemListDesc::extract_item_stacks_from_item(ctx, *is, Some(craft.owner_entity_id))),
                         );
                     }
                     _ => {
                         // Processing or Queued, stock input items
-                        lost_items_dict.entry(craft.owner_entity_id).or_insert(Vec::new()).extend(
+                        lost_items_dict.entry(craft.owner_entity_id).or_default().extend(
                             recipe
                                 .consumed_item_stacks
                                 .iter()
@@ -111,22 +110,21 @@ impl LostItemsState {
 
                 lost_items_dict
                     .entry(progressive_action.owner_entity_id)
-                    .or_insert(Vec::new())
+                    .or_default()
                     .extend(
                         recipe
                             .crafted_item_stacks
                             .iter()
                             // output items may be item lists, resolve them before adding them to the lost inventory state
-                            .map(|is| {
+                            .flat_map(|is| {
                                 let item_stack = ItemStack::new(ctx, is.item_id, is.item_type, is.quantity * completed_crafts);
                                 ItemListDesc::extract_item_stacks_from_item(ctx, item_stack, Some(progressive_action.owner_entity_id))
-                            })
-                            .flatten(),
+                            }),
                     );
 
                 lost_items_dict
                     .entry(progressive_action.owner_entity_id)
-                    .or_insert(Vec::new())
+                    .or_default()
                     .extend(
                         recipe
                             .consumed_item_stacks
@@ -158,7 +156,7 @@ impl LostItemsState {
             let closed_listing_entity_id = closed_listing.entity_id;
             listing_dict
                 .entry(closed_listing.owner_entity_id)
-                .or_insert(Vec::new())
+                .or_default()
                 .push(closed_listing);
             ctx.db.closed_listing_state().entity_id().delete(closed_listing_entity_id);
         }
@@ -185,11 +183,11 @@ impl LostItemsState {
             let mut inventory_items = inv.as_item_stacks();
             all_items.append(&mut inventory_items);
         }
-        Self::update(ctx, owning_player_id, overworld_location.into(), all_items);
+        Self::update(ctx, owning_player_id, overworld_location, all_items);
     }
 
     fn update(ctx: &ReducerContext, owner_entity_id: u64, location: SmallHexTile, mut items: Vec<ItemStack>) {
-        if items.len() == 0 {
+        if items.is_empty() {
             return;
         }
 
@@ -211,9 +209,7 @@ impl LostItemsState {
             .db
             .lost_items_state()
             .owner_entity_id()
-            .filter(owner_entity_id)
-            .filter(|li| li.location == offset_loc)
-            .next();
+            .filter(owner_entity_id).find(|li| li.location == offset_loc);
 
         if lost_item_state.is_some() {
             let inventory_entity_id = lost_item_state.as_ref().unwrap().inventory_entity_id;

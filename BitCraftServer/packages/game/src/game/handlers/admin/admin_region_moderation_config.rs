@@ -20,7 +20,7 @@ pub fn admin_update_region_moderation_config(
     }
 
     // Upsert pattern: delete existing, insert new
-    ctx.db.region_moderation_config_state().id().delete(&0);
+    ctx.db.region_moderation_config_state().id().delete(0);
     ctx.db.region_moderation_config_state().insert(RegionModerationConfigState {
         id: 0,
         max_messages_per_time_period,

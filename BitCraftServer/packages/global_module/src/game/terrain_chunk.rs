@@ -8,7 +8,7 @@ impl TerrainChunkState {
     pub const HEIGHT: u32 = 32;
 
     pub fn chunk_index_from_coords(coords: &ChunkCoordinates) -> u64 {
-        return coords.chunk_index();
+        coords.chunk_index()
     }
 
     pub fn chunk_coord_from_chunk_index(chunk_index: u64) -> ChunkCoordinates {

@@ -11,15 +11,15 @@ use super::inventory_helper;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn inventory_create_personal(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(&building_entity_id), "Invalid building");
+    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(building_entity_id), "Invalid building");
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state.building_description_id),
+        ctx.db.building_desc().id().find(building_state.building_description_id),
         "Invalid building description"
     );
     let bank_function = unwrap_or_err!(
@@ -34,7 +34,7 @@ pub fn inventory_create_personal(ctx: &ReducerContext, building_entity_id: u64) 
         building_entity_id
     };
 
-    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Invalid player location").coordinates();
+    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Invalid player location").coordinates();
     inventory_helper::validate_interact(ctx, actor_id, player_location, building_entity_id, 0)?;
 
     if ctx

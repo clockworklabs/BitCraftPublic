@@ -10,11 +10,11 @@ use crate::{onboarding_reward_desc, unwrap_or_err};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn complete_onboarding_state(ctx: &ReducerContext, id: u16) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut onboarding_state = unwrap_or_err!(
-        ctx.db.onboarding_state().entity_id().find(&actor_id),
+        ctx.db.onboarding_state().entity_id().find(actor_id),
         "Failed to get onboarding state!"
     );
 
@@ -44,11 +44,11 @@ pub fn complete_onboarding_state(ctx: &ReducerContext, id: u16) -> Result<(), St
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn start_onboarding_quest(ctx: &ReducerContext, id: u16) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut onboarding_state = unwrap_or_err!(
-        ctx.db.onboarding_state().entity_id().find(&actor_id),
+        ctx.db.onboarding_state().entity_id().find(actor_id),
         "Failed to get onboarding state!"
     );
 
@@ -62,11 +62,11 @@ pub fn start_onboarding_quest(ctx: &ReducerContext, id: u16) -> Result<(), Strin
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn complete_onboarding_quest(ctx: &ReducerContext, id: u16) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut onboarding_state = unwrap_or_err!(
-        ctx.db.onboarding_state().entity_id().find(&actor_id),
+        ctx.db.onboarding_state().entity_id().find(actor_id),
         "Failed to get onboarding state!"
     );
 
@@ -81,7 +81,7 @@ pub fn complete_onboarding_quest(ctx: &ReducerContext, id: u16) -> Result<(), St
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn reset_onboarding(ctx: &ReducerContext) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let new_state = OnboardingState {

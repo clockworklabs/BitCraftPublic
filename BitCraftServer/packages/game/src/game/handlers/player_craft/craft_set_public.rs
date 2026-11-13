@@ -10,7 +10,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_set_public(ctx: &ReducerContext, progressive_action_entity_id: u64, is_public: bool) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     let progressive_action_state = unwrap_or_err!(
         ctx.db.progressive_action_state().entity_id().find(progressive_action_entity_id),

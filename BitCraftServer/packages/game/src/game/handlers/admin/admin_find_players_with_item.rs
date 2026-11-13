@@ -118,5 +118,5 @@ pub fn quantity_of_item(inventory: &InventoryState, item_id: i32, item_type: Ite
             quantity += stack.quantity as u64
         }
     }
-    return quantity;
+    quantity
 }

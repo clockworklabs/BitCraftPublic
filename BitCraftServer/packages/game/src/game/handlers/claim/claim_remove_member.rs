@@ -13,10 +13,10 @@ use crate::{
 #[shared_table_reducer]
 #[feature_gate]
 pub fn claim_remove_member(ctx: &ReducerContext, request: PlayerClaimRemoveMemberRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&request.claim_entity_id), "No such claim.");
+    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.claim_entity_id), "No such claim.");
 
     let member_id = request.player_entity_id;
 
@@ -31,7 +31,7 @@ pub fn claim_remove_member(ctx: &ReducerContext, request: PlayerClaimRemoveMembe
     }
 
     for rent_state in ctx.db.rent_state().claim_entity_id().filter(claim.entity_id) {
-        if let Some(renter) = rent_state.white_list.get(0) {
+        if let Some(renter) = rent_state.white_list.first() {
             if *renter == member_id {
                 return Err("Cannot remove a member renting a building. You need to evict them first.".into());
             }

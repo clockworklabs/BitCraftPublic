@@ -16,19 +16,19 @@ pub fn auto_unstuck_player_and_deployable(ctx: &ReducerContext, player_entity_id
     let player_unstuck_location = get_player_unstuck_location(ctx, &player_mobile_entity_state);
 
     if let Some(mounting_state) = ctx.db.mounting_state().entity_id().find(player_entity_id) {
-        if let Some(deployable_state) = ctx.db.deployable_state_v2().entity_id().find(&mounting_state.deployable_entity_id) {
+        if let Some(deployable_state) = ctx.db.deployable_state_v2().entity_id().find(mounting_state.deployable_entity_id) {
             if deployable_state.owner_id == *player_entity_id {
                 let mut deployable_location = ctx
                     .db
                     .mobile_entity_state()
                     .entity_id()
-                    .find(&deployable_state.entity_id)
+                    .find(deployable_state.entity_id)
                     .unwrap()
                     .offset_coordinates_float();
                 let bounds = get_dimension_bounds(ctx, &player_mobile_entity_state.dimension);
 
                 if !is_within_dimension_bounds(&deployable_location, bounds) {
-                    log::info!("Auto-unstucking deployable with id: {}", &deployable_state.entity_id);
+                    log::info!("Auto-unstucking deployable with id: {}", deployable_state.entity_id);
 
                     if let Some(player_unstuck_location) = player_unstuck_location {
                         unstuck_entity(ctx, &deployable_state.entity_id, &player_unstuck_location);
@@ -39,7 +39,7 @@ pub fn auto_unstuck_player_and_deployable(ctx: &ReducerContext, player_entity_id
                 }
             } else {
                 //Player is a passenger - dismount deployable
-                ctx.db.mounting_state().entity_id().delete(&mounting_state.entity_id);
+                ctx.db.mounting_state().entity_id().delete(mounting_state.entity_id);
                 PlayerState::collect_stats(ctx, *player_entity_id);
             }
         } else {
@@ -54,7 +54,7 @@ pub fn auto_unstuck_player_and_deployable(ctx: &ReducerContext, player_entity_id
     if let Some(player_unstuck_location) = player_unstuck_location {
         log::info!("Auto-unstucking player with id: {}", player_entity_id);
 
-        unstuck_entity(ctx, &player_entity_id, &player_unstuck_location);
+        unstuck_entity(ctx, player_entity_id, &player_unstuck_location);
     }
 }
 
@@ -65,7 +65,7 @@ fn get_player_unstuck_location(ctx: &ReducerContext, player_mobile_entity_state:
             .db
             .dimension_description_state()
             .dimension_id()
-            .find(&player_mobile_entity_state.dimension)
+            .find(player_mobile_entity_state.dimension)
             .is_some()
     {
         let mut player_location = player_mobile_entity_state.offset_coordinates_float();
@@ -84,14 +84,14 @@ fn get_player_unstuck_location(ctx: &ReducerContext, player_mobile_entity_state:
         .db
         .player_state()
         .entity_id()
-        .find(&player_mobile_entity_state.entity_id)
+        .find(player_mobile_entity_state.entity_id)
         .unwrap();
     let home_location = player.teleport_location.location;
     if ctx
         .db
         .dimension_description_state()
         .dimension_id()
-        .find(&home_location.dimension)
+        .find(home_location.dimension)
         .is_some()
     {
         return Some(OffsetCoordinatesFloat::from(home_location));
@@ -111,9 +111,9 @@ fn get_player_unstuck_location(ctx: &ReducerContext, player_mobile_entity_state:
 
     // Use the first spawn location as a fallback
     let location_cache = ctx.db.location_cache().version().find(0).unwrap();
-    let spawn_location = location_cache.spawn_locations.iter().next().unwrap();
+    let spawn_location = location_cache.spawn_locations.first().unwrap();
 
-    return Some(OffsetCoordinatesFloat::from(OffsetCoordinatesSmall::from(spawn_location)));
+    Some(OffsetCoordinatesFloat::from(OffsetCoordinatesSmall::from(spawn_location)))
 }
 
 fn unstuck_entity(ctx: &ReducerContext, entity_id: &u64, offset_coordinates: &OffsetCoordinatesFloat) {

@@ -149,14 +149,14 @@ pub enum PremiumServiceType {
 
 impl WorldRegionState {
     pub fn world_width_chunks(&self) -> i32 {
-        return self.region_width_chunks as i32 * self.region_count_sqrt as i32;
+        self.region_width_chunks as i32 * self.region_count_sqrt as i32
     }
 
     pub fn world_height_chunks(&self) -> i32 {
-        return self.region_height_chunks as i32 * self.region_count_sqrt as i32;
+        self.region_height_chunks as i32 * self.region_count_sqrt as i32
     }
 
     pub fn world_chunk_count(&self) -> i32 {
-        return self.region_width_chunks as i32 * self.region_height_chunks as i32 * self.region_count as i32;
+        self.region_width_chunks as i32 * self.region_height_chunks as i32 * self.region_count as i32
     }
 }

@@ -10,9 +10,9 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn ban_player_from_chat_channel(ctx: &ReducerContext, channel_entity_id: u64, player_entity_id: u64) -> Result<(), String> {
-    unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(&channel_entity_id), "Invalid chat channel");
+    unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(channel_entity_id), "Invalid chat channel");
 
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if actor_id == player_entity_id {
         return Err("You can't edit your own permission level.".into());
@@ -28,7 +28,7 @@ pub fn ban_player_from_chat_channel(ctx: &ReducerContext, channel_entity_id: u64
         player_permissions.rank = ChatChannelPermission::Banned as i32;
         ctx.db.chat_channel_permission_state().entity_id().update(player_permissions);
     } else {
-        let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(&player_entity_id), "Invalid user.");
+        let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(player_entity_id), "Invalid user.");
         ctx.db.chat_channel_permission_state().insert(ChatChannelPermissionState {
             entity_id: game_state::create_entity(ctx),
             chat_channel_entity_id: channel_entity_id,

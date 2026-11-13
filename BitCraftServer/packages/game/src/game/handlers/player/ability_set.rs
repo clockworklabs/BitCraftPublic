@@ -7,7 +7,7 @@ use crate::messages::components::{ability_state, action_bar_state, AbilityState,
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn ability_set(ctx: &ReducerContext, action_bar_index: u8, local_ability_index: u8, ability: AbilityType) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     reduce(ctx, actor_id, action_bar_index, local_ability_index as i8, ability)
 }
 
@@ -27,10 +27,7 @@ pub fn reduce(
         return Err("Invalid ability index".into());
     }
 
-    match ability {
-        AbilityType::_Unsupported(_) => return Err("Invalid ability".into()),
-        _ => {}
-    }
+    if let AbilityType::_Unsupported(_) = ability { return Err("Invalid ability".into()) }
 
     let ability_entity_id;
 
@@ -74,7 +71,7 @@ pub fn reduce(
             entity_id: game_state::create_entity(ctx),
             player_entity_id: actor_id,
             action_bar_index,
-            local_ability_index: local_ability_index,
+            local_ability_index,
             ability_entity_id,
         });
 

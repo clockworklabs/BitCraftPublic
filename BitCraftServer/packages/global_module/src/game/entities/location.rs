@@ -52,7 +52,7 @@ impl LocationState {
     }
 
     pub fn select_all_in_chunk_iter(ctx: &ReducerContext, chunk_coordinates: &ChunkCoordinates) -> impl Iterator<Item = LocationState> {
-        let chunk_index = TerrainChunkState::chunk_index_from_coords(&chunk_coordinates);
+        let chunk_index = TerrainChunkState::chunk_index_from_coords(chunk_coordinates);
         ctx.db.location_state().chunk_index().filter(chunk_index)
     }
 
@@ -130,7 +130,7 @@ impl MobileEntityState {
             z: self.location_z,
             dimension: self.dimension,
         };
-        return SmallHexTile::from(OffsetCoordinatesSmall::from(c));
+        SmallHexTile::from(OffsetCoordinatesSmall::from(c))
     }
 
     pub fn destination(&self) -> SmallHexTile {
@@ -139,7 +139,7 @@ impl MobileEntityState {
             z: self.destination_z,
             dimension: self.dimension,
         };
-        return SmallHexTile::from(OffsetCoordinatesSmall::from(c));
+        SmallHexTile::from(OffsetCoordinatesSmall::from(c))
     }
 
     pub fn offset_coordinates(&self) -> OffsetCoordinatesSmall {
@@ -148,7 +148,7 @@ impl MobileEntityState {
             z: self.location_z,
             dimension: self.dimension,
         };
-        return c.into();
+        c.into()
     }
 
     pub fn coordinates_float(&self) -> FloatHexTile {
@@ -156,11 +156,11 @@ impl MobileEntityState {
     }
 
     pub fn offset_coordinates_float(&self) -> OffsetCoordinatesFloat {
-        return OffsetCoordinatesFloat {
+        OffsetCoordinatesFloat {
             x: self.location_x,
             z: self.location_z,
             dimension: self.dimension,
-        };
+        }
     }
 
     pub fn destination_float(&self) -> FloatHexTile {
@@ -168,11 +168,11 @@ impl MobileEntityState {
     }
 
     pub fn offset_destination_float(&self) -> OffsetCoordinatesFloat {
-        return OffsetCoordinatesFloat {
+        OffsetCoordinatesFloat {
             x: self.destination_x,
             z: self.destination_z,
             dimension: self.dimension,
-        };
+        }
     }
 
     pub fn to_location_state(&self) -> LocationState {

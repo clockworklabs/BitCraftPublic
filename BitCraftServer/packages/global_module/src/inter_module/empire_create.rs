@@ -14,7 +14,7 @@ use crate::{
 
 pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreateMsg) -> Result<(), String> {
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().owner_building_entity_id().find(&request.building_entity_id),
+        ctx.db.claim_state().owner_building_entity_id().find(request.building_entity_id),
         "This is not a claim"
     );
 
@@ -31,7 +31,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreat
         ctx.db
             .empire_settlement_state()
             .building_entity_id()
-            .find(&request.building_entity_id),
+            .find(request.building_entity_id),
         "This claim does not have the tech to form an empire"
     );
 
@@ -39,7 +39,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreat
         .db
         .empire_icon_desc()
         .id()
-        .find(&request.icon_id)
+        .find(request.icon_id)
         .is_none_or(|icon| icon.is_shape)
     {
         return Err("Invalid empire icon".into());
@@ -49,14 +49,14 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreat
         .db
         .empire_icon_desc()
         .id()
-        .find(&request.shape_id)
+        .find(request.shape_id)
         .is_none_or(|icon| !icon.is_shape)
     {
         return Err("Invalid empire shape".into());
     }
 
-    if ctx.db.empire_color_desc().id().find(&request.color1_id).is_none()
-        || ctx.db.empire_color_desc().id().find(&request.color2_id).is_none()
+    if ctx.db.empire_color_desc().id().find(request.color1_id).is_none()
+        || ctx.db.empire_color_desc().id().find(request.color2_id).is_none()
     {
         return Err("Invalid empire colors".into());
     }
@@ -68,7 +68,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreat
         .db
         .previous_empire_name_state()
         .empire_lower_case_name()
-        .find(&request.empire_name.to_lowercase())
+        .find(request.empire_name.to_lowercase())
     {
         if previous_entry.emperor_identity != identity {
             return Err("This name is unavailable".into());
@@ -78,7 +78,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreat
     // Clear player's reserved name, if any, whether it used the previous name or not
     ctx.db.previous_empire_name_state().emperor_identity().delete(identity);
 
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
 
     let empire_entity_id = game_state::create_entity(ctx);
 
@@ -90,7 +90,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreat
         capital_building_entity_id: request.building_entity_id,
         name: request.empire_name,
         shard_treasury: params.empire_starting_shards as u32,
-        empire_currency_treasury: params.empire_starting_currency as u32,
+        empire_currency_treasury: params.empire_starting_currency,
         nobility_threshold: empire_default_nobility_threshold,
         num_claims: 1,
         location: settlement.location,

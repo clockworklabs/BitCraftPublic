@@ -32,6 +32,7 @@ const MIN_CLAIM_TOTEM_SMALL_TILE_DISTANCE: i32 = 80;
 
 #[spacetimedb::reducer]
 #[shared_table_reducer]
+#[expect(clippy::too_many_arguments, reason = "reducer arguments are part of the client API")]
 pub fn world_place_npc_watchtowers(
     ctx: &ReducerContext,
     watchtower_positions: Vec<OffsetCoordinatesSmallMessage>,
@@ -63,7 +64,7 @@ pub fn world_place_npc_watchtowers(
         .db
         .building_desc()
         .id()
-        .find(&building_desc_id)
+        .find(building_desc_id)
         .ok_or_else(|| format!("Building desc {} not found", building_desc_id))?;
 
     // Validate no duplicate chunks across watchtowers

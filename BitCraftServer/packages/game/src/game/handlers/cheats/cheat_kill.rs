@@ -7,7 +7,7 @@ pub fn cheat_kill(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
         return Err("Unauthorized.".into());
     }
 
-    let mut health_state = ctx.db.health_state().entity_id().find(&entity_id).unwrap();
+    let mut health_state = ctx.db.health_state().entity_id().find(entity_id).unwrap();
     if health_state.health > 0.0 {
         health_state.health = 0.0;
         update_health_and_check_death(ctx, &mut TerrainChunkCache::empty(), health_state, entity_id, None);

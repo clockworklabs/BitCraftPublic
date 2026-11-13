@@ -17,7 +17,7 @@ pub struct TeleportationEnergyRegenLoopTimer {
 }
 
 pub fn update_timer(ctx: &ReducerContext) {
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     let mut count = 0;
     for mut timer in ctx.db.teleportation_energy_regen_loop_timer().iter() {
         count += 1;
@@ -31,7 +31,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 }
 
 pub fn init(ctx: &ReducerContext) {
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     ctx.db
         .teleportation_energy_regen_loop_timer()
         .try_insert(TeleportationEnergyRegenLoopTimer {
@@ -44,7 +44,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn teleportation_energy_regen_agent_loop(ctx: &ReducerContext, _timer: TeleportationEnergyRegenLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to teleportation_energy_regen agent");
         return;
     }

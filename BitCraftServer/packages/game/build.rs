@@ -8,11 +8,10 @@ pub mod build_shared;
 fn to_snakecase(s: &str) -> String {
     let mut output = String::new();
     for c in s.chars() {
-        if c.is_ascii_uppercase() {
-            if output.len() > 0 {
+        if c.is_ascii_uppercase()
+            && !output.is_empty() {
                 output.push('_');
             }
-        }
         output.push(c.to_ascii_lowercase());
     }
     output
@@ -59,8 +58,8 @@ fn build_knowledge() {
             continue;
         }
 
-        if line.contains("pub struct") {
-            if next_struct_is_table {
+        if line.contains("pub struct")
+            && next_struct_is_table {
                 next_struct_is_table = false;
 
                 if let Some(name_index) = line.find("pub struct ") {
@@ -80,7 +79,6 @@ fn build_knowledge() {
                     }
                 };
             }
-        }
 
         achievement = false;
     }
@@ -129,7 +127,7 @@ fn build_knowledge() {
     output_generate_knowledges.push_str("pub fn generate_knowledges(ctx: &ReducerContext, entity_id: u64) {\n");
 
     for k in sorted_keys {
-        let v = knowledge_table[&k].clone();
+        let v = knowledge_table[&k];
 
         let is_entity = v == 2;
         let is_location = v == 3;
@@ -376,7 +374,7 @@ fn build_knowledge() {
 
         output_generate_knowledges.push_str(
             format!(
-                "    if ctx.db.{}().try_insert({} {{ entries: Vec::new(), entity_id }}).is_err() {{}}\n",
+                "    let _ = ctx.db.{}().try_insert({} {{ entries: Vec::new(), entity_id }});\n",
                 camel_to_snake(&k),
                 k
             )
@@ -385,7 +383,7 @@ fn build_knowledge() {
     }
 
     output_generate_knowledges.push_str("}\n\n");
-    output_includes.push_str("\n");
+    output_includes.push('\n');
 
     output_discovery.push_str("}\n\n");
     output_init.push_str("        });\n");
@@ -404,7 +402,7 @@ fn build_knowledge() {
     write_if_file_changed("src/game/discovery/autogen/_discovery.rs", discovery_str);
 }
 
-fn camel_to_snake(str: &String) -> String {
+fn camel_to_snake(str: &str) -> String {
     let mut output = String::new();
     for c in str.chars() {
         if c.is_uppercase() {

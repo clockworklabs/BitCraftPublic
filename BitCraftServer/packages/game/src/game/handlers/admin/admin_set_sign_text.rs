@@ -23,9 +23,7 @@ pub fn admin_set_sign_text(ctx: &ReducerContext, deployable_name: String, new_na
     let entity_id = unwrap_or_err!(
         ctx.db
             .player_note_state()
-            .iter()
-            .filter(|d| d.text.to_lowercase() == name_lower)
-            .next(),
+            .iter().find(|d| d.text.to_lowercase() == name_lower),
         "Sign not found"
     )
     .entity_id;
@@ -40,9 +38,7 @@ pub fn admin_set_sign_text_coord(ctx: &ReducerContext, coord: OffsetCoordinatesS
     }
 
     let entity_id = unwrap_or_err!(
-        LocationState::select_all(ctx, &SmallHexTile::from(coord))
-            .filter(|l| ctx.db.building_state().entity_id().find(l.entity_id).is_some())
-            .next(),
+        LocationState::select_all(ctx, &SmallHexTile::from(coord)).find(|l| ctx.db.building_state().entity_id().find(l.entity_id).is_some()),
         "No building at this location"
     )
     .entity_id;

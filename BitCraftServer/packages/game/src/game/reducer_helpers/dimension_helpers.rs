@@ -12,22 +12,22 @@ use crate::messages::components::TerrainChunkState;
 
 pub fn get_dimension_size(ctx: &ReducerContext, dimension: &u32) -> (i32, i32) {
     if *dimension == dimensions::OVERWORLD {
-        let region = ctx.db.world_region_state().id().find(&0).unwrap();
+        let region = ctx.db.world_region_state().id().find(0).unwrap();
 
         return (region.region_width_chunks as i32, region.region_height_chunks as i32);
     }
 
     let dimension_desc = ctx.db.dimension_description_state().dimension_id().find(dimension).unwrap();
 
-    return (
+    (
         dimension_desc.dimension_size_large_x as i32,
         dimension_desc.dimension_size_large_z as i32,
-    );
+    )
 }
 
 pub fn get_dimension_bounds(ctx: &ReducerContext, dimension: &u32) -> (OffsetCoordinatesLarge, OffsetCoordinatesLarge) {
     if *dimension == dimensions::OVERWORLD {
-        let region = ctx.db.world_region_state().id().find(&0).unwrap();
+        let region = ctx.db.world_region_state().id().find(0).unwrap();
 
         let min: OffsetCoordinatesLarge = OffsetCoordinatesLarge {
             x: region.region_min_chunk_x as i32 * TerrainChunkState::WIDTH as i32,
@@ -55,7 +55,7 @@ pub fn get_dimension_bounds(ctx: &ReducerContext, dimension: &u32) -> (OffsetCoo
         dimension: *dimension,
     };
 
-    return (min, max);
+    (min, max)
 }
 
 pub fn is_within_dimension_bounds(
@@ -65,10 +65,10 @@ pub fn is_within_dimension_bounds(
     let min = OffsetCoordinatesFloat::from(OffsetCoordinatesSmall::from(bounds.0));
     let max = OffsetCoordinatesFloat::from(OffsetCoordinatesSmall::from(bounds.1));
 
-    return offset_coordinates_float.x >= min.x
+    offset_coordinates_float.x >= min.x
         && offset_coordinates_float.x <= max.x
         && offset_coordinates_float.z >= min.z
-        && offset_coordinates_float.z <= max.z;
+        && offset_coordinates_float.z <= max.z
 }
 
 pub fn is_within_dimension_bounds_small(
@@ -78,10 +78,10 @@ pub fn is_within_dimension_bounds_small(
     let min = OffsetCoordinatesSmall::from(bounds.0);
     let max = OffsetCoordinatesSmall::from(bounds.1);
 
-    return offset_coordinates_small.x >= min.x
+    offset_coordinates_small.x >= min.x
         && offset_coordinates_small.x <= max.x
         && offset_coordinates_small.z >= min.z
-        && offset_coordinates_small.z <= max.z;
+        && offset_coordinates_small.z <= max.z
 }
 
 pub fn clamp_within_dimension_bounds(

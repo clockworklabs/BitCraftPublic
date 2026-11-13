@@ -10,7 +10,7 @@ pub fn cheat_grant_teleport_energy(ctx: &ReducerContext, player_entity_id: u64, 
     }
 
     let mut ts = unwrap_or_err!(
-        ctx.db.teleportation_energy_state().entity_id().find(&player_entity_id),
+        ctx.db.teleportation_energy_state().entity_id().find(player_entity_id),
         "Invalid player id"
     );
     ts.add_energy(ctx, amount);

@@ -15,7 +15,7 @@ impl From<HexCoordinates> for OffsetCoordinatesFloat {
     fn from(coordinates: HexCoordinates) -> Self {
         let oc: FloatHexTile = coordinates.into();
         let oc: OffsetCoordinatesFloat = oc.into();
-        oc.into()
+        oc
     }
 }
 
@@ -23,7 +23,7 @@ impl From<OffsetCoordinatesFloat> for OffsetCoordinates {
     fn from(coordinates: OffsetCoordinatesFloat) -> Self {
         let hfc: FloatHexTile = coordinates.into();
         let hc: HexCoordinates = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -31,7 +31,7 @@ impl From<OffsetCoordinates> for OffsetCoordinatesFloat {
     fn from(coordinates: OffsetCoordinates) -> Self {
         let hfc: HexCoordinates = coordinates.into();
         let hc: FloatHexTile = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -104,36 +104,36 @@ impl From<&FloatHexTile> for OffsetCoordinatesFloat {
 
 impl From<OffsetCoordinatesFloat> for OffsetCoordinatesSmall {
     fn from(coordinates: OffsetCoordinatesFloat) -> Self {
-        return OffsetCoordinatesSmall::from(SmallHexTile::from(FloatHexTile::from(coordinates)));
+        OffsetCoordinatesSmall::from(SmallHexTile::from(FloatHexTile::from(coordinates)))
     }
 }
 
 impl From<&OffsetCoordinatesFloat> for OffsetCoordinatesSmall {
     fn from(coordinates: &OffsetCoordinatesFloat) -> Self {
-        return OffsetCoordinatesSmall::from(SmallHexTile::from(FloatHexTile::from(*coordinates)));
+        OffsetCoordinatesSmall::from(SmallHexTile::from(FloatHexTile::from(*coordinates)))
     }
 }
 
 impl From<OffsetCoordinatesSmall> for OffsetCoordinatesFloat {
     fn from(coordinates: OffsetCoordinatesSmall) -> Self {
-        return OffsetCoordinatesFloat::from(FloatHexTile::from(SmallHexTile::from(coordinates)));
+        OffsetCoordinatesFloat::from(FloatHexTile::from(SmallHexTile::from(coordinates)))
     }
 }
 
 impl From<&OffsetCoordinatesSmall> for OffsetCoordinatesFloat {
     fn from(coordinates: &OffsetCoordinatesSmall) -> Self {
-        return OffsetCoordinatesFloat::from(FloatHexTile::from(SmallHexTile::from(*coordinates)));
+        OffsetCoordinatesFloat::from(FloatHexTile::from(SmallHexTile::from(*coordinates)))
     }
 }
 
 impl From<SmallHexTile> for OffsetCoordinatesFloat {
     fn from(coordinates: SmallHexTile) -> Self {
-        return OffsetCoordinatesFloat::from(FloatHexTile::from(coordinates));
+        OffsetCoordinatesFloat::from(FloatHexTile::from(coordinates))
     }
 }
 
 impl From<&SmallHexTile> for OffsetCoordinatesFloat {
     fn from(coordinates: &SmallHexTile) -> Self {
-        return OffsetCoordinatesFloat::from(FloatHexTile::from(*coordinates));
+        OffsetCoordinatesFloat::from(FloatHexTile::from(*coordinates))
     }
 }

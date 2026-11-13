@@ -26,9 +26,7 @@ impl ThreatState {
             .db
             .threat_state()
             .owner_entity_id()
-            .filter(entity_id)
-            .filter(|t| t.target_entity_id == threat_entity_id)
-            .next()
+            .filter(entity_id).find(|t| t.target_entity_id == threat_entity_id)
         {
             threat.threat += amount;
             ctx.db.threat_state().entity_id().update(threat);
@@ -59,9 +57,7 @@ impl ThreatState {
             .db
             .threat_state()
             .owner_entity_id()
-            .filter(entity_id)
-            .filter(|t| t.target_entity_id == threat_entity_id)
-            .next()
+            .filter(entity_id).find(|t| t.target_entity_id == threat_entity_id)
         {
             threat.threat = max_threat + amount;
             ctx.db.threat_state().entity_id().update(threat);
@@ -82,11 +78,9 @@ impl ThreatState {
             .db
             .threat_state()
             .owner_entity_id()
-            .filter(owner_entity_id)
-            .filter(|t| t.target_entity_id == target_entity_id)
-            .next()
+            .filter(owner_entity_id).find(|t| t.target_entity_id == target_entity_id)
         {
-            ctx.db.threat_state().entity_id().delete(&threat.entity_id);
+            ctx.db.threat_state().entity_id().delete(threat.entity_id);
             EnemyScalingState::update(ctx, threat.target_entity_id);
             ContributionState::idle_reset(ctx, threat.target_entity_id);
         }
@@ -94,11 +88,9 @@ impl ThreatState {
             .db
             .threat_state()
             .owner_entity_id()
-            .filter(target_entity_id)
-            .filter(|t| t.target_entity_id == owner_entity_id)
-            .next()
+            .filter(target_entity_id).find(|t| t.target_entity_id == owner_entity_id)
         {
-            ctx.db.threat_state().entity_id().delete(&threat.entity_id);
+            ctx.db.threat_state().entity_id().delete(threat.entity_id);
             EnemyScalingState::update(ctx, threat.target_entity_id);
             ContributionState::idle_reset(ctx, threat.target_entity_id);
         }
@@ -107,11 +99,11 @@ impl ThreatState {
     pub fn clear_all(ctx: &ReducerContext, owner_entity_id: u64) {
         for threat_state in ctx.db.threat_state().target_entity_id().filter(owner_entity_id) {
             ContributionState::idle_reset(ctx, threat_state.owner_entity_id);
-            ctx.db.threat_state().entity_id().delete(&threat_state.entity_id);
+            ctx.db.threat_state().entity_id().delete(threat_state.entity_id);
             EnemyScalingState::update(ctx, threat_state.owner_entity_id);
         }
         ContributionState::idle_reset(ctx, owner_entity_id);
-        ctx.db.threat_state().owner_entity_id().delete(&owner_entity_id);
+        ctx.db.threat_state().owner_entity_id().delete(owner_entity_id);
         EnemyScalingState::update(ctx, owner_entity_id);
     }
 
@@ -121,6 +113,6 @@ impl ThreatState {
             ContributionState::idle_reset(ctx, threat_state.owner_entity_id);
             EnemyScalingState::update(ctx, threat_state.owner_entity_id);
         }
-        ctx.db.threat_state().target_entity_id().delete(&owner_entity_id);
+        ctx.db.threat_state().target_entity_id().delete(owner_entity_id);
     }
 }

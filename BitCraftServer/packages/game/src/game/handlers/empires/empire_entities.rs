@@ -16,7 +16,7 @@ use crate::{
 impl EmpireState {
     pub fn remove_crown_status(ctx: &ReducerContext, player_entity_id: u64) {
         // Remove all crown collectibles from that player's vault
-        let mut vault = ctx.db.vault_state().entity_id().find(&player_entity_id).unwrap();
+        let mut vault = ctx.db.vault_state().entity_id().find(player_entity_id).unwrap();
         for entry in ctx.db.empire_territory_desc().iter() {
             let collectible_id = entry.crown_collectible_id;
             if collectible_id != 0 {
@@ -32,7 +32,7 @@ impl EmpireState {
     pub fn unequip_cloak(ctx: &ReducerContext, player_entity_id: u64) {
         // Remove or enable all cloak collectibles from that player's vault.
         // Design: There's only one cloak, and it's only when you're part of empire.
-        let mut vault = ctx.db.vault_state().entity_id().find(&player_entity_id).unwrap();
+        let mut vault = ctx.db.vault_state().entity_id().find(player_entity_id).unwrap();
         // Note: we can't index collectibles by an enum yet, therefore we need to iterate through all entries.
 
         for cloak_collectible in ctx
@@ -57,14 +57,12 @@ impl EmpireState {
             ctx.db
                 .empire_player_data_state()
                 .empire_entity_id()
-                .filter(empire_entity_id)
-                .filter(|data| data.rank == 0)
-                .next(),
+                .filter(empire_entity_id).find(|data| data.rank == 0),
             "Emperor doesn't exist"
         )
         .entity_id;
 
-        let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(&emperor_entity_id), "Missing VaultState");
+        let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(emperor_entity_id), "Missing VaultState");
         let mut highest_crown_collectible_id = 0;
         let mut crowns: Vec<EmpireTerritoryDesc> = ctx
             .db
@@ -112,7 +110,7 @@ impl EmpirePlayerDataState {
     ) -> bool {
         let empire_entity_id = EmpireState::get_building_empire_entity_id(ctx, building_entity_id);
         if empire_entity_id == 0 {
-            let building_state = ctx.db.building_state().entity_id().find(&building_entity_id).unwrap();
+            let building_state = ctx.db.building_state().entity_id().find(building_entity_id).unwrap();
             // claim permission type is irrelevent here
 
             if !PermissionState::can_interact_with_building(ctx, player_entity_id, &building_state, Permission::Inventory) {
@@ -134,11 +132,11 @@ impl EmpireNodeSiegeState {
     pub fn validate_building(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
         // for now, make sure we only siege watch towers
         let building_state = unwrap_or_err!(
-            ctx.db.building_state().entity_id().find(&building_entity_id),
+            ctx.db.building_state().entity_id().find(building_entity_id),
             "This building does not exist"
         );
         let building_desc = unwrap_or_err!(
-            ctx.db.building_desc().id().find(&building_state.building_description_id),
+            ctx.db.building_desc().id().find(building_state.building_description_id),
             "Invalid building"
         );
         if !building_desc.has_category(ctx, BuildingCategory::Watchtower) {
@@ -160,7 +158,7 @@ impl EmpireNodeSiegeState {
 
         post_reducer_update_cargo(ctx, player_entity_id);
 
-        return Ok((supplies, hexite_capsule_id));
+        Ok((supplies, hexite_capsule_id))
     }
 
     pub fn add_supplies(
@@ -174,7 +172,7 @@ impl EmpireNodeSiegeState {
         Self::validate_add_supplies(ctx, actor_id, building_entity_id, proxy_empire_entity_id)?;
         // Add supplies to ongoing siege, either for attacker or defender. We cannot start a new siege here.
 
-        let rank = ctx.db.empire_player_data_state().entity_id().find(&actor_id).unwrap();
+        let rank = ctx.db.empire_player_data_state().entity_id().find(actor_id).unwrap();
         let mut siege = EmpireNodeSiegeState::get(ctx, building_entity_id, rank.empire_entity_id);
 
         let participating = match siege.as_ref() {

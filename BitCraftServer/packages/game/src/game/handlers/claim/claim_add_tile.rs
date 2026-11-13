@@ -17,7 +17,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_add_tile(ctx: &ReducerContext, request: PlayerClaimAddTileRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let coord = SmallHexTile::from(request.coordinates);
@@ -26,7 +26,7 @@ pub fn claim_add_tile(ctx: &ReducerContext, request: PlayerClaimAddTileRequest) 
 
 fn reduce(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64, t: SmallHexTile) -> Result<(), String> {
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&claim_entity_id),
+        ctx.db.claim_state().entity_id().find(claim_entity_id),
         "Claim does not exist"
     );
     let mut claim_local = claim.local_state(ctx);
@@ -55,9 +55,9 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64, t: SmallHex
     }
 
     let parent_large_tile = t.parent_large_tile();
-    let chunk_index = TerrainChunkState::chunk_index_from_coords(&ChunkCoordinates::from_terrain_coordinates(parent_large_tile.into()));
+    let chunk_index = TerrainChunkState::chunk_index_from_coords(&ChunkCoordinates::from_terrain_coordinates(parent_large_tile));
     let terrain_chunk = unwrap_or_err!(
-        ctx.db.terrain_chunk_state().chunk_index().find(&chunk_index),
+        ctx.db.terrain_chunk_state().chunk_index().find(chunk_index),
         "Invalid terrain chunk"
     );
     let terrain_cell = unwrap_or_err!(terrain_chunk.get_entity(&parent_large_tile.into()), "Invalid terrain chunk");
@@ -82,17 +82,17 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64, t: SmallHex
         return Err("Cannot claim land too close to another claimed area".into());
     }
 
-    let max_tiles = ctx.db.claim_tech_state().entity_id().find(&claim_entity_id).unwrap().max_tiles(ctx);
+    let max_tiles = ctx.db.claim_tech_state().entity_id().find(claim_entity_id).unwrap().max_tiles(ctx);
     if claim_local.num_tiles >= max_tiles {
         return Err("Claim can't be extended further, you need to develop your tech.".into());
     }
 
     let claim_center = game_state_filters::coordinates(ctx, claim.owner_building_entity_id);
     if !SmallHexTile::simple_raycast(&t, &claim_center, |cur| {
-        return match claim_cache.get_claim_on_tile(ctx, cur) {
+        match claim_cache.get_claim_on_tile(ctx, cur) {
             Some(ct) => ct == claim_entity_id,
             None => true,
-        };
+        }
     }) {
         return Err("Cannot claim tiles that would partially surround another claim".into());
     }

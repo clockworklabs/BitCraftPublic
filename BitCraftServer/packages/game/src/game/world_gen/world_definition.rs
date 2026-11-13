@@ -45,7 +45,7 @@ impl WorldDefinition {
 
         let world_map = WorldMapDefinition {
             debug_step: 0,
-            shapes: shapes,
+            shapes,
         };
 
         //BiomesMapDefinition
@@ -81,7 +81,7 @@ impl WorldDefinition {
             biomes.push(n);
         }
         let biomes_map = BiomesMapDefinition {
-            biomes: biomes,
+            biomes,
             values: biomes_map.values,
         };
 
@@ -97,13 +97,12 @@ impl WorldDefinition {
             };
             mountains.push(n);
         }
-        let mountains_map = MountainsMapDefinition { mountains: mountains };
+        let mountains_map = MountainsMapDefinition { mountains };
 
         //BuildingsMapDefinition
         let mut buildings_list: Vec<BuildingDetails> = vec![];
         let buildings_map = def.buildings_map;
 
-        let buildings_map = buildings_map;
         for world_gen_building in buildings_map.buildings {
             buildings_list.push(BuildingDetails {
                 index: world_gen_building.index,
@@ -136,7 +135,7 @@ impl WorldDefinition {
                 bv.push(n);
             }
             let n = ResourceDefinition {
-                resource_details: resource_details,
+                resource_details,
                 biomes: bv,
             };
             resources.push(n);
@@ -147,17 +146,16 @@ impl WorldDefinition {
         };
 
         //WorldDefinition
-        let r = WorldDefinition {
+        WorldDefinition {
             size: def.size,
             land_curve: def.land_curve,
             noise_influence: def.noise_influence,
             sea_level: def.sea_level as i16,
-            world_map: world_map,
-            biomes_map: biomes_map,
-            mountains_map: mountains_map,
+            world_map,
+            biomes_map,
+            mountains_map,
             buildings_map: buildings_list,
             resources_map,
-        };
-        r
+        }
     }
 }

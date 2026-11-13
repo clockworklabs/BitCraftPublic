@@ -25,11 +25,10 @@ impl NoiseSpecs {
 
     fn get_offset(seed: i32, min_max_value: f32) -> Vector2 {
         let mut random = CommonRNG::from_seed(seed);
-        let offset = Vector2 {
+
+        Vector2 {
             x: random.f32(-min_max_value, min_max_value),
             y: random.f32(-min_max_value, min_max_value),
-        };
-
-        return offset;
+        }
     }
 }

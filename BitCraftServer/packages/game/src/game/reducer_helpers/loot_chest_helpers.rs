@@ -22,13 +22,14 @@ use crate::{
 pub fn delete_loot_chest(ctx: &ReducerContext, entity_id: u64) {
     footprint_helpers::delete_footprint(ctx, entity_id);
     game_state_filters::remove_entity_inventories(ctx, entity_id);
-    ctx.db.loot_chest_state().entity_id().delete(&entity_id);
-    ctx.db.location_state().entity_id().delete(&entity_id);
+    ctx.db.loot_chest_state().entity_id().delete(entity_id);
+    ctx.db.location_state().entity_id().delete(entity_id);
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn spawn_loot_chest(
     ctx: &ReducerContext,
-    loot_chests: &Vec<i32>,
+    loot_chests: &[i32],
     entity_id: u64,
     spawn_location: SmallHexTile,
     direction_index: i32,
@@ -40,10 +41,10 @@ pub fn spawn_loot_chest(
 
     let loot_chest_desc_id = loot_chests[loot_chest_ix];
 
-    let loot_chest_desc = unwrap_or_err!(ctx.db.loot_chest_desc().id().find(&loot_chest_desc_id), "Failed to find loot table");
+    let loot_chest_desc = unwrap_or_err!(ctx.db.loot_chest_desc().id().find(loot_chest_desc_id), "Failed to find loot table");
 
     let chest_rarity_desc = unwrap_or_err!(
-        ctx.db.chest_rarity_desc().id().find(&loot_chest_desc.chest_rarity),
+        ctx.db.chest_rarity_desc().id().find(loot_chest_desc.chest_rarity),
         "Failed to find chest rarity"
     );
 
@@ -68,9 +69,9 @@ pub fn spawn_loot_chest(
             .try_insert(LootChestState {
                 entity_id,
                 loot_chest_id: loot_chest_desc_id,
-                building_entity_id: building_entity_id,
-                direction_index: direction_index,
-                building_spawn_id: building_spawn_id,
+                building_entity_id,
+                direction_index,
+                building_spawn_id,
             })
             .is_err()
         {
@@ -103,13 +104,13 @@ pub fn spawn_loot_chest(
 }
 
 pub fn on_item_taken_from_loot_chest(ctx: &ReducerContext, owner_entity_id: u64, from_inventory_empty: bool) -> Result<(), String> {
-    let loot_chest = ctx.db.loot_chest_state().entity_id().find(&owner_entity_id).unwrap();
+    let loot_chest = ctx.db.loot_chest_state().entity_id().find(owner_entity_id).unwrap();
     if loot_chest.building_entity_id != 0 {
         //Chest in overworld
         // if this item was removed from a loot chest, then start a timer to re-roll it
         if from_inventory_empty {
-            let loot_chest = ctx.db.loot_chest_state().entity_id().find(&owner_entity_id).unwrap();
-            let despawn_time = ctx.db.parameters_desc().version().find(&0).unwrap().loot_chest_despawn_time_seconds;
+            let loot_chest = ctx.db.loot_chest_state().entity_id().find(owner_entity_id).unwrap();
+            let despawn_time = ctx.db.parameters_desc().version().find(0).unwrap().loot_chest_despawn_time_seconds;
             ctx.db
                 .loot_chest_despawn_timer()
                 .try_insert(LootChestDespawnTimer {
@@ -136,7 +137,7 @@ pub fn on_item_taken_from_loot_chest(ctx: &ReducerContext, owner_entity_id: u64,
                 .unwrap();
         }
 
-        if let Some(collapse_trigger) = ctx.db.interior_collapse_trigger_state().entity_id().find(&owner_entity_id) {
+        if let Some(collapse_trigger) = ctx.db.interior_collapse_trigger_state().entity_id().find(owner_entity_id) {
             return interior_trigger_collapse(ctx, collapse_trigger.dimension_network_entity_id);
         }
     }

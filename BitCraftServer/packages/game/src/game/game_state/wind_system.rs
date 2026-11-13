@@ -19,21 +19,21 @@ lazy_static! {
 pub fn sample_wind_float(ctx: &ReducerContext, coord: &FloatHexTile, time: Option<u64>) -> f32 {
     let pos = coord.to_world_position();
     let time = time.unwrap_or_else(|| super::unix_ms(ctx.timestamp));
-    return sample_wind_vec2(ctx, pos.x as f64, pos.y as f64, time);
+    sample_wind_vec2(ctx, pos.x as f64, pos.y as f64, time)
 }
 
 ///Returns direction in radians [0..2PI]
 pub fn sample_wind_small(ctx: &ReducerContext, coord: &SmallHexTile, time: Option<u64>) -> f32 {
     let pos = coord.to_center_position_xz();
     let time = time.unwrap_or_else(|| super::unix_ms(ctx.timestamp));
-    return sample_wind_vec2(ctx, pos.x as f64, pos.y as f64, time);
+    sample_wind_vec2(ctx, pos.x as f64, pos.y as f64, time)
 }
 
 ///Returns direction in radians [0..2PI]
 pub fn sample_wind_large(ctx: &ReducerContext, coord: &LargeHexTile, time: Option<u64>) -> f32 {
     let pos = coord.to_center_position_xz();
     let time = time.unwrap_or_else(|| super::unix_ms(ctx.timestamp));
-    return sample_wind_vec2(ctx, pos.x as f64, pos.y as f64, time);
+    sample_wind_vec2(ctx, pos.x as f64, pos.y as f64, time)
 }
 
 ///Returns direction in radians [0..2PI]
@@ -57,5 +57,5 @@ pub fn sample_wind_vec2(ctx: &ReducerContext, x: f64, y: f64, time_ms: u64) -> f
     }
     let val = (sum / div) as f32 + 1.0; //[0..2]
     let val = (val * NOISE_MUL * std::f32::consts::PI * 2.0) % (std::f32::consts::PI * 2.0); //Noise rarely reaches min/max values, so we multiply it to increase likelyhood of those values
-    return val;
+    val
 }

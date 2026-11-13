@@ -22,7 +22,7 @@ pub struct DroppedInventoryOwnershipTimer {
 
 #[spacetimedb::reducer]
 pub fn dropped_inventory_lose_ownership(ctx: &ReducerContext, timer: DroppedInventoryOwnershipTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to dropped_inventory_lose_ownership");
         return;
     }
@@ -60,7 +60,7 @@ pub struct DroppedInventoryDespawnTimer {
 
 #[spacetimedb::reducer]
 pub fn dropped_inventory_despawn(ctx: &ReducerContext, timer: DroppedInventoryDespawnTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to dropped_inventory_despawn");
         return;
     }
@@ -190,7 +190,7 @@ impl DroppedInventoryState {
 
     pub fn update_from_items(ctx: &ReducerContext, actor_id: u64, loc: SmallHexTile, item_stacks: Vec<ItemStack>, ownership_duration: Option<i32>) {
         
-        if item_stacks.len() == 0 {
+        if item_stacks.is_empty() {
             return;
         }
 

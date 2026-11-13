@@ -36,7 +36,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn player_session_log_cleanup_loop(ctx: &ReducerContext, _timer: PlayerSessionLogCleanupLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to player session log cleanup agent");
         return;
     }

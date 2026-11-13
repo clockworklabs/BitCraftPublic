@@ -10,7 +10,7 @@ pub fn load_config(ctx: &ReducerContext, environment_names: Vec<String>, content
         return Err("Invalid permissions".into());
     }
 
-    ctx.db.config().version().delete(&0);
+    ctx.db.config().version().delete(0);
     let expected_env = "local"; //DAB Note: I'm Derek and I say we need to replace this once we can access STDB instance name
     let index = environment_names
         .iter()

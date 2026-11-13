@@ -10,7 +10,7 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn item_pick_up(ctx: &ReducerContext, request: PlayerDroppedInventoryPickUpRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 

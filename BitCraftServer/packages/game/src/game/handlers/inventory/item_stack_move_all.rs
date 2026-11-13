@@ -14,19 +14,19 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn item_stack_move_all(ctx: &ReducerContext, request: PlayerItemStackMoveAllRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut source_inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&request.from_pocket.inventory_entity_id),
+        ctx.db.inventory_state().entity_id().find(request.from_pocket.inventory_entity_id),
         "Invalid source inventory"
     );
 
     let mut target_inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&request.to_pocket.inventory_entity_id),
+        ctx.db.inventory_state().entity_id().find(request.to_pocket.inventory_entity_id),
         "Invalid target inventory"
     );
 
@@ -36,7 +36,7 @@ pub fn item_stack_move_all(ctx: &ReducerContext, request: PlayerItemStackMoveAll
         return Err("You cannot use this reducer on the same inventory instance".into());
     }
 
-    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Player has no location").coordinates();
+    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Player has no location").coordinates();
 
     let source_inventory_type = inventory_helper::validate_interact(
         ctx,
@@ -119,7 +119,7 @@ pub fn item_stack_move_all(ctx: &ReducerContext, request: PlayerItemStackMoveAll
 
         added_quantities.push((index, original_quantity - contents.quantity));
 
-        let mut stack = contents.clone();
+        let mut stack = contents;
         stack.quantity = original_quantity - contents.quantity;
         ActionLogState::log_storage(
             ctx,

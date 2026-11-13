@@ -1369,6 +1369,8 @@ pub struct ParametersDesc {
     pub empire_watchtower_upkeep_per_total_chunks: f64,
     #[default(48)]
     pub empire_siege_delay_ticks: i32,
+    #[default(2)]
+    pub floating_platform_region_edge_margin_chunks: i32,
 }
 
 #[spacetimedb::table(accessor = parameters_player_move_desc)]
@@ -2786,7 +2788,9 @@ pub struct QuestChainDesc {
     #[default(false)]
     pub unstartable: bool,
     #[default(false)]
-    pub is_secret: bool
+    pub is_secret: bool,
+    #[default(0u32)]
+    pub recommended_priority: u32,
 }
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]

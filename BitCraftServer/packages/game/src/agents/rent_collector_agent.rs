@@ -21,7 +21,7 @@ pub struct RentCollectorLoopTimer {
 }
 
 pub fn schedule_first_tick(ctx: &ReducerContext) {
-    let tick_time_of_day = ctx.db.parameters_desc().version().find(&0).unwrap().rent_collection_time_of_day;
+    let tick_time_of_day = ctx.db.parameters_desc().version().find(0).unwrap().rent_collection_time_of_day;
     let daily_timestamp_tick = (tick_time_of_day * 60.0 * 60.0) as i32;
     let seconds_elapsed = game_state::unix(ctx.timestamp);
     let start_of_current_day_timestamp = (seconds_elapsed / SECONDS_IN_A_DAY) * SECONDS_IN_A_DAY;
@@ -47,7 +47,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn rent_collector_agent_loop(ctx: &ReducerContext, timer: RentCollectorLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to rent_collector agent");
         return;
     }
@@ -82,7 +82,7 @@ fn rent_collector_agent_loop(ctx: &ReducerContext, timer: RentCollectorLoopTimer
                     rent_state.paid_rent -= rent_state.daily_rent;
 
                     // There should always be a claim associated to a rent
-                    if let Some(claim_entity) = ctx.db.claim_state().entity_id().find(&claim_entity_id) {
+                    if let Some(claim_entity) = ctx.db.claim_state().entity_id().find(claim_entity_id) {
                         let mut claim_entity = claim_entity.local_state(ctx);
                         claim_entity.treasury += rent_state.daily_rent;
                         ctx.db.claim_local_state().entity_id().update(claim_entity);

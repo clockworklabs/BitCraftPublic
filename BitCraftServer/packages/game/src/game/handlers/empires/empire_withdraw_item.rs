@@ -15,7 +15,7 @@ use crate::{
 
 #[spacetimedb::reducer]
 pub fn empire_withdraw_item(ctx: &ReducerContext, item_id: i32, item_type: ItemType, amount: u32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if !EmpirePlayerDataState::has_permission(ctx, actor_id, EmpirePermission::WithdrawEmpireCurrency) {
         return Err("You don't have the permission to withdraw from the Empire treasury".into());
@@ -38,7 +38,7 @@ pub fn empire_withdraw_item(ctx: &ReducerContext, item_id: i32, item_type: ItemT
         ctx,
         crate::messages::inter_module::MessageContentsV5::EmpireWithdrawItem(EmpireWithdrawItemMsg {
             player_entity_id: actor_id,
-            item_id: item_id,
+            item_id,
             count: amount,
             is_cargo: item_type == ItemType::Cargo,
         }),
@@ -49,9 +49,9 @@ pub fn empire_withdraw_item(ctx: &ReducerContext, item_id: i32, item_type: ItemT
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireWithdrawItemMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         // Nothing was withdrawn
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     } else {
         let items = vec![ItemStack {
             item_id: request.item_id,

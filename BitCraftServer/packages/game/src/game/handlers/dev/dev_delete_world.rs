@@ -24,14 +24,14 @@ pub fn dev_delete_world(ctx: &ReducerContext) -> Result<(), String> {
         users.push(user.entity_id);
     }
     for user in users {
-        ctx.db.user_state().entity_id().delete(&user);
+        ctx.db.user_state().entity_id().delete(user);
     }
 
     //Delete chunks
     let mut chunks = Vec::with_capacity(100);
     chunks.extend(ctx.db.terrain_chunk_state().iter().map(|c| c.chunk_index));
     for chunk in chunks {
-        ctx.db.terrain_chunk_state().chunk_index().delete(&chunk);
+        ctx.db.terrain_chunk_state().chunk_index().delete(chunk);
     }
 
     //Clear caches
@@ -40,13 +40,13 @@ pub fn dev_delete_world(ctx: &ReducerContext) -> Result<(), String> {
         herds.push(herd.entity_id);
     }
     for herd in herds {
-        ctx.db.herd_state().entity_id().delete(&herd);
+        ctx.db.herd_state().entity_id().delete(herd);
     }
-    ctx.db.location_cache().version().delete(&0);
-    ctx.db.resources_log().version().delete(&0);
+    ctx.db.location_cache().version().delete(0);
+    ctx.db.resources_log().version().delete(0);
 
     //Delete entities
-    let mut globals = ctx.db.globals().version().find(&0).unwrap();
+    let mut globals = ctx.db.globals().version().find(0).unwrap();
     for i in 0..=globals.entity_pk_counter {
         clear_entity(ctx, i);
     }
@@ -55,7 +55,7 @@ pub fn dev_delete_world(ctx: &ReducerContext) -> Result<(), String> {
     globals.dimension_counter = 0;
     ctx.db.globals().version().update(globals);
 
-    let mut config = ctx.db.config().version().find(&0).unwrap();
+    let mut config = ctx.db.config().version().find(0).unwrap();
     config.agents_enabled = false;
     ctx.db.config().version().update(config);
 

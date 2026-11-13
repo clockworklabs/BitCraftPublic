@@ -41,7 +41,7 @@ fn event_delay_recipe_id(
     request: &PlayerPlaceablePlaceRequest,
     stats: &CharacterStatsState,
 ) -> (Duration, Option<i32>) {
-    let recipe = ctx.db.placeable_placement_desc().id().find(&request.placeable_placement_id);
+    let recipe = ctx.db.placeable_placement_desc().id().find(request.placeable_placement_id);
     if let Some(recipe) = recipe {
         let build_speed = stats.get(CharacterStatType::BuildingSpeed).max(1.0);
         return (Duration::from_secs_f32(recipe.required_time / build_speed), Some(recipe.id));
@@ -53,10 +53,10 @@ fn event_delay_recipe_id(
 #[spacetimedb::reducer]
 #[feature_gate("place")]
 pub fn placeable_place_start(ctx: &ReducerContext, request: PlayerPlaceablePlaceRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     let target = None;
     let (delay, recipe_id) = event_delay_recipe_id(ctx, &request, &stats);
 
@@ -67,7 +67,7 @@ pub fn placeable_place_start(ctx: &ReducerContext, request: PlayerPlaceablePlace
         target,
         recipe_id,
         delay,
-        reduce(ctx, actor_id, request.clone(), true),
+        reduce(ctx, actor_id, request, true),
         request.timestamp,
     );
     if result.is_ok() {
@@ -81,7 +81,7 @@ pub fn placeable_place_start(ctx: &ReducerContext, request: PlayerPlaceablePlace
 #[spacetimedb::reducer]
 #[feature_gate("place")]
 pub fn placeable_place(ctx: &ReducerContext, request: PlayerPlaceablePlaceRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     player_action_helpers::schedule_clear_player_action(
@@ -101,10 +101,10 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: PlayerPlaceablePlaceRequ
     }
 
     let recipe = unwrap_or_err!(
-        ctx.db.placeable_placement_desc().id().find(&request.placeable_placement_id),
+        ctx.db.placeable_placement_desc().id().find(request.placeable_placement_id),
         "Unknown placeable placement recipe"
     );
-    let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(&recipe.placed_placeable_id), "Unknown placeable");
+    let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(recipe.placed_placeable_id), "Unknown placeable");
 
     let actor_coords = game_state_filters::coordinates_float(ctx, actor_id);
     let mut terrain_cache = TerrainChunkCache::empty();
@@ -112,7 +112,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: PlayerPlaceablePlaceRequ
         terrain_cache.get_terrain_cell(ctx, &actor_coords.parent_large_tile()),
         "Invalid location"
     );
-    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(&actor_id).is_none() {
+    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(actor_id).is_none() {
         return Err("Cannot place while swimming".into());
     }
 
@@ -135,23 +135,23 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: PlayerPlaceablePlaceRequ
     validate_building_distance_rules(ctx, coordinates, &recipe)?;
 
     if !dry_run {
-        let input_items = vec![recipe.input_item.clone()];
-        if let Err(_) = InventoryState::withdraw_from_player_inventory_and_nearby_deployables(ctx, actor_id, &input_items, |target| {
+        let input_items = vec![recipe.input_item];
+        if InventoryState::withdraw_from_player_inventory_and_nearby_deployables(ctx, actor_id, &input_items, |target| {
             target.distance_to(coordinates)
-        }) {
+        }).is_err() {
             let item_name = match recipe.input_item.item_type {
                 ItemType::Item => ctx
                     .db
                     .item_desc()
                     .id()
-                    .find(&recipe.input_item.item_id)
+                    .find(recipe.input_item.item_id)
                     .map(|item| item.name)
                     .unwrap_or_else(|| "Unknown item".into()),
                 ItemType::Cargo => ctx
                     .db
                     .cargo_desc()
                     .id()
-                    .find(&recipe.input_item.item_id)
+                    .find(recipe.input_item.item_id)
                     .map(|cargo| cargo.name)
                     .unwrap_or_else(|| "Unknown cargo".into()),
             };
@@ -174,7 +174,7 @@ fn validate_level_requirements(ctx: &ReducerContext, actor_id: u64, level_requir
     }
 
     let experience = unwrap_or_err!(
-        ctx.db.experience_state().entity_id().find(&actor_id),
+        ctx.db.experience_state().entity_id().find(actor_id),
         "Player has no experience state"
     );
     for requirement in level_requirements {
@@ -245,7 +245,7 @@ fn validate_location_rules(
                 .db
                 .paving_tile_desc()
                 .id()
-                .find(&acceptable_pavements[0])
+                .find(acceptable_pavements[0])
                 .map(|pavement| pavement.name)
                 .unwrap_or_else(|| "the required pavement".into());
             return Err(format!("This placeable must be placed on {{0}}!|~{}", pavement_name));
@@ -254,7 +254,7 @@ fn validate_location_rules(
 
     if recipe.required_paving_tier >= 0 {
         let valid = match PavedTileState::get_at_location(ctx, &coordinates) {
-            Some(tile) => ctx.db.paving_tile_desc().id().find(&tile.tile_type_id).unwrap().tier >= recipe.required_paving_tier,
+            Some(tile) => ctx.db.paving_tile_desc().id().find(tile.tile_type_id).unwrap().tier >= recipe.required_paving_tier,
             None => false,
         };
         if !valid {
@@ -266,7 +266,7 @@ fn validate_location_rules(
     }
 
     let dimension = unwrap_or_err!(
-        ctx.db.dimension_description_state().dimension_id().find(&coordinates.dimension),
+        ctx.db.dimension_description_state().dimension_id().find(coordinates.dimension),
         "Invalid dimension"
     );
     if recipe.required_interior_tier == -1 && dimension.interior_instance_id != 0 {
@@ -277,7 +277,7 @@ fn validate_location_rules(
             return Err(format!("Requires Tier {{0}} interior|~{}", recipe.required_interior_tier));
         }
 
-        let interior = ctx.db.interior_instance_desc().id().find(&dimension.interior_instance_id).unwrap();
+        let interior = ctx.db.interior_instance_desc().id().find(dimension.interior_instance_id).unwrap();
         if interior.tier < recipe.required_interior_tier {
             return Err(format!("Requires Tier {{0}} interior|~{}", recipe.required_interior_tier));
         }
@@ -289,7 +289,7 @@ fn validate_location_rules(
             "This placeable needs to be placed on a claim"
         );
         let claim_tech = unwrap_or_err!(
-            ctx.db.claim_tech_state().entity_id().find(&claim.claim_id),
+            ctx.db.claim_tech_state().entity_id().find(claim.claim_id),
             "This claim is missing its tech tree"
         );
         if claim_tech.max_tier(ctx) < recipe.required_claim_tier {

@@ -18,7 +18,7 @@ pub fn admin_resources_log_count(ctx: &ReducerContext, threshold: f32) -> Result
         return Err("Unauthorized".into());
     }
 
-    let resources_log = unwrap_or_err!(ctx.db.resources_log().version().find(&0), "No resource log");
+    let resources_log = unwrap_or_err!(ctx.db.resources_log().version().find(0), "No resource log");
     let resource_desc: HashMap<i32, ResourceDesc> = ctx.db.resource_desc().iter().map(|r| (r.id, r)).collect();
 
     // Tally missing resources in the world
@@ -26,7 +26,7 @@ pub fn admin_resources_log_count(ctx: &ReducerContext, threshold: f32) -> Result
         if let Some(ResourceCount {
             num_in_world: resource_count,
             ..
-        }) = ctx.db.resource_count().resource_id().find(&resource.resource_id)
+        }) = ctx.db.resource_count().resource_id().find(resource.resource_id)
         {
             if let Some(resource_desc) = resource_desc.get(&resource.resource_id) {
                 let target_threshold = (resource.world_target as f32 * threshold) as i32;

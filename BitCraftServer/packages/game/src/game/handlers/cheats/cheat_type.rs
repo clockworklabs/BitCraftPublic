@@ -51,13 +51,10 @@ pub enum CheatType {
 }
 
 pub fn can_run_cheat(ctx: &ReducerContext, identity: &Identity, cheat_type: CheatType) -> bool {
-    match ctx.db.config().version().find(&0) {
-        Some(config) => {
-            if config.env == "dev" {
-                return true; // dev config allows all operations
-            }
+    if let Some(config) = ctx.db.config().version().find(0) {
+        if config.env == "dev" {
+            return true; // dev config allows all operations
         }
-        None => {}
     }
 
     let role = match ctx.db.identity_role().identity().find(identity) {

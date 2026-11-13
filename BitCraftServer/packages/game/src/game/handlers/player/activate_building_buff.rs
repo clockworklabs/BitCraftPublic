@@ -18,7 +18,7 @@ use crate::{unwrap_or_err, PlayerTimestampState};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn activate_building_buff(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let player_coord = game_state_filters::coordinates_float(ctx, actor_id);
@@ -41,7 +41,7 @@ pub fn activate_building_buff(ctx: &ReducerContext, building_entity_id: u64) -> 
     // if player is not inside a building check if the request is for
     // an unenterable building (e.g. firepit) and if they are close enough
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Unknown building type"
     );
 

@@ -14,15 +14,15 @@ fn create_nodes() -> Vec<Vec<i32>> {
     nodes[8] = vec![0, 0, 0, 0, 0, 1, 1, 0, 0, 0];
     nodes[9] = vec![0, 0, 0, 0, 0, 0, 0, 1, 1, 1];
 
-    return nodes;
+    nodes
 }
 
 fn get_h_costs(current: &(usize, usize), target: (usize, usize)) -> f32 {
     let result = (current.0 as f32 - target.0 as f32).powf(2f32) + (current.1 as f32 - target.1 as f32).powf(2f32);
-    return result.sqrt();
+    result.sqrt()
 }
 
-fn get_edges(nodes: &Vec<Vec<i32>>, current: &(usize, usize)) -> Vec<Edge<(usize, usize)>> {
+fn get_edges(nodes: &[Vec<i32>], current: &(usize, usize)) -> Vec<Edge<(usize, usize)>> {
     let mut edges: Vec<Edge<(usize, usize)>> = Vec::new();
 
     for i in -1i32..=1 {
@@ -39,12 +39,12 @@ fn get_edges(nodes: &Vec<Vec<i32>>, current: &(usize, usize)) -> Vec<Edge<(usize
             let neighbor = nodes[index1][index2];
 
             if neighbor == 1 {
-                edges.push(Edge::new((index1, index2), if i == 0 || j == 0 { 1f32 } else { 1.4142f32 }));
+                edges.push(Edge::new((index1, index2), if i == 0 || j == 0 { 1f32 } else { std::f32::consts::SQRT_2 }));
             }
         }
     }
 
-    return edges;
+    edges
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn test_without_node_limit_path_is_some() {
     let path = pathfinder.shortest_path_to_target(source, target, get_h_costs, get_edges, None);
 
     //Assert
-    assert_eq!(path.is_some(), true);
+    assert!(path.is_some());
     assert_eq!(path.as_ref().unwrap().len(), 13);
     assert_eq!(path.as_ref().unwrap().first().unwrap(), &source);
     assert_eq!(path.as_ref().unwrap().last().unwrap(), &target);
@@ -82,7 +82,7 @@ fn test_without_node_limit_path_is_none() {
     let path = pathfinder.shortest_path_to_target(source, target, get_h_costs, get_edges, None);
 
     //Assert
-    assert_eq!(path.is_none(), true);
+    assert!(path.is_none());
 }
 
 #[test]
@@ -99,7 +99,7 @@ fn test_with_node_limit_path_is_some() {
     let path = pathfinder.shortest_path_to_target(source, target, get_h_costs, get_edges, Some(20));
 
     //Assert
-    assert_eq!(path.is_some(), true);
+    assert!(path.is_some());
     assert_eq!(path.as_ref().unwrap().len(), 13);
     assert_eq!(path.as_ref().unwrap().first().unwrap(), &source);
     assert_eq!(path.as_ref().unwrap().last().unwrap(), &target);
@@ -119,7 +119,7 @@ fn test_with_node_limit_path_is_none() {
     let path = pathfinder.shortest_path_to_target(source, target, get_h_costs, get_edges, Some(10));
 
     //Assert
-    assert_eq!(path.is_none(), true);
+    assert!(path.is_none());
 }
 
 fn create_nodes_map() -> Vec<Vec<i32>> {
@@ -135,7 +135,7 @@ fn create_nodes_map() -> Vec<Vec<i32>> {
     nodes[8] = vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
     nodes[9] = vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 
-    return nodes;
+    nodes
 }
 
 #[test]
@@ -152,7 +152,7 @@ fn test_with_open_map() {
     let path = pathfinder.shortest_path_to_target(source, target, get_h_costs, get_edges, None);
 
     //Assert
-    assert_eq!(path.is_some(), true);
+    assert!(path.is_some());
     assert_eq!(path.as_ref().unwrap().len(), 14);
     assert_eq!(path.as_ref().unwrap().first().unwrap(), &source);
     assert_eq!(path.as_ref().unwrap().last().unwrap(), &target);

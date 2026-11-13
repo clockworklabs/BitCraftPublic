@@ -6,8 +6,8 @@ use crate::{game::game_state, messages::action_request::PlayerPausePlayTimerRequ
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn pause_play_timer(ctx: &ReducerContext, request: PlayerPausePlayTimerRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
-    let mut player = unwrap_or_err!(ctx.db.player_state().entity_id().find(&actor_id), "Invalid player");
+    let actor_id = game_state::actor_id(ctx, true)?;
+    let mut player = unwrap_or_err!(ctx.db.player_state().entity_id().find(actor_id), "Invalid player");
 
     if request.paused {
         if player.session_start_timestamp != 0 {

@@ -3,6 +3,7 @@ use spacetimedb::{log, ReducerContext, Table};
 use super::location::LocationState;
 pub use crate::game::coordinates::*;
 use crate::game::game_state;
+use crate::game::reducer_helpers::floating_platform_helpers;
 use crate::game::terrain_chunk::TerrainChunkCache;
 use crate::messages::components::dropped_inventory_state;
 use crate::{deployable_state_v2, resource_state, unwrap_or_err, Biome};
@@ -20,15 +21,15 @@ impl ProjectSiteState {
     }
 
     pub fn footprint(&self, ctx: &ReducerContext, center: SmallHexTile) -> Vec<(SmallHexTile, FootprintType)> {
-        if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(&self.construction_recipe_id) {
-            if let Some(building_desc) = ctx.db.building_desc().id().find(&recipe.building_description_id) {
+        if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(self.construction_recipe_id) {
+            if let Some(building_desc) = ctx.db.building_desc().id().find(recipe.building_description_id) {
                 return building_desc.get_footprint(&center, self.direction);
             }
         } else if let Some(recipe) = ctx
             .db
             .resource_placement_recipe_desc()
             .id()
-            .find(&self.resource_placement_recipe_id)
+            .find(self.resource_placement_recipe_id)
         {
             if let Some(resource_desc) = ctx.db.resource_desc().id().find(recipe.resource_description_id) {
                 return resource_desc.get_footprint(&center, self.direction);
@@ -38,6 +39,7 @@ impl ProjectSiteState {
         Vec::new()
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn validate_placement(
         ctx: &ReducerContext,
         terrain_cache: &mut TerrainChunkCache,
@@ -80,6 +82,7 @@ impl ProjectSiteState {
         Ok(())
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn validate_placement_with_platform(
         ctx: &ReducerContext,
         terrain_cache: &mut TerrainChunkCache,
@@ -93,13 +96,12 @@ impl ProjectSiteState {
         ignore_player_placement: bool,
         floating_platform: Option<&FloatingPlatformDesc>,
     ) -> Result<(), String> {
-        if !ignore_player_placement {
-            if coordinates.distance_to(game_state_filters::coordinates_float(ctx, player_entity_id).into())
-                > ctx.db.parameters_desc().version().find(&0).unwrap().max_build_range
+        if !ignore_player_placement
+            && coordinates.distance_to(game_state_filters::coordinates_float(ctx, player_entity_id).into())
+                > ctx.db.parameters_desc().version().find(0).unwrap().max_build_range
             {
                 return Err("Too far".into());
             }
-        }
 
         let close_enemies: Vec<SmallHexTile> = game_state_filters::enemies_in_radius(ctx, coordinates, 5)
             .map(|(_, coord)| coord)
@@ -114,22 +116,21 @@ impl ProjectSiteState {
 
         let mut player_is_neighbor = false;
 
-        if original_claim_id != 0 {
-            if claim_helper::get_claim_under_footprint(ctx, &footprint) != original_claim_id {
+        if original_claim_id != 0
+            && claim_helper::get_claim_under_footprint(ctx, footprint) != original_claim_id {
                 return Err("Can only move a building within its own claim.".into());
             }
-        }
 
         let player_coord_opt: Option<FloatHexTile> = if !ignore_player_placement {
-            Some(game_state_filters::coordinates_float(ctx, player_entity_id).into())
+            Some(game_state_filters::coordinates_float(ctx, player_entity_id))
         } else {
             None
         };
 
         for (coords, footprint_type) in footprint {
-            let existing_footprints = FootprintTileState::get_at_location(ctx, &coords);
+            let existing_footprints = FootprintTileState::get_at_location(ctx, coords);
             for f in existing_footprints {
-                let resource = ctx.db.resource_state().entity_id().find(&f.owner_entity_id);
+                let resource = ctx.db.resource_state().entity_id().find(f.owner_entity_id);
                 if resource.is_none() && !FootprintTile::is_compatible(&f.footprint_type, footprint_type) {
                     let is_ignored = match ignore_building_entity_id {
                         Some(building_entity_id) => building_entity_id == f.owner_entity_id,
@@ -141,22 +142,22 @@ impl ProjectSiteState {
                     }
                 }
                 if let Some(deposit) = resource {
-                    if !ctx.db.resource_desc().id().find(&deposit.resource_id).unwrap().flattenable {
+                    if !ctx.db.resource_desc().id().find(deposit.resource_id).unwrap().flattenable {
                         return Err("Can't build on top of this resource.".into());
                     }
                 }
             }
 
             if required_paving >= 0 && *footprint_type != FootprintType::Perimeter {
-                let valid = match PavedTileState::get_at_location(ctx, &coords) {
-                    Some(tile) => ctx.db.paving_tile_desc().id().find(&tile.tile_type_id).unwrap().tier >= required_paving,
+                let valid = match PavedTileState::get_at_location(ctx, coords) {
+                    Some(tile) => ctx.db.paving_tile_desc().id().find(tile.tile_type_id).unwrap().tier >= required_paving,
                     None => false,
                 };
                 if !valid {
                     if required_paving == 0 {
                         return Err("This building requires paving!".into());
                     } else {
-                        return Err(format!("This building requires tier {{0}} paving!|~{}", required_paving).into());
+                        return Err(format!("This building requires tier {{0}} paving!|~{}", required_paving));
                     }
                 }
             }
@@ -166,9 +167,8 @@ impl ProjectSiteState {
                 None => return Err("Invalid footprint.".into()),
             };
 
-            if *footprint_type != FootprintType::Perimeter && floating_platform.is_some() {
+            if let Some(platform) = floating_platform.filter(|_| *footprint_type != FootprintType::Perimeter) {
                 // Floating platforms must be entirely over water of the right depth, on a flat water surface
-                let platform = floating_platform.unwrap();
                 for cell_coords in coords.get_terrain_coordinates() {
                     let cell = unwrap_or_err!(terrain_cache.get_terrain_cell(ctx, &cell_coords), "Invalid footprint.");
                     Self::validate_floating_platform_cell(&cell, platform)?;
@@ -211,8 +211,8 @@ impl ProjectSiteState {
             let entities_on_tile = LocationState::select_all(ctx, coords)
                 .map(|a| {
                     (
-                        ctx.db.deployable_state_v2().entity_id().find(&a.entity_id),
-                        ctx.db.dropped_inventory_state().entity_id().find(&a.entity_id),
+                        ctx.db.deployable_state_v2().entity_id().find(a.entity_id),
+                        ctx.db.dropped_inventory_state().entity_id().find(a.entity_id),
                     )
                 })
                 .find(|a| a.0.is_some() || a.1.is_some());
@@ -232,6 +232,7 @@ impl ProjectSiteState {
         Ok(())
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn validate_building_placement(
         ctx: &ReducerContext,
         terrain_cache: &mut TerrainChunkCache,
@@ -243,18 +244,21 @@ impl ProjectSiteState {
         original_claim_id: u64,
         ignore_building_entity_id: Option<u64>,
     ) -> Result<(), String> {
-        let building_description = ctx.db.building_desc().id().find(&building.id).unwrap();
+        let building_description = ctx.db.building_desc().id().find(building.id).unwrap();
         if building_description.has_category(ctx, BuildingCategory::TerrraformingBase) {
             if !coordinates.is_center() {
                 return Err("Terraforming base can only be built in the center of a terrain cell".into());
             }
-        };
+            if game_state_filters::floating_platform_on_cell(ctx, coordinates.parent_large_tile()).is_some() {
+                return Err("Can't terraform on a floating platform".into());
+            }
+        }
 
         if building_description.has_category(ctx, BuildingCategory::Elevator) {
             Self::is_valid_elevator_placement(ctx, terrain_cache, coordinates, facing_direction)?
         }
 
-        let floating_platform = ctx.db.floating_platform_desc().building_id().find(&building.id);
+        let floating_platform = ctx.db.floating_platform_desc().building_id().find(building.id);
         if floating_platform.is_some() {
             if coordinates.dimension != crate::game::dimensions::OVERWORLD {
                 return Err("Floating platforms can only be built outside".into());
@@ -262,6 +266,7 @@ impl ProjectSiteState {
             if !coordinates.is_center() {
                 return Err("Floating platforms can only be built in the center of a terrain cell".into());
             }
+            floating_platform_helpers::validate_distance_from_region_edge(ctx, coordinates)?;
         }
 
         // Don't allow placing close to prohibited biomes
@@ -343,7 +348,7 @@ impl ProjectSiteState {
         terrain_cache: &mut TerrainChunkCache,
         coordinates: SmallHexTile,
     ) -> Result<(), String> {
-        if recipe.required_biomes.len() == 0 {
+        if recipe.required_biomes.is_empty() {
             return Ok(());
         }
 

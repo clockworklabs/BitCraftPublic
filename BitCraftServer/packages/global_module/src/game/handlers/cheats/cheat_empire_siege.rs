@@ -15,7 +15,7 @@ fn cheat_empire_siege_cancel(ctx: &ReducerContext, siege_node_entity_id: u64) ->
     }
 
     let passed_node = unwrap_or_err!(
-        ctx.db.empire_node_siege_state().entity_id().find(&siege_node_entity_id),
+        ctx.db.empire_node_siege_state().entity_id().find(siege_node_entity_id),
         "Node doesn't exist"
     );
     for node in ctx
@@ -32,9 +32,9 @@ fn cheat_empire_siege_cancel(ctx: &ReducerContext, siege_node_entity_id: u64) ->
         .db
         .empire_siege_engine_state()
         .building_entity_id()
-        .find(&passed_node.building_entity_id)
+        .find(passed_node.building_entity_id)
     {
-        ctx.db.empire_siege_engine_state().entity_id().delete(&siege_engine.entity_id);
+        ctx.db.empire_siege_engine_state().entity_id().delete(siege_engine.entity_id);
         send_inter_module_message(
             ctx,
             crate::messages::inter_module::MessageContentsV5::RegionDestroySiegeEngine(
@@ -61,11 +61,11 @@ fn cheat_empire_siege_add_supplies(
     }
 
     let mut siege = unwrap_or_err!(
-        ctx.db.empire_node_siege_state().entity_id().find(&siege_node_entity_id),
+        ctx.db.empire_node_siege_state().entity_id().find(siege_node_entity_id),
         "Siege doesn't exist"
     );
 
-    siege.energy = siege.energy + supplies;
+    siege.energy += supplies;
     if siege.energy < 0 {
         let mut node = unwrap_or_err!(
             ctx.db.empire_node_state().entity_id().find(siege.building_entity_id),

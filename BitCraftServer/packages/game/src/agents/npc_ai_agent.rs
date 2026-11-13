@@ -35,7 +35,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to npc_ai agent");
         return;
     }
@@ -45,11 +45,11 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
     }
 
     let mut broken_ruins: Vec<u64> = Vec::new();
-    let mut location_cache = ctx.db.location_cache().version().find(&0).unwrap();
+    let mut location_cache = ctx.db.location_cache().version().find(0).unwrap();
     let traveler_ruins = &location_cache.traveler_ruins;
     let mut required_spawns: HashMap<NpcType, usize> = HashMap::new();
 
-    if traveler_ruins.len() > 0 {
+    if !traveler_ruins.is_empty() {
         // Identify how many npc instances are required for each type based on population in csv
         for npc in ctx.db.npc_desc().iter() {
             required_spawns.insert(
@@ -82,11 +82,8 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
                 free_ruins.remove(index);
             }
             // Need 1 less spawn for that npc type
-            match required_spawns.get(&npc_type) {
-                Some(count) => {
-                    required_spawns.insert(npc_type, if *count > 0 { *count - 1 } else { 0 });
-                }
-                None => {}
+            if let Some(count) = required_spawns.get(&npc_type) {
+                required_spawns.insert(npc_type, if *count > 0 { *count - 1 } else { 0 });
             }
         }
     }
@@ -97,9 +94,9 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
             let moving_npc_entity_id = moving_npc.entity_id;
             if let Some(target_index) = pick_free_ruin_index(ctx, moving_npc_entity_id, &free_ruins, &occupied_ruins) {
                 // occupies / locks next building
-                let target_ruin = free_ruins[target_index].clone();
+                let target_ruin = free_ruins[target_index];
                 let target_ruin_entity_id = target_ruin.entity_id;
-                if let Some(building) = ctx.db.building_state().entity_id().find(&target_ruin_entity_id) {
+                if let Some(building) = ctx.db.building_state().entity_id().find(target_ruin_entity_id) {
                     occupied_ruins.push(target_ruin);
                     free_ruins.remove(target_index);
 
@@ -123,7 +120,7 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
             }
         } else {
             let moving_npc_entity_id = moving_npc.entity_id;
-            if ctx.db.building_state().entity_id().find(&moving_npc.building_entity_id).is_some() {
+            if ctx.db.building_state().entity_id().find(moving_npc.building_entity_id).is_some() {
                 // delete current trade orders
                 moving_npc.delete_trade_orders(ctx);
                 moving_npc.create_trade_orders(ctx);
@@ -133,7 +130,7 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
                 ctx.db.npc_state().entity_id().update(moving_npc);
             } else {
                 // delete this npc that tragically lost its camp
-                ctx.db.npc_state().entity_id().delete(&moving_npc_entity_id);
+                ctx.db.npc_state().entity_id().delete(moving_npc_entity_id);
             }
         }
     }
@@ -141,13 +138,13 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
     // Attempt spawning all remaining npcs
     for (spawn_type, count) in required_spawns.iter() {
         for _i in 0..*count {
-            if free_ruins.len() == 0 {
+            if free_ruins.is_empty() {
                 log::error!("Not enough free ruins to spawn all npcs. Make sure the sum of all population percentages don't exceed 1.0 in the csv file.");
                 break;
             }
             let ruin_ix = ctx.rng().gen_range(0..free_ruins.len());
             let ruin = free_ruins[ruin_ix];
-            if let Some(building) = ctx.db.building_state().entity_id().find(&ruin.entity_id) {
+            if let Some(building) = ctx.db.building_state().entity_id().find(ruin.entity_id) {
                 let traveler_coords = BuildingSpawnDesc::get_traveler_spawn_coordinates(
                     ctx,
                     building.building_description_id,
@@ -170,7 +167,7 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
         }
     }
 
-    if broken_ruins.len() > 0 {
+    if !broken_ruins.is_empty() {
         for broken_ruin_entity_id in broken_ruins {
             if let Some(idx) = location_cache
                 .traveler_ruins
@@ -191,16 +188,16 @@ fn npc_ai_agent_loop(ctx: &ReducerContext, _timer: NpcAiLoopTimer) {
 fn pick_free_ruin_index(
     ctx: &ReducerContext,
     moving_npc_entity_id: u64,
-    free_ruins: &Vec<RuinsEntityValuePair>,
-    occupied_ruins: &Vec<RuinsEntityValuePair>,
+    free_ruins: &[RuinsEntityValuePair],
+    occupied_ruins: &[RuinsEntityValuePair],
 ) -> Option<usize> {
-    let npc = ctx.db.npc_state().entity_id().find(&moving_npc_entity_id).unwrap();
+    let npc = ctx.db.npc_state().entity_id().find(moving_npc_entity_id).unwrap();
 
     if let Some(index) = occupied_ruins.iter().position(|kvp| kvp.entity_id == npc.building_entity_id) {
         let start = occupied_ruins[index];
 
         // find the 3 closest ruins that were not visited recently
-        let mut sorted_ruins = free_ruins.clone();
+        let mut sorted_ruins = free_ruins.to_owned();
         sorted_ruins.sort_by(|r1, r2| {
             r1.coordinates
                 .distance_to(start.coordinates)
@@ -210,7 +207,7 @@ fn pick_free_ruin_index(
         let sorted_ruins_copy = sorted_ruins.clone();
         sorted_ruins.retain(|r| !npc.previous_buildings.contains(&r.entity_id));
 
-        if sorted_ruins.len() == 0 {
+        if sorted_ruins.is_empty() {
             // All free buildings were recently visited. Pick one of these then (better than none).
             sorted_ruins = sorted_ruins_copy;
         }

@@ -118,7 +118,7 @@ pub fn admin_expel_players(ctx: &ReducerContext, commit: bool) -> Result<(), Str
     }
     for (player_id, destination, home_location) in player_destinations {
         if let Some(home_location) = home_location {
-            let mut player_state = ctx.db.player_state().entity_id().find(&player_id).unwrap();
+            let mut player_state = ctx.db.player_state().entity_id().find(player_id).unwrap();
             player_state.teleport_location.location = home_location.into();
             player_state.teleport_location.location_type = TeleportLocationType::HomeLocation;
             ctx.db.player_state().entity_id().update(player_state);
@@ -191,7 +191,7 @@ fn ruined_waystones(ctx: &ReducerContext) -> Vec<(u64, SmallHexTile)> {
             ctx.db
                 .location_state()
                 .entity_id()
-                .find(&building.entity_id)
+                .find(building.entity_id)
                 .map(|location| (building.entity_id, location.coordinates()))
         })
         .collect()

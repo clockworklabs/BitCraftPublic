@@ -90,7 +90,7 @@ impl NpcState {
         let mut rng = ctx.rng();
         let sampled_ids = ids.iter().choose_multiple(
             &mut rng,
-            ctx.db.parameters_desc().version().find(&0).unwrap().selected_traveler_order_count as usize,
+            ctx.db.parameters_desc().version().find(0).unwrap().selected_traveler_order_count as usize,
         );
         for id in sampled_ids {
             let traveler_trade_order = ctx.db.traveler_trade_order_desc().id().find(id).unwrap();
@@ -116,7 +116,7 @@ impl NpcState {
     pub fn delete_trade_orders(&self, ctx: &ReducerContext) {
         let orders_to_delete = ctx.db.trade_order_state().shop_entity_id().filter(self.building_entity_id);
         for order in orders_to_delete {
-            ctx.db.trade_order_state().entity_id().delete(&order.entity_id);
+            ctx.db.trade_order_state().entity_id().delete(order.entity_id);
         }
     }
 
@@ -135,7 +135,7 @@ impl NpcState {
         self.building_entity_id = building.entity_id;
         self.next_action_timestamp = NpcState::get_next_timestamp(ctx, self.npc_type);
 
-        let building_coordinates = ctx.db.location_state().entity_id().find(&building.entity_id).unwrap().coordinates();
+        let building_coordinates = ctx.db.location_state().entity_id().find(building.entity_id).unwrap().coordinates();
 
         self.direction = BuildingSpawnDesc::get_traveler_direction(ctx, building.building_description_id, building.direction_index);
 
@@ -158,7 +158,7 @@ impl NpcState {
 
     pub fn refresh_all_traveler_trade_orders(ctx: &ReducerContext) {
         for npc in ctx.db.npc_state().iter() {
-            if ctx.db.building_state().entity_id().find(&npc.building_entity_id).is_none() {
+            if ctx.db.building_state().entity_id().find(npc.building_entity_id).is_none() {
                 continue;
             }
 

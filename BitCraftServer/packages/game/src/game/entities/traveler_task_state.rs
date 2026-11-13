@@ -117,7 +117,7 @@ impl TravelerTaskState {
             .filter(|task| refreshed_traveler_ids.contains(&task.traveler_id))
             .collect();
 
-        if completed_tasks.len() == 0 {
+        if completed_tasks.is_empty() {
             return;
         }
 

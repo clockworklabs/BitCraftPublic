@@ -22,7 +22,7 @@ pub fn can_interact_with_building(
     permission: ClaimPermission,
 ) -> bool {
     let building_entity_id = building_state.entity_id;
-    let building_desc = ctx.db.building_desc().id().find(&building_state.building_description_id).unwrap();
+    let building_desc = ctx.db.building_desc().id().find(building_state.building_description_id).unwrap();
     let interaction_level = match permission {
         ClaimPermission::Usage => building_desc.interact_permission,
         ClaimPermission::Inventory => building_desc.interact_permission,
@@ -33,15 +33,15 @@ pub fn can_interact_with_building(
         BuildingInteractionLevel::All => true,
         BuildingInteractionLevel::None => false,
         BuildingInteractionLevel::Empire => {
-            let claim_desc = ctx.db.claim_state().entity_id().find(&building_state.claim_entity_id);
+            let claim_desc = ctx.db.claim_state().entity_id().find(building_state.claim_entity_id);
             if let Some(ref claim) = claim_desc {
                 if building_desc.has_category(ctx, BuildingCategory::EmpireFoundry) {
-                    if let Some(empire_player_data_state) = ctx.db.empire_player_data_state().entity_id().find(&player_entity_id) {
+                    if let Some(empire_player_data_state) = ctx.db.empire_player_data_state().entity_id().find(player_entity_id) {
                         if let Some(empire_settlement_state) = ctx
                             .db
                             .empire_settlement_state()
                             .building_entity_id()
-                            .find(&claim.owner_building_entity_id)
+                            .find(claim.owner_building_entity_id)
                         {
                             if empire_player_data_state.empire_entity_id == empire_settlement_state.empire_entity_id {
                                 return EmpirePlayerDataState::has_permission(ctx, player_entity_id, EmpirePermission::CraftHexiteCapsule)
@@ -66,11 +66,11 @@ pub fn can_interact_with_building(
                 return true;
             }
 
-            let empire_node = match ctx.db.empire_node_state().entity_id().find(&building_state.entity_id) {
+            let empire_node = match ctx.db.empire_node_state().entity_id().find(building_state.entity_id) {
                 Some(en) => Some(en),
                 None => {
                     if let Some(ref claim) = claim_desc {
-                        ctx.db.empire_node_state().entity_id().find(&claim.owner_building_entity_id)
+                        ctx.db.empire_node_state().entity_id().find(claim.owner_building_entity_id)
                     } else {
                         None
                     }
@@ -83,11 +83,11 @@ pub fn can_interact_with_building(
                     return true;
                 }
 
-                if let Some(player_rank) = ctx.db.empire_player_data_state().entity_id().find(&player_entity_id) {
+                if let Some(player_rank) = ctx.db.empire_player_data_state().entity_id().find(player_entity_id) {
                     if permission == ClaimPermission::Build {
                         if empire_node.energy == 0 {
                             // Depleted watchtowers on empire influence can be destroyed by anyone part of that empire
-                            if let Some(chunk) = ctx.db.empire_chunk_state().chunk_index().find(&empire_node.chunk_index) {
+                            if let Some(chunk) = ctx.db.empire_chunk_state().chunk_index().find(empire_node.chunk_index) {
                                 if chunk.empire_entity_id == player_rank.empire_entity_id {
                                     return true;
                                 }
@@ -130,7 +130,7 @@ pub fn can_interact_with_building(
             false
         }
         _ => {
-            if let Some(claim_desc) = ctx.db.claim_state().entity_id().find(&building_state.claim_entity_id) {
+            if let Some(claim_desc) = ctx.db.claim_state().entity_id().find(building_state.claim_entity_id) {
                 if claim_desc.neutral {
                     return false;
                 }
@@ -174,7 +174,7 @@ pub fn has_permission(
                 .db
                 .rent_state()
                 .entity_id()
-                .find(&dimension_description_network.rent_entity_id)
+                .find(dimension_description_network.rent_entity_id)
                 .unwrap();
             return rent.white_list.contains(&player_entity_id);
         }
@@ -185,7 +185,7 @@ pub fn has_permission(
 }
 
 pub fn has_claim_permission(ctx: &ReducerContext, claim_entity_id: u64, player_entity_id: u64, permission: ClaimPermission) -> bool {
-    if let Some(claim_desc) = ctx.db.claim_state().entity_id().find(&claim_entity_id) {
+    if let Some(claim_desc) = ctx.db.claim_state().entity_id().find(claim_entity_id) {
         // A neutral claim can be used and looted by anyone
         if claim_desc.neutral && (permission == ClaimPermission::Inventory || permission == ClaimPermission::Usage) {
             return true;
@@ -202,12 +202,12 @@ pub fn has_claim_permission(ctx: &ReducerContext, claim_entity_id: u64, player_e
         }
 
         // Neutral claims can be used by everyone
-        if let Some(building_state) = ctx.db.building_state().entity_id().find(&claim_desc.owner_building_entity_id) {
+        if let Some(building_state) = ctx.db.building_state().entity_id().find(claim_desc.owner_building_entity_id) {
             if let Some(building_claim) = ctx
                 .db
                 .building_claim_desc()
                 .building_id()
-                .find(&building_state.building_description_id)
+                .find(building_state.building_description_id)
             {
                 if building_claim.claim_type == ClaimType::Neutral && permission == ClaimPermission::Usage {
                     return true;

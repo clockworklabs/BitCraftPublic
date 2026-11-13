@@ -8,7 +8,7 @@ use spacetimedb::{ReducerContext, Table};
 impl PillarShapingState {
     pub fn get_at_location(ctx: &ReducerContext, coordinates: &LargeHexTile) -> Option<PillarShapingState> {
         LocationState::select_all(ctx, &coordinates.center_small_tile())
-            .filter_map(|ls| ctx.db.pillar_shaping_state().entity_id().find(&ls.entity_id))
+            .filter_map(|ls| ctx.db.pillar_shaping_state().entity_id().find(ls.entity_id))
             .next()
     }
 

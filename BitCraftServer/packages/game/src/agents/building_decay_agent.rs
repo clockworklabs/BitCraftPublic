@@ -24,7 +24,7 @@ pub struct BuildingDecayLoopTimer {
 }
 
 pub fn update_timer(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().building_decay_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().building_decay_tick_millis as u64;
     let mut count = 0;
     for mut timer in ctx.db.building_decay_loop_timer().iter() {
         count += 1;
@@ -39,7 +39,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 
 pub fn init(ctx: &ReducerContext) {
     // schedule first tick
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().building_decay_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().building_decay_tick_millis as u64;
     ctx.db
         .building_decay_loop_timer()
         .try_insert(BuildingDecayLoopTimer {
@@ -53,7 +53,7 @@ pub fn init(ctx: &ReducerContext) {
 #[shared_table_reducer]
 #[spacetimedb::reducer]
 fn building_decay_agent_loop(ctx: &ReducerContext, _timer: BuildingDecayLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to building_decay agent");
         return;
     }
@@ -68,7 +68,7 @@ fn building_decay_agent_loop(ctx: &ReducerContext, _timer: BuildingDecayLoopTime
         &ctx.db
             .building_state()
             .claim_entity_id()
-            .filter(0 as u64)
+            .filter(0_u64)
             .map(
                 |BuildingState {
                      entity_id,
@@ -158,7 +158,7 @@ fn update_claim_building_health(ctx: &ReducerContext, buildings: &Vec<(u64, i32)
 fn building_decay(ctx: &ReducerContext, building_entity_id: u64, decay: f32, max_health: f32) {
     // Claimed buildings are already tallied by iterating through every claim description previously
 
-    let mut health_state = match ctx.db.health_state().entity_id().find(&building_entity_id) {
+    let mut health_state = match ctx.db.health_state().entity_id().find(building_entity_id) {
         Some(hs) => hs,
         None => {
             spacetimedb::log::error!("Unable to update building {} health", building_entity_id);

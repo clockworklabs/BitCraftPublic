@@ -25,7 +25,7 @@ pub fn init(ctx: &ReducerContext) {
 #[spacetimedb::reducer]
 #[shared_table_reducer]
 fn auto_logout_loop(ctx: &ReducerContext, _timer: AutoLogoutLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to auto_logout agent");
         return;
     }
@@ -39,7 +39,7 @@ fn auto_logout_loop(ctx: &ReducerContext, _timer: AutoLogoutLoopTimer) {
 
     for player in ctx.db.player_timestamp_state().iter() {
         if player.timestamp < expired {
-            if let Some(user_state) = ctx.db.user_state().entity_id().find(&player.entity_id) {
+            if let Some(user_state) = ctx.db.user_state().entity_id().find(player.entity_id) {
                 sign_out::sign_out_internal(ctx, user_state.identity, true);
                 ctx.db.player_signed_out_event().insert(PlayerSignedOutEvent {
                     identity: user_state.identity,

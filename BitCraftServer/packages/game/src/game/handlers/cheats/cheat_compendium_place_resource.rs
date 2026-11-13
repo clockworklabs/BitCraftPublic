@@ -16,7 +16,7 @@ pub fn cheat_compendium_place_resource(ctx: &ReducerContext, request: CheatCompe
         return Err("Unauthorized.".into());
     }
 
-    if let Some(resource_desc) = ctx.db.resource_desc().id().find(&request.item_id) {
+    if let Some(resource_desc) = ctx.db.resource_desc().id().find(request.item_id) {
         let coordinates = request.coordinates.into();
         let mut terrain_cache = TerrainChunkCache::empty();
         let should_flatten_terrain = !game_state_filters::is_submerged(ctx, &mut terrain_cache, coordinates);
@@ -29,12 +29,12 @@ pub fn cheat_compendium_place_resource(ctx: &ReducerContext, request: CheatCompe
             resource_desc.id,
             coordinates,
             request.facing_direction,
-            ctx.db.resource_desc().id().find(&resource_desc.id).unwrap().max_health,
+            ctx.db.resource_desc().id().find(resource_desc.id).unwrap().max_health,
             false,
             false,
         )?;
     } else {
-        return Err(format!("[Cheat] Failed to create resource from item_id {}", request.item_id).into());
+        return Err(format!("[Cheat] Failed to create resource from item_id {}", request.item_id));
     }
 
     Ok(())

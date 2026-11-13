@@ -9,7 +9,7 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_toggle_auto_follow(ctx: &ReducerContext, deployable_desc_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let deployable_desc = unwrap_or_err!(ctx.db.deployable_desc().id().find(deployable_desc_id), "Unknown deployable");
     if !deployable_desc.can_auto_follow {

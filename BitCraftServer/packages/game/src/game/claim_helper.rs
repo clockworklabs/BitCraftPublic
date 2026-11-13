@@ -17,8 +17,8 @@ use super::{
 use crate::game::coordinates::*;
 
 pub fn get_claim_building(ctx: &ReducerContext, claim_entity_id: u64) -> Option<BuildingState> {
-    if let Some(claim) = ctx.db.claim_state().entity_id().find(&claim_entity_id) {
-        return ctx.db.building_state().entity_id().find(&claim.owner_building_entity_id);
+    if let Some(claim) = ctx.db.claim_state().entity_id().find(claim_entity_id) {
+        return ctx.db.building_state().entity_id().find(claim.owner_building_entity_id);
     };
     None
 }
@@ -32,7 +32,7 @@ pub fn get_claim_under_building(
     direction: i32,
     claim_cache: &mut ClaimTileStateCache,
 ) -> u64 {
-    let building_desc = ctx.db.building_desc().id().find(&building_id).unwrap();
+    let building_desc = ctx.db.building_desc().id().find(building_id).unwrap();
     let footprint = building_desc.get_footprint(&coordinates, direction);
     get_claim_under_footprint_cached(ctx, &footprint, claim_cache)
 }
@@ -46,7 +46,7 @@ pub fn get_claim_under_resource(
     direction: i32,
     claim_cache: &mut ClaimTileStateCache,
 ) -> u64 {
-    let resource_desc = ctx.db.resource_desc().id().find(&resource_id).unwrap();
+    let resource_desc = ctx.db.resource_desc().id().find(resource_id).unwrap();
     let footprint = resource_desc.get_footprint(&coordinates, direction);
     get_claim_under_footprint_cached(ctx, &footprint, claim_cache)
 }
@@ -118,7 +118,7 @@ pub fn get_claim_under_footprint(ctx: &ReducerContext, footprint: &Vec<(SmallHex
 }
 
 pub fn get_partial_claims_under_building(ctx: &ReducerContext, coordinates: SmallHexTile, building_id: i32, direction: i32) -> Vec<u64> {
-    let building_desc = ctx.db.building_desc().id().find(&building_id).unwrap();
+    let building_desc = ctx.db.building_desc().id().find(building_id).unwrap();
     let footprint = building_desc.get_footprint(&coordinates, direction);
     get_partial_claims_under_footprint(ctx, &footprint)
 }
@@ -154,7 +154,7 @@ pub fn claim_tile(
     claim_entity_id: u64,
     coord: SmallHexTile,
     claim_buildings: bool,
-    mut claim_cache: &mut ClaimTileStateCache,
+    claim_cache: &mut ClaimTileStateCache,
 ) {
     let entity_id = game_state::create_entity(ctx);
     let offset = coord.to_offset_coordinates();
@@ -175,7 +175,7 @@ pub fn claim_tile(
     claim_cache.add_claim_on_tile(entity_id, claim_entity_id, &coord);
 
     if claim_buildings {
-        claim_tile_buildings(ctx, claim_entity_id, coord, &mut claim_cache);
+        claim_tile_buildings(ctx, claim_entity_id, coord, claim_cache);
     }
 
     for mut deployable in game_state_filters::deployables_at_coordinates(ctx, coord) {
@@ -201,7 +201,7 @@ fn claim_tile_buildings(ctx: &ReducerContext, claim_entity_id: u64, coord: Small
         .next();
     if let Some(building_entity_id) = footprint {
         let building_location = game_state_filters::coordinates_any(ctx, building_entity_id);
-        if let Some(building) = ctx.db.building_state().entity_id().find(&building_entity_id) {
+        if let Some(building) = ctx.db.building_state().entity_id().find(building_entity_id) {
             if get_claim_under_building(
                 ctx,
                 building_location,
@@ -212,8 +212,8 @@ fn claim_tile_buildings(ctx: &ReducerContext, claim_entity_id: u64, coord: Small
             {
                 BuildingState::claim(ctx, building_entity_id, claim_entity_id);
             }
-        } else if let Some(mut project_site) = ctx.db.project_site_state().entity_id().find(&building_entity_id) {
-            if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(&project_site.construction_recipe_id) {
+        } else if let Some(mut project_site) = ctx.db.project_site_state().entity_id().find(building_entity_id) {
+            if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(project_site.construction_recipe_id) {
                 let building_id = recipe.building_description_id;
                 if get_claim_under_building(ctx, building_location, building_id, project_site.direction, claim_cache) == claim_entity_id {
                     project_site.owner_id = claim_entity_id;
@@ -223,7 +223,7 @@ fn claim_tile_buildings(ctx: &ReducerContext, claim_entity_id: u64, coord: Small
                 .db
                 .resource_placement_recipe_desc()
                 .id()
-                .find(&project_site.resource_placement_recipe_id)
+                .find(project_site.resource_placement_recipe_id)
             {
                 let resource_id = recipe.resource_description_id;
                 if get_claim_under_resource(ctx, building_location, resource_id, project_site.direction, claim_cache) == claim_entity_id {
@@ -236,8 +236,8 @@ fn claim_tile_buildings(ctx: &ReducerContext, claim_entity_id: u64, coord: Small
 }
 
 pub fn unclaim_tile(ctx: &ReducerContext, claim_tile_entity_id: u64, coord: SmallHexTile) {
-    ctx.db.claim_tile_state().entity_id().delete(&claim_tile_entity_id);
-    ctx.db.location_state().entity_id().delete(&claim_tile_entity_id);
+    ctx.db.claim_tile_state().entity_id().delete(claim_tile_entity_id);
+    ctx.db.location_state().entity_id().delete(claim_tile_entity_id);
 
     // Check if a building is on the removed tile, if so it's no longer fully covered by claim tiles therefore no longer claimed
     if let Some(building) = game_state_filters::building_at_coordinates(ctx, &coord) {
@@ -260,8 +260,8 @@ pub fn delete_all_claim_tiles(ctx: &ReducerContext, claim_entity_id: u64) {
 
     for tile in ctx.db.claim_tile_state().claim_id().filter(claim_entity_id) {
         let entity_id = tile.entity_id;
-        ctx.db.location_state().entity_id().delete(&entity_id);
-        ctx.db.claim_tile_state().entity_id().delete(&entity_id);
+        ctx.db.location_state().entity_id().delete(entity_id);
+        ctx.db.claim_tile_state().entity_id().delete(entity_id);
     }
 }
 
@@ -291,7 +291,7 @@ pub fn claim_area_around_totem(ctx: &ReducerContext, claim_entity_id: u64, radiu
         let mut claim_cache = ClaimTileStateCache::new(&mut location_cache);
 
         if DONT_CHECK_AREA_AROUND_CLAIM_COUNTER.get() <= 0 {
-            let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
+            let parameters = ctx.db.parameters_desc().version().find(0).unwrap();
             if claim_cache
                 .any_claim_in_radius(
                     ctx,
@@ -331,7 +331,7 @@ pub fn can_place_claim_totem(
     claim_info: &BuildingClaimDesc,
     terrain_cache: &mut TerrainChunkCache,
 ) -> Result<(), String> {
-    let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let parameters = ctx.db.parameters_desc().version().find(0).unwrap();
     if game_state_filters::any_claim_totems_in_radius(ctx, coordinates, parameters.claim_totem_spacing) {
         return Err("Cannot start a settlement too close to another player’s settlement".into());
     }
@@ -387,12 +387,12 @@ pub fn get_claim_on_tile(ctx: &ReducerContext, coordinates: SmallHexTile) -> Opt
         return None;
     }
 
-    return ClaimTileState::get_at_location(ctx, &coordinates);
+    ClaimTileState::get_at_location(ctx, &coordinates)
 }
 
 pub fn mint_hex_coins(ctx: &ReducerContext, claim_entity_id: u64, gained_xp: u32) {
-    let claim = unwrap_or_return!(ctx.db.claim_state().entity_id().find(&claim_entity_id), "Unknown claim");
-    let claim_tech = unwrap_or_return!(ctx.db.claim_tech_state().entity_id().find(&claim_entity_id), "Unknown claim tech");
+    let claim = unwrap_or_return!(ctx.db.claim_state().entity_id().find(claim_entity_id), "Unknown claim");
+    let claim_tech = unwrap_or_return!(ctx.db.claim_tech_state().entity_id().find(claim_entity_id), "Unknown claim tech");
     let xp_to_mint_hex_coin = claim_tech.min_xp_to_mint_hex_coin(ctx);
     let mut claim_local = claim.local_state(ctx);
 
@@ -438,5 +438,5 @@ impl std::ops::Drop for DontCheckAreaAroundClaimSpan {
 }
 
 thread_local! {
-    static DONT_CHECK_AREA_AROUND_CLAIM_COUNTER: Cell<i32> = Cell::new(0);
+    static DONT_CHECK_AREA_AROUND_CLAIM_COUNTER: Cell<i32> = const { Cell::new(0) };
 }

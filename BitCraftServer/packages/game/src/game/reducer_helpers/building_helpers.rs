@@ -43,6 +43,8 @@ use crate::{
 use crate::messages::components::*;
 
 const TIER_2_CLAIM_TECH_ID: i32 = 200;
+const RUINED_TOWN_BUILDING_ID: i32 = 292245080;
+const STARTER_CLAIM_TECH_ID: i32 = 254714033;
 
 pub fn create_building_unsafe(
     ctx: &ReducerContext,
@@ -53,7 +55,7 @@ pub fn create_building_unsafe(
     building_desc_id: i32,
     construction_recipe_id: Option<i32>,
 ) -> Result<(), String> {
-    let building_desc = ctx.db.building_desc().id().find(&building_desc_id).unwrap();
+    let building_desc = ctx.db.building_desc().id().find(building_desc_id).unwrap();
 
     let entity_id = entity_id.unwrap_or(game_state::create_entity(ctx));
 
@@ -66,16 +68,16 @@ pub fn create_building_unsafe(
 
     create_building_footprint(ctx, entity_id, direction, &building_desc, &None);
 
-    clear_resources_under_building(ctx, location.into(), &building_desc, direction);
+    clear_resources_under_building(ctx, location, &building_desc, direction);
 
-    let neutral = match ctx.db.claim_state().entity_id().find(&claim_entity_id) {
+    let neutral = match ctx.db.claim_state().entity_id().find(claim_entity_id) {
         Some(c) => c.neutral,
         None => false,
     };
 
     create_building_claim(ctx, entity_id, neutral)?;
 
-    if ctx.db.interior_network_desc().building_id().find(&building_desc.id).is_some() {
+    if ctx.db.interior_network_desc().building_id().find(building_desc.id).is_some() {
         create_building_interior(ctx, entity_id)?;
     }
 
@@ -91,7 +93,7 @@ pub fn create_building_unsafe(
 
     create_building_spawns(ctx, entity_id);
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn create_building_component(
@@ -103,8 +105,8 @@ pub fn create_building_component(
     actor_id: u64,
 ) -> u64 {
     if building.build_permission == BuildingInteractionLevel::Empire {
-        if let Some(empire_rank) = ctx.db.empire_player_data_state().entity_id().find(&actor_id) {
-            if let Some(empire) = ctx.db.empire_state().entity_id().find(&empire_rank.empire_entity_id) {
+        if let Some(empire_rank) = ctx.db.empire_player_data_state().entity_id().find(actor_id) {
+            if let Some(empire) = ctx.db.empire_state().entity_id().find(empire_rank.empire_entity_id) {
                 let nickname = format!("{}'s {}", empire.name, building.name);
                 BuildingNicknameState::insert_shared(
                     ctx,
@@ -127,7 +129,7 @@ pub fn create_building_component(
         constructed_by_player_entity_id: actor_id,
     };
 
-    building_state.update_inventories(ctx, &building);
+    building_state.update_inventories(ctx, building);
 
     //Insert building into the table (local or shared for waystones)
     if ctx.db.building_state().try_insert(building_state).is_err() {
@@ -136,9 +138,7 @@ pub fn create_building_component(
 
     BuildingState::claim(ctx, building_entity_id, owning_claim_entity_id);
 
-    if building.has_category(ctx, BuildingCategory::Waystone)
-        || building.has_category(ctx, BuildingCategory::OneWayWaystone)
-    {
+    if building.has_category(ctx, BuildingCategory::Waystone) || building.has_category(ctx, BuildingCategory::OneWayWaystone) {
         let building_state = ctx.db.building_state().entity_id().find(building_entity_id).unwrap();
         ctx.db.building_state().entity_id().delete(building_entity_id);
         BuildingState::insert_shared(ctx, building_state, crate::inter_module::InterModuleDestination::AllOtherRegions);
@@ -235,7 +235,7 @@ pub fn create_building_footprint(
     building: &BuildingDesc,
     override_type_fn: &Option<fn(&FootprintType) -> FootprintType>,
 ) {
-    let location = ctx.db.location_state().entity_id().find(&entity_id).unwrap();
+    let location = ctx.db.location_state().entity_id().find(entity_id).unwrap();
     let coordinates = location.coordinates();
     let footprint = building.get_footprint(&coordinates, direction);
     create_footprint(ctx, entity_id, &footprint, override_type_fn)
@@ -248,7 +248,7 @@ pub fn create_building_claim(ctx: &ReducerContext, building_entity_id: u64, neut
         existing_claim_id = claim.claim_id;
     }
 
-    let mut building_state = match ctx.db.building_state().entity_id().find(&building_entity_id) {
+    let mut building_state = match ctx.db.building_state().entity_id().find(building_entity_id) {
         Some(b) => b,
         None => return Err("Building does not exist".into()),
     };
@@ -256,7 +256,7 @@ pub fn create_building_claim(ctx: &ReducerContext, building_entity_id: u64, neut
         .db
         .building_claim_desc()
         .building_id()
-        .find(&building_state.building_description_id);
+        .find(building_state.building_description_id);
 
     if let Some(claim_info) = building_claim {
         // Create new claim entity
@@ -266,14 +266,14 @@ pub fn create_building_claim(ctx: &ReducerContext, building_entity_id: u64, neut
             let supplies = if neutral_claim_type {
                 0
             } else {
-                ctx.db.parameters_desc().version().find(&0).unwrap().starting_supplies
+                ctx.db.parameters_desc().version().find(0).unwrap().starting_supplies
             };
 
             //set claim name
             let coord_large = coordinates.parent_large_tile().to_offset_coordinates();
             let mut name = format!("Claimed area (N: {}, E: {})", coord_large.z, coord_large.x);
             if neutral_claim_type {
-                let building_desc_option = ctx.db.building_desc().id().find(&building_state.building_description_id);
+                let building_desc_option = ctx.db.building_desc().id().find(building_state.building_description_id);
                 if let Some(building_desc) = building_desc_option {
                     name = format!("{} (N: {}, E: {})", building_desc.name, coord_large.z, coord_large.x);
                 }
@@ -324,6 +324,12 @@ pub fn create_building_claim(ctx: &ReducerContext, building_entity_id: u64, neut
                 return Err("Missing Tier 2 starting claim tech".into());
             }
             starting_techs.push(TIER_2_CLAIM_TECH_ID);
+
+            // Ruined towns unlock the 'Starter Claim' tech by default
+            if claim_info.building_id == RUINED_TOWN_BUILDING_ID {
+                starting_techs.push(STARTER_CLAIM_TECH_ID);
+            }
+
             let claim_tech = ClaimTechState {
                 entity_id: claim_desc_entity_id,
                 learned: starting_techs,
@@ -341,9 +347,9 @@ pub fn create_building_claim(ctx: &ReducerContext, building_entity_id: u64, neut
             }
 
             // Attempt claiming
-            if let Some(autoclaim) = ctx.db.auto_claim_state().entity_id().find(&building_entity_id) {
-                let _ = claim_take_ownership::reduce(ctx, autoclaim.owner_entity_id, claim_desc_entity_id)?;
-                ctx.db.auto_claim_state().entity_id().delete(&building_entity_id);
+            if let Some(autoclaim) = ctx.db.auto_claim_state().entity_id().find(building_entity_id) {
+                claim_take_ownership::reduce(ctx, autoclaim.owner_entity_id, claim_desc_entity_id)?;
+                ctx.db.auto_claim_state().entity_id().delete(building_entity_id);
             }
 
             building_state.claim_entity_id = claim_desc_entity_id;
@@ -363,9 +369,9 @@ pub fn delete_building(
     ignore_portals: bool,
     drop_inventory_items: bool,
 ) {
-    let building = ctx.db.building_state().entity_id().find(&entity_id).unwrap();
-    let location = ctx.db.location_state().entity_id().find(&entity_id).unwrap().coordinates();
-    let description = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+    let building = ctx.db.building_state().entity_id().find(entity_id).unwrap();
+    let location = ctx.db.location_state().entity_id().find(entity_id).unwrap().coordinates();
+    let description = ctx.db.building_desc().id().find(building.building_description_id).unwrap();
 
     let mut all_expelled_players = Vec::new();
 
@@ -377,14 +383,14 @@ pub fn delete_building(
 
     LostItemsState::generate_lost_items_for_building(ctx, &building, &description);
 
-    if let Some(portal) = ctx.db.portal_state().entity_id().find(&entity_id) {
+    if let Some(portal) = ctx.db.portal_state().entity_id().find(entity_id) {
         if !ignore_portals && portal.destination_dimension != dimensions::OVERWORLD {
             //Building has an interior. Teleport all players outside
             let dimension = ctx
                 .db
                 .dimension_description_state()
                 .dimension_id()
-                .find(&portal.destination_dimension)
+                .find(portal.destination_dimension)
                 .unwrap();
             let dimension_network_id = dimension.dimension_network_entity_id;
             let dimensions: Vec<u32> = ctx
@@ -440,7 +446,7 @@ pub fn delete_building(
     }
 
     // Destroying an empire capital effectively destroys the empire
-    if let Some(empire) = ctx.db.empire_state().capital_building_entity_id().find(&building.entity_id) {
+    if let Some(empire) = ctx.db.empire_state().capital_building_entity_id().find(building.entity_id) {
         send_inter_module_message(
             ctx,
             crate::messages::inter_module::MessageContentsV5::DeleteEmpire(DeleteEmpireMsg {
@@ -451,36 +457,28 @@ pub fn delete_building(
     }
 
     // Destroying a claim totem destroys the claim description and all the tiles
-    if let Some(claim) = ctx.db.claim_state().owner_building_entity_id().find(&building.entity_id) {
+    if let Some(claim) = ctx.db.claim_state().owner_building_entity_id().find(building.entity_id) {
         let claim_entity_id: u64 = claim.entity_id;
 
         // find any market place tied to this claim, and generate the lost items from it
         // this could be somewhat expensive if a massive claim gets destroyed, but this should happen very rarely if ever.
-        if ctx
-            .db
-            .building_state()
-            .claim_entity_id()
-            .filter(claim_entity_id)
-            .filter(|b| {
-                ctx.db
-                    .building_desc()
-                    .id()
-                    .find(b.building_description_id)
-                    .unwrap()
-                    .has_category(ctx, BuildingCategory::TownMarket)
-            })
-            .next()
-            .is_some()
-        {
+        if ctx.db.building_state().claim_entity_id().filter(claim_entity_id).any(|b| {
+            ctx.db
+                .building_desc()
+                .id()
+                .find(b.building_description_id)
+                .unwrap()
+                .has_category(ctx, BuildingCategory::TownMarket)
+        }) {
             let location = game_state_filters::coordinates(ctx, building.entity_id);
             LostItemsState::generate_lost_items_from_market(ctx, claim_entity_id, location);
         }
 
         claim_helper::delete_all_claim_tiles(ctx, claim_entity_id);
 
-        if let Some(claim_tech) = ctx.db.claim_tech_state().entity_id().find(&claim.entity_id) {
+        if let Some(claim_tech) = ctx.db.claim_tech_state().entity_id().find(claim.entity_id) {
             if let Some(scheduled_id) = claim_tech.scheduled_id {
-                ctx.db.claim_tech_unlock_timer().scheduled_id().delete(&scheduled_id);
+                ctx.db.claim_tech_unlock_timer().scheduled_id().delete(scheduled_id);
             }
         }
 
@@ -511,8 +509,8 @@ pub fn delete_building(
             }
         }
 
-        if items_to_drop.len() != 0 {
-            DroppedInventoryState::update_from_items(ctx, actor_id, location.into(), items_to_drop, None);
+        if !items_to_drop.is_empty() {
+            DroppedInventoryState::update_from_items(ctx, actor_id, location, items_to_drop, None);
         }
     }
 
@@ -520,18 +518,18 @@ pub fn delete_building(
     for npc in ctx.db.npc_state().building_entity_id().filter(entity_id) {
         let npc_entity_id = npc.entity_id;
         npc.delete_trade_orders(ctx);
-        ctx.db.npc_state().entity_id().delete(&npc_entity_id);
+        ctx.db.npc_state().entity_id().delete(npc_entity_id);
     }
 
     // Delete attached herds
     AttachedHerdsState::delete(ctx, entity_id);
 
-    ctx.db.progressive_action_state().building_entity_id().delete(&entity_id);
-    ctx.db.public_progressive_action_state().building_entity_id().delete(&entity_id);
+    ctx.db.progressive_action_state().building_entity_id().delete(entity_id);
+    ctx.db.public_progressive_action_state().building_entity_id().delete(entity_id);
 
-    ctx.db.terraform_progress_state().entity_id().delete(&entity_id);
+    ctx.db.terraform_progress_state().entity_id().delete(entity_id);
 
-    ctx.db.passive_craft_state().building_entity_id().delete(&entity_id);
+    ctx.db.passive_craft_state().building_entity_id().delete(entity_id);
 
     floating_platform_helpers::restore_terrain_under_platform(ctx, building.building_description_id, location);
     floating_platform_helpers::dismount_players_on_platform(ctx, entity_id);
@@ -541,13 +539,13 @@ pub fn delete_building(
     // Clear all combat sessions involving the dead entity
     ThreatState::clear_all(ctx, entity_id);
 
-    ctx.db.combat_state().entity_id().delete(&entity_id);
-    ctx.db.targetable_state().entity_id().delete(&entity_id);
-    ctx.db.attack_outcome_state().entity_id().delete(&entity_id);
+    ctx.db.combat_state().entity_id().delete(entity_id);
+    ctx.db.targetable_state().entity_id().delete(entity_id);
+    ctx.db.attack_outcome_state().entity_id().delete(entity_id);
 
     // delete light stamps
     if description.light_radius > 0 {
-        ctx.db.light_source_state().entity_id().delete(&entity_id);
+        ctx.db.light_source_state().entity_id().delete(entity_id);
     }
 
     BuildingState::unclaim(ctx, entity_id, true);
@@ -561,7 +559,7 @@ pub fn delete_building(
         ctx.db
             .rent_state()
             .dimension_network_id()
-            .delete(&dimension_network_description_entity_id);
+            .delete(dimension_network_description_entity_id);
     }
 
     // delete inventories associated with this building
@@ -572,12 +570,12 @@ pub fn delete_building(
         .filter(entity_id)
         .map(|inv| inv.entity_id);
     for inv in inventories {
-        ctx.db.inventory_state().entity_id().delete(&inv);
+        ctx.db.inventory_state().entity_id().delete(inv);
     }
 
     // delete empire stuff
-    if ctx.db.empire_node_state().entity_id().find(&entity_id).is_some()
-        || ctx.db.empire_settlement_state().building_entity_id().find(&entity_id).is_some()
+    if ctx.db.empire_node_state().entity_id().find(entity_id).is_some()
+        || ctx.db.empire_settlement_state().building_entity_id().find(entity_id).is_some()
     {
         send_inter_module_message(
             ctx,
@@ -589,15 +587,13 @@ pub fn delete_building(
         );
     }
 
-    if let Some(nickname) = ctx.db.building_nickname_state().entity_id().find(&entity_id) {
+    if let Some(nickname) = ctx.db.building_nickname_state().entity_id().find(entity_id) {
         BuildingNicknameState::delete_shared(ctx, nickname, crate::inter_module::InterModuleDestination::Global);
     }
 
     // finally delete building entity and remaining components
-    ctx.db.health_state().entity_id().delete(&entity_id);
-    if description.has_category(ctx, BuildingCategory::Waystone)
-        || description.has_category(ctx, BuildingCategory::OneWayWaystone)
-    {
+    ctx.db.health_state().entity_id().delete(entity_id);
+    if description.has_category(ctx, BuildingCategory::Waystone) || description.has_category(ctx, BuildingCategory::OneWayWaystone) {
         let loc = ctx
             .db
             .location_state()
@@ -607,12 +603,12 @@ pub fn delete_building(
         LocationState::delete_shared(ctx, loc, crate::inter_module::InterModuleDestination::AllOtherRegions);
         BuildingState::delete_shared(ctx, building, crate::inter_module::InterModuleDestination::AllOtherRegions);
     } else {
-        ctx.db.location_state().entity_id().delete(&entity_id);
-        ctx.db.building_state().entity_id().delete(&entity_id);
+        ctx.db.location_state().entity_id().delete(entity_id);
+        ctx.db.building_state().entity_id().delete(entity_id);
     }
-    ctx.db.barter_stall_state().entity_id().delete(&entity_id);
-    ctx.db.player_note_state().entity_id().delete(&entity_id);
-    ctx.db.distant_visible_entity().entity_id().delete(&entity_id);
+    ctx.db.barter_stall_state().entity_id().delete(entity_id);
+    ctx.db.player_note_state().entity_id().delete(entity_id);
+    ctx.db.distant_visible_entity().entity_id().delete(entity_id);
 
     ctx.db.waystone_state().building_entity_id().delete(entity_id);
     ctx.db.bank_state().building_entity_id().delete(entity_id);
@@ -634,7 +630,7 @@ pub fn create_distant_visibile_building(ctx: &ReducerContext, building_desc: &Bu
         .any(|x| x.entity_type == EntityType::Building)
     {
         ctx.db.distant_visible_entity().insert(DistantVisibleEntity {
-            entity_id: entity_id,
+            entity_id,
             chunk_index: coordinates.chunk_coordinates().chunk_index(),
         });
     }
@@ -646,9 +642,9 @@ pub fn move_building_unsafe(
     coordinates: OffsetCoordinatesSmall,
     facing_direction: i32,
 ) -> Result<(), String> {
-    let mut building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(&building_entity_id), "Invalid building");
+    let mut building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(building_entity_id), "Invalid building");
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state.building_description_id),
+        ctx.db.building_desc().id().find(building_state.building_description_id),
         "Invalid building description"
     );
     let previous_coordinates = game_state_filters::coordinates_any(ctx, building_entity_id);
@@ -658,15 +654,8 @@ pub fn move_building_unsafe(
     footprint_helpers::delete_footprint(ctx, building_entity_id);
 
     if building_desc.has_category(ctx, BuildingCategory::TradingPost) {
-        if let Some(npc_state) = ctx
-            .db
-            .npc_state()
-            .building_entity_id()
-            .filter(&building_entity_id)
-            .into_iter()
-            .next()
-        {
-            if let Some(mut mobile_entity_state) = ctx.db.mobile_entity_state().entity_id().find(&npc_state.entity_id) {
+        if let Some(npc_state) = ctx.db.npc_state().building_entity_id().filter(&building_entity_id).next() {
+            if let Some(mut mobile_entity_state) = ctx.db.mobile_entity_state().entity_id().find(npc_state.entity_id) {
                 mobile_entity_state.set_location(coordinates.into());
                 mobile_entity_state.set_destination(coordinates.into());
 
@@ -681,9 +670,7 @@ pub fn move_building_unsafe(
 
     let location = LocationState::new(building_entity_id, offset_coordinates);
     let location_hex = location.coordinates();
-    if building_desc.has_category(ctx, BuildingCategory::Waystone)
-        || building_desc.has_category(ctx, BuildingCategory::OneWayWaystone)
-    {
+    if building_desc.has_category(ctx, BuildingCategory::Waystone) || building_desc.has_category(ctx, BuildingCategory::OneWayWaystone) {
         LocationState::update_shared(ctx, location, crate::inter_module::InterModuleDestination::AllOtherRegions);
     } else {
         ctx.db.location_state().entity_id().update(location);
@@ -694,7 +681,7 @@ pub fn move_building_unsafe(
     clear_resources_under_building(ctx, coordinates.into(), &building_desc, facing_direction);
 
     //Move interior portals that exit to this building
-    if ctx.db.interior_network_desc().building_id().find(&building_desc.id).is_some() {
+    if ctx.db.interior_network_desc().building_id().find(building_desc.id).is_some() {
         let portals = ctx.db.portal_state().target_building_entity_id().filter(building_entity_id);
         let prev_offset_coordinates = OffsetCoordinatesSmall::from(previous_coordinates);
         for mut portal in portals {
@@ -762,7 +749,7 @@ impl std::ops::Drop for DontCreateBuildingSpawnsSpan {
 }
 
 thread_local! {
-    static DONT_CREATE_BUILDING_SPAWNS_COUNTER: Cell<i32> = Cell::new(0);
+    static DONT_CREATE_BUILDING_SPAWNS_COUNTER: Cell<i32> = const { Cell::new(0) };
 }
 
 /// 5x5 grid around the watchtower center chunk (radius=2 means -2..=2 in both axes)
@@ -802,11 +789,11 @@ pub fn setup_npc_watchtower_state(
             };
             let idx = chunk.chunk_index();
 
-            if ctx.db.terrain_chunk_state().chunk_index().find(&idx).is_none() {
+            if ctx.db.terrain_chunk_state().chunk_index().find(idx).is_none() {
                 continue;
             }
 
-            if ctx.db.empire_chunk_state().chunk_index().find(&idx).is_some() {
+            if ctx.db.empire_chunk_state().chunk_index().find(idx).is_some() {
                 continue;
             }
 

@@ -15,10 +15,10 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_entities(ctx: &ReducerContext, request: PlayerDiscoverEntitiesRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let player_coord = game_state_filters::coordinates_any(ctx, actor_id);
-    let discovery_range = ctx.db.parameters_desc().version().find(&0).unwrap().discovery_range;
+    let discovery_range = ctx.db.parameters_desc().version().find(0).unwrap().discovery_range;
 
     let mut discovery = Discovery::new(actor_id);
 
@@ -62,13 +62,13 @@ pub fn discover_entities(ctx: &ReducerContext, request: PlayerDiscoverEntitiesRe
         // loot chests and dropped_inventories have the same entity_id as their inventory
         if let Some(inventory) = ctx.db.inventory_state().entity_id().find(entity_id) {
             let owner_entity_id = inventory.owner_entity_id;
-            if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&owner_entity_id) {
+            if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(owner_entity_id) {
                 if location.coordinates().distance_to(player_coord) > discovery_range {
                     // to far to discover
                     continue;
                 }
             }
-            if let Some(location) = ctx.db.location_state().entity_id().find(&owner_entity_id) {
+            if let Some(location) = ctx.db.location_state().entity_id().find(owner_entity_id) {
                 if location.coordinates().distance_to(player_coord) > discovery_range {
                     // to far to discover
                     continue;
@@ -90,7 +90,7 @@ pub fn discover_entities(ctx: &ReducerContext, request: PlayerDiscoverEntitiesRe
         }
 
         if let Some(progressive_action) = ctx.db.progressive_action_state().entity_id().find(entity_id) {
-            if let Some(craft_recipe) = ctx.db.crafting_recipe_desc().id().find(&progressive_action.recipe_id) {
+            if let Some(craft_recipe) = ctx.db.crafting_recipe_desc().id().find(progressive_action.recipe_id) {
                 let item_stack = craft_recipe.crafted_item_stacks[0];
                 if item_stack.item_type == ItemType::Cargo {
                     discovery.discover_cargo(ctx, item_stack.item_id);

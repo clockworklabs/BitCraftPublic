@@ -21,12 +21,12 @@ use crate::{
 impl PlaceableState {
     pub fn get_at_location(ctx: &ReducerContext, coordinates: &SmallHexTile) -> Option<PlaceableState> {
         LocationState::select_all(ctx, coordinates)
-            .filter_map(|ls| ctx.db.placeable_state().entity_id().find(&ls.entity_id))
+            .filter_map(|ls| ctx.db.placeable_state().entity_id().find(ls.entity_id))
             .next()
     }
 
     pub fn distance_to(&self, ctx: &ReducerContext, coordinates: SmallHexTile) -> i32 {
-        if let Some(location) = ctx.db.location_state().entity_id().find(&self.entity_id) {
+        if let Some(location) = ctx.db.location_state().entity_id().find(self.entity_id) {
             location.coordinates().distance_to(coordinates)
         } else {
             i32::MAX
@@ -40,7 +40,7 @@ impl PlaceableState {
         coordinates: SmallHexTile,
         direction_index: i32,
     ) -> Result<(), String> {
-        let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(&placeable_id), "Unknown placeable");
+        let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(placeable_id), "Unknown placeable");
         let entity_id = game_state::create_entity(ctx);
 
         ctx.db.placeable_state().try_insert(PlaceableState {
@@ -85,7 +85,7 @@ impl PlaceableState {
             return Ok(false);
         }
 
-        let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(&placeable_id), "Unknown placeable");
+        let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(placeable_id), "Unknown placeable");
         let mut terrain_cache = TerrainChunkCache::empty();
         let min_radius = min_radius.max(0);
         let max_radius = max_radius.max(min_radius);
@@ -137,7 +137,7 @@ impl PlaceableState {
             return Ok(());
         }
 
-        let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(&outcome.placeable_id), "Unknown placeable");
+        let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(outcome.placeable_id), "Unknown placeable");
         let mut terrain_cache = TerrainChunkCache::empty();
         if !Self::is_valid_spawn_tile(ctx, &mut terrain_cache, &placeable_desc, owner_entity_id, center) {
             return Ok(());
@@ -147,11 +147,7 @@ impl PlaceableState {
     }
 
     pub fn pick_growth_outcome(ctx: &ReducerContext, outcomes: Option<Vec<PlaceableGrowthOutcomeV2>>) -> Option<PlaceableGrowthOutcomeV2> {
-        let outcomes = if let Some(outcomes) = outcomes {
-            outcomes
-        } else {
-            return None;
-        };
+        let outcomes = outcomes?;
 
         if outcomes.is_empty() {
             return None;
@@ -178,7 +174,7 @@ impl PlaceableState {
     }
 
     fn add_growth_timer(ctx: &ReducerContext, entity_id: u64, placeable_id: i32) {
-        if let Some(growth) = ctx.db.placeable_growth_desc().placeable_id().find(&placeable_id) {
+        if let Some(growth) = ctx.db.placeable_growth_desc().placeable_id().find(placeable_id) {
             let _ = insert_placeable_growth_timer(ctx, entity_id, &growth);
         }
     }
@@ -239,7 +235,7 @@ impl PlaceableState {
         }
 
         if LocationState::select_all(ctx, &coordinates)
-            .filter_map(|location| ctx.db.placeable_state().entity_id().find(&location.entity_id))
+            .filter_map(|location| ctx.db.placeable_state().entity_id().find(location.entity_id))
             .any(|placeable| placeable.owner_entity_id == owner_entity_id)
         {
             return false;

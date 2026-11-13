@@ -24,7 +24,7 @@ pub fn passive_craft_process(ctx: &ReducerContext, timer: PassiveCraftTimer) -> 
     }
 
     // Complete craft if it was not already cancelled
-    if let Some(mut craft) = ctx.db.passive_craft_state().entity_id().find(&timer.craft_entity_id) {
+    if let Some(mut craft) = ctx.db.passive_craft_state().entity_id().find(timer.craft_entity_id) {
         let building_entity_id = craft.building_entity_id;
         let slot = craft.slot.unwrap();
 

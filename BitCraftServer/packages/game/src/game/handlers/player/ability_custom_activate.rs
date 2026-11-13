@@ -34,7 +34,7 @@ pub fn ability_custom_activate_start(
         return ability_custom_activate(ctx, ability_custom_id, target_entity_id, timestamp);
     }
 
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let delay = Duration::from_secs_f32(custom_effect.cast_time);
@@ -65,7 +65,7 @@ pub fn reduce(
     timestamp: u64,
     dry_run: bool,
 ) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let ability_data = AbilityType::Custom(custom_effect.id);
 
@@ -241,7 +241,7 @@ pub fn reduce(
             return Err("Custom ability has an invalid input stack".into());
         }
     }
-    let required_input_stacks = ItemStack::merge_multiple(&input_item_stacks.iter().map(|input| ItemStack::from(ctx, input)).collect());
+    let required_input_stacks = ItemStack::merge_multiple(&input_item_stacks.iter().map(|input| ItemStack::from(ctx, input)).collect::<Vec<_>>());
     if !InventoryState::has_items_in_player_inventory_and_nearby_deployables(ctx, actor_id, &required_input_stacks, |coordinates| {
         coordinates.distance_to(actor_coordinates)
     })? {
@@ -255,8 +255,8 @@ pub fn reduce(
     let consumed_input_stacks = ItemStack::merge_multiple(
         &input_item_stacks
             .iter()
-            .filter_map(|input| (ctx.rng().gen_range(0.0..1.0) < input.consumption_chance).then(|| ItemStack::from(ctx, input)))
-            .collect(),
+            .filter(|&input| ctx.rng().gen_range(0.0..1.0) < input.consumption_chance ).map(|input| ItemStack::from(ctx, input))
+            .collect::<Vec<_>>(),
     );
     InventoryState::withdraw_from_player_inventory_and_nearby_deployables(ctx, actor_id, &consumed_input_stacks, |coordinates| {
         coordinates.distance_to(actor_coordinates)
@@ -310,7 +310,7 @@ pub fn reduce(
 
     for target in targets {
         // Apply buffs
-        if custom_effect.buffs.len() > 0 {
+        if !custom_effect.buffs.is_empty() {
             let mut active_buff_state = unwrap_or_err!(
                 ctx.db.active_buff_state().entity_id().find(target),
                 "Entity has no ActiveBuffState."

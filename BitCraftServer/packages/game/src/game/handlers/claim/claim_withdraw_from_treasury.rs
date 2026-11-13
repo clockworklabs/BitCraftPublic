@@ -15,10 +15,10 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_withdraw_from_treasury(ctx: &ReducerContext, request: PlayerClaimWithdrawFromTreasuryRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&request.claim_entity_id), "No such claim.");
+    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.claim_entity_id), "No such claim.");
 
     if !claim.has_co_owner_permissions(ctx, actor_id) {
         return Err("Only the owner and co-owners can withdraw from the treasury.".into());

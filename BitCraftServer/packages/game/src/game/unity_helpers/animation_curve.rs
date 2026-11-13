@@ -42,13 +42,13 @@ impl AnimationCurve {
             / divisor;
 
         let t2 = t * t;
-        return a * t2 * t + b * t2 + c * t + d;
+        a * t2 * t + b * t2 + c * t + d
     }
 
     fn get_keyframes_for(&self, t: f32) -> (&Keyframe, &Keyframe) {
         for (i, k) in self.keyframes.iter().enumerate() {
             if k.time > t {
-                return (&self.keyframes[(i - 1).max(0) as usize], k);
+                return (&self.keyframes[i - 1 ], k);
             }
         }
 

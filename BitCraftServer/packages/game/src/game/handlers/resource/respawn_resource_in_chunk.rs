@@ -31,7 +31,7 @@ pub fn respawn_resource_in_chunk(ctx: &ReducerContext, timer: RespawnResourceInC
         return Err("Invalid permissions".into());
     }
 
-    let resources_log = unwrap_or_err!(ctx.db.resources_log().version().find(&0), "Failed to get resources_log");
+    let resources_log = unwrap_or_err!(ctx.db.resources_log().version().find(0), "Failed to get resources_log");
     let resource_clump = unwrap_or_err!(
         ctx.db.resource_clump_desc().id().find(timer.resource_clump_id),
         "Failed to get resource_clump_desc"
@@ -43,7 +43,7 @@ pub fn respawn_resource_in_chunk(ctx: &ReducerContext, timer: RespawnResourceInC
             .resources
             .iter()
             .find(|y| y.resource_id == *x)
-            .map_or(false, |z| z.world_target == 0)
+            .is_some_and(|z| z.world_target == 0)
     }) {
         log::info!(
             "Skip respawning ResourceClump with id {} because all of its resources have a world_target of 0",
@@ -63,12 +63,12 @@ pub fn respawn_resource_in_chunk(ctx: &ReducerContext, timer: RespawnResourceInC
     // and I (pgoldman 2025-06-25) am too lazy to separate that logic.
     let mut occupied_tiles_hashes = LazyMemoOccupiedTiles::default();
 
-    let chunk = ctx.db.terrain_chunk_state().chunk_index().find(&timer.chunk_index).unwrap();
-    if let Some(single_clump_info) = ctx.db.single_resource_clump_info().clump_id().find(&timer.resource_clump_id) {
+    let chunk = ctx.db.terrain_chunk_state().chunk_index().find(timer.chunk_index).unwrap();
+    if let Some(single_clump_info) = ctx.db.single_resource_clump_info().clump_id().find(timer.resource_clump_id) {
         let mut terrain_cache = TerrainChunkCache::empty();
         let mut attempts = Vec::new();
 
-        let respawn_attempts = ctx.db.parameters_desc().version().find(&0).unwrap().auto_respawn_attempts;
+        let respawn_attempts = ctx.db.parameters_desc().version().find(0).unwrap().auto_respawn_attempts;
 
         // Find 10 potential coordinates within the chunk
         for _i in 0..respawn_attempts {
@@ -98,18 +98,18 @@ pub fn respawn_resource_in_chunk(ctx: &ReducerContext, timer: RespawnResourceInC
             &single_clump_info.resource_clump_info,
             attempts,
         );
-        if spawn_result.len() > 0 {
+        if !spawn_result.is_empty() {
             log::info!(
                 "Auto-respawned resource clump {} in chunk {} after {} attempts.",
                 timer.resource_clump_id,
                 timer.chunk_index,
                 num_attempts
             );
-            if resources_to_delete.len() > 0 {
+            if !resources_to_delete.is_empty() {
                 // If a resource was despawned at the same location, we need to spawn the new resource in a different transaction
                 // so the client can process the OnDelete first then the OnInsert of the new one (Coord => Resource dictionary update will fail otherwise)
                 for entity_id in resources_to_delete {
-                    if let Some(resource) = ctx.db.resource_state().entity_id().find(&entity_id) {
+                    if let Some(resource) = ctx.db.resource_state().entity_id().find(entity_id) {
                         resource.despawn_self(ctx);
                     }
                 }
@@ -119,7 +119,7 @@ pub fn respawn_resource_in_chunk(ctx: &ReducerContext, timer: RespawnResourceInC
             } else {
                 // If no resource was despawned in order to spawn the new one, we can spawn the resource right away in the same transaction
                 for res in spawn_result {
-                    let health = ctx.db.resource_desc().id().find(&res.0).unwrap().max_health;
+                    let health = ctx.db.resource_desc().id().find(res.0).unwrap().max_health;
                     ResourceState::spawn(ctx, None, res.0, res.1, res.2, health, false, true).unwrap();
                 }
             }

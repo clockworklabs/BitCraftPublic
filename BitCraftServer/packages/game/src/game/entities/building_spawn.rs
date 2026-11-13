@@ -23,7 +23,7 @@ impl BuildingSpawnDesc {
             z: building_coordinates.z + self.z,
             dimension: building_coordinates.dimension,
         }
-        .rotate_around(&building_coordinates, building_direction_index / 2)
+        .rotate_around(building_coordinates, building_direction_index / 2)
     }
 
     pub fn get_traveler_spawn_coordinates(
@@ -32,20 +32,18 @@ impl BuildingSpawnDesc {
         building_coordinates: &SmallHexTile,
         building_direction_index: i32,
     ) -> SmallHexTile {
-        let building_spawns = ctx.db.building_spawn_desc().building_id().filter(building_desc_id);
+        let mut building_spawns = ctx.db.building_spawn_desc().building_id().filter(building_desc_id);
 
-        let traveler_spawn = building_spawns
-            .filter(|bs| bs.spawn_type == BuildingSpawnType::TravelerCamp)
-            .next()
+        let traveler_spawn = building_spawns.find(|bs| bs.spawn_type == BuildingSpawnType::TravelerCamp)
             .unwrap();
 
         traveler_spawn.get_spawn_coordinates(building_coordinates, building_direction_index)
     }
 
     pub fn get_traveler_direction(ctx: &ReducerContext, building_desc_id: i32, building_direction_index: i32) -> i32 {
-        let building_spawns = ctx.db.building_spawn_desc().building_id().filter(building_desc_id);
+        let mut building_spawns = ctx.db.building_spawn_desc().building_id().filter(building_desc_id);
 
-        if let Some(traveler_spawn) = building_spawns.filter(|bs| bs.spawn_type == BuildingSpawnType::TravelerCamp).next() {
+        if let Some(traveler_spawn) = building_spawns.find(|bs| bs.spawn_type == BuildingSpawnType::TravelerCamp) {
             return traveler_spawn.direction + building_direction_index;
         }
         building_direction_index
@@ -76,7 +74,7 @@ impl BuildingSpawnDesc {
                 BuildingSpawnType::Resource => {
                     let coord = building_spawn.get_spawn_coordinates(&building_coords, building.direction_index);
                     let resource_id = building_spawn.spawn_ids[0];
-                    let health = ctx.db.resource_desc().id().find(&resource_id).unwrap().max_health;
+                    let health = ctx.db.resource_desc().id().find(resource_id).unwrap().max_health;
                     // Note: this might be hurting slightly the eco-system; should these resources be taken into account by resource_regen? Right now they are.
                     // Adding support so they aren't will require an extra field to the deposit.
                     ResourceState::spawn(ctx, None, resource_id, coord, building_spawn_direction, health, false, false)?;

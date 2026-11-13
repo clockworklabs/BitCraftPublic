@@ -35,12 +35,12 @@ impl DeployableStateV2 {
             .filter(deployable_entity_id)
             .map(|m| m.deployable_slot)
             .collect();
-        let deployable = ctx.db.deployable_state_v2().entity_id().find(&deployable_entity_id).unwrap();
+        let deployable = ctx.db.deployable_state_v2().entity_id().find(deployable_entity_id).unwrap();
         let deployable_desc = ctx
             .db
             .deployable_desc()
             .id()
-            .find(&deployable.deployable_description_id)
+            .find(deployable.deployable_description_id)
             .unwrap();
         let mut slots = Vec::new();
         for i in 0..deployable_desc.capacity {

@@ -21,10 +21,10 @@ use crate::messages::empire_shared::*;
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_submit(ctx: &ReducerContext, new_empire_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let player_empire_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
@@ -37,7 +37,7 @@ pub fn empire_submit(ctx: &ReducerContext, new_empire_entity_id: u64) -> Result<
     }
 
     let empire_state = unwrap_or_err!(
-        ctx.db.empire_state().entity_id().find(&player_empire_data.empire_entity_id),
+        ctx.db.empire_state().entity_id().find(player_empire_data.empire_entity_id),
         "You are part of an empire that does not exist. How is that possible?"
     );
 
@@ -45,9 +45,7 @@ pub fn empire_submit(ctx: &ReducerContext, new_empire_entity_id: u64) -> Result<
         ctx.db
             .empire_player_data_state()
             .empire_entity_id()
-            .filter(new_empire_entity_id)
-            .filter(|data| data.rank == 0)
-            .next(),
+            .filter(new_empire_entity_id).find(|data| data.rank == 0),
         "That empire no longer exist"
     );
 
@@ -76,9 +74,9 @@ pub fn empire_submit(ctx: &ReducerContext, new_empire_entity_id: u64) -> Result<
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_player_join(ctx: &ReducerContext, request: EmpirePlayerJoinRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
-    if ctx.db.empire_state().entity_id().find(&request.empire_entity_id).is_none() {
+    if ctx.db.empire_state().entity_id().find(request.empire_entity_id).is_none() {
         return Err("This empire does not exist.".into());
     }
 
@@ -87,7 +85,7 @@ pub fn empire_player_join(ctx: &ReducerContext, request: EmpirePlayerJoinRequest
     }
 
     validate_not_blacklisted(ctx, request.empire_entity_id, actor_id)?;
-    if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(&actor_id) {
+    if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(actor_id) {
         empire_player_leave_impl(ctx, rank.empire_entity_id)?;
     }
 
@@ -100,7 +98,7 @@ pub fn empire_player_join(ctx: &ReducerContext, request: EmpirePlayerJoinRequest
     })?;
 
     // New Member Notification
-    let player_name = ctx.db.player_username_state().entity_id().find(&actor_id).unwrap().username;
+    let player_name = ctx.db.player_username_state().entity_id().find(actor_id).unwrap().username;
     EmpireNotificationState::new(ctx, EmpireNotificationType::NewMember, request.empire_entity_id, vec![player_name]);
 
     // The player cannot have made donations to the empire yet, no need to update the nodes
@@ -112,7 +110,7 @@ pub fn empire_player_join(ctx: &ReducerContext, request: EmpirePlayerJoinRequest
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_player_leave(ctx: &ReducerContext, request: EmpirePlayerLeaveRequest) -> Result<(), String> {
-    return empire_player_leave_impl(ctx, request.empire_entity_id);
+    empire_player_leave_impl(ctx, request.empire_entity_id)
 }
 
 pub fn validate_not_blacklisted(ctx: &ReducerContext, empire_entity_id: u64, player_entity_id: u64) -> Result<(), String> {
@@ -214,7 +212,7 @@ pub fn empire_blacklist_remove(ctx: &ReducerContext, empire_entity_id: u64, play
 }
 
 pub fn empire_player_leave_impl(ctx: &ReducerContext, empire_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     remove_empire_citizen(ctx, actor_id, empire_entity_id, false)
 }
@@ -229,7 +227,7 @@ pub fn remove_empire_citizen(
     let actor_id = player_entity_id;
 
     let rank = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "Not a citizen of an empire"
     );
     if rank.empire_entity_id != empire_entity_id {
@@ -244,10 +242,10 @@ pub fn remove_empire_citizen(
     EmpireSettlementState::update_donations_from_player(ctx, actor_id, true)?;
 
     EmpirePlayerDataState::delete_shared(ctx, rank, crate::inter_module::InterModuleDestination::AllOtherRegions);
-    ctx.db.empire_player_log_state().entity_id().delete(&actor_id);
+    ctx.db.empire_player_log_state().entity_id().delete(actor_id);
 
     // Member Left Notification
-    let player_name = ctx.db.player_username_state().entity_id().find(&actor_id).unwrap().username;
+    let player_name = ctx.db.player_username_state().entity_id().find(actor_id).unwrap().username;
     EmpireNotificationState::new(ctx, EmpireNotificationType::MemberLeft, empire_entity_id, vec![player_name]);
 
     let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(actor_id), "Player not found");
@@ -268,20 +266,20 @@ pub fn remove_empire_citizen(
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_leave(ctx: &ReducerContext, request: EmpireLeaveRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if ctx
         .db
         .empire_state()
         .capital_building_entity_id()
-        .find(&request.building_entity_id)
+        .find(request.building_entity_id)
         .is_some()
     {
         return Err("The capital of an empire can't leave it".into());
     }
 
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().owner_building_entity_id().find(&request.building_entity_id),
+        ctx.db.claim_state().owner_building_entity_id().find(request.building_entity_id),
         "This is not a claim building"
     );
     if claim.owner_player_entity_id != actor_id {
@@ -293,7 +291,7 @@ pub fn empire_leave(ctx: &ReducerContext, request: EmpireLeaveRequest) -> Result
         ctx.db
             .empire_settlement_state()
             .building_entity_id()
-            .find(&request.building_entity_id),
+            .find(request.building_entity_id),
         "This is not a settlement building"
     );
 
@@ -306,12 +304,12 @@ pub fn empire_leave(ctx: &ReducerContext, request: EmpireLeaveRequest) -> Result
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_dismantle(ctx: &ReducerContext, request: EmpireDismantleRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     // Find the building empire affiliation
 
     let empire = unwrap_or_err!(
-        ctx.db.empire_state().capital_building_entity_id().find(&request.building_entity_id),
+        ctx.db.empire_state().capital_building_entity_id().find(request.building_entity_id),
         "You can only dismantle an Empire from its capital"
     );
 
@@ -327,7 +325,7 @@ pub fn empire_dismantle(ctx: &ReducerContext, request: EmpireDismantleRequest) -
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_update_permissions(ctx: &ReducerContext, request: EmpireUpdatePermissionsRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if !EmpirePlayerDataState::is_emperor(ctx, actor_id, request.empire_entity_id) {
         return Err("You don't have the permissions to edit the empire ranks".into());
@@ -343,9 +341,9 @@ pub fn empire_update_permissions(ctx: &ReducerContext, request: EmpireUpdatePerm
         return Err("Supply node permission can't be removed.".into());
     }
 
-    let empire_ranks = ctx.db.empire_rank_state().empire_entity_id().filter(request.empire_entity_id);
+    let mut empire_ranks = ctx.db.empire_rank_state().empire_entity_id().filter(request.empire_entity_id);
     let mut rank = unwrap_or_err!(
-        empire_ranks.filter(|r| r.rank == target_rank).next(),
+        empire_ranks.find(|r| r.rank == target_rank),
         "Empire doesn't have own this rank"
     );
     //DAB Note: Right now you can grant permissions to others that you yourself don't have
@@ -359,7 +357,7 @@ pub fn empire_update_permissions(ctx: &ReducerContext, request: EmpireUpdatePerm
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_set_rank_title(ctx: &ReducerContext, request: EmpireSetRankTitleRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if !EmpirePlayerDataState::is_emperor(ctx, actor_id, request.empire_entity_id) {
         return Err("You don't have the permissions to edit the empire ranks".into());
@@ -367,16 +365,16 @@ pub fn empire_set_rank_title(ctx: &ReducerContext, request: EmpireSetRankTitleRe
 
     let target_rank = request.rank;
 
-    let empire_ranks = ctx.db.empire_rank_state().empire_entity_id().filter(request.empire_entity_id);
+    let mut empire_ranks = ctx.db.empire_rank_state().empire_entity_id().filter(request.empire_entity_id);
     let mut rank = unwrap_or_err!(
-        empire_ranks.filter(|r| r.rank == target_rank).next(),
+        empire_ranks.find(|r| r.rank == target_rank),
         "Empire doesn't have own this rank"
     );
 
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your naming privileges have been suspended")?;
 
     let sanitized_title_name = sanitize_user_inputs(&request.title);
-    if let Err(_) = is_user_text_input_valid(&sanitized_title_name, 35, true) {
+    if is_user_text_input_valid(&sanitized_title_name, 35, true).is_err() {
         return Err("Invalid rank title".into());
     }
 
@@ -389,7 +387,7 @@ pub fn empire_set_rank_title(ctx: &ReducerContext, request: EmpireSetRankTitleRe
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_set_player_rank(ctx: &ReducerContext, request: EmpireSetPlayerRankRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if !EmpirePlayerDataState::has_permission(ctx, actor_id, EmpirePermission::PromoteLesserRanks) {
         return Err("You don't have the permissions to promote someone".into());
@@ -397,7 +395,7 @@ pub fn empire_set_player_rank(ctx: &ReducerContext, request: EmpireSetPlayerRank
 
     let mut target_rank = request.rank;
     let acting_player_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "Not part of an empire"
     );
 
@@ -413,16 +411,16 @@ pub fn empire_set_player_rank(ctx: &ReducerContext, request: EmpireSetPlayerRank
         return Err("Cannot promote to emperor".into());
     }
 
-    let empire_ranks = ctx.db.empire_rank_state().empire_entity_id().filter(request.empire_entity_id);
-    if empire_ranks.filter(|r| r.rank == target_rank).next().is_none() {
+    let mut empire_ranks = ctx.db.empire_rank_state().empire_entity_id().filter(request.empire_entity_id);
+    if empire_ranks.find(|r| r.rank == target_rank).is_none() {
         return Err("Empire doesn't have own this rank".into());
     }
 
     let mut player_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&request.player_entity_id),
+        ctx.db.empire_player_data_state().entity_id().find(request.player_entity_id),
         "Target is not part of an empire"
     );
-    if player_data.empire_entity_id != request.empire_entity_id || player_data.empire_entity_id != player_data.empire_entity_id {
+    if player_data.empire_entity_id != request.empire_entity_id {
         return Err("Not a member of this empire".into());
     }
 
@@ -480,14 +478,14 @@ pub fn empire_set_player_rank(ctx: &ReducerContext, request: EmpireSetPlayerRank
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_transfer_emperorship(ctx: &ReducerContext, target_player_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if target_player_entity_id == actor_id {
         return Err("You can't transfer your title to yourself".into());
     }
 
     let player_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
@@ -496,7 +494,7 @@ pub fn empire_transfer_emperorship(ctx: &ReducerContext, target_player_entity_id
     }
 
     let target_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&target_player_entity_id),
+        ctx.db.empire_player_data_state().entity_id().find(target_player_entity_id),
         "This player is not part of your empire"
     );
 
@@ -514,10 +512,10 @@ pub fn empire_transfer_emperorship(ctx: &ReducerContext, target_player_entity_id
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_rename(ctx: &ReducerContext, new_name: String) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let player_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
@@ -539,7 +537,7 @@ pub fn empire_rename(ctx: &ReducerContext, new_name: String) -> Result<(), Strin
 
     // Do not sanitize the name, but validate it.
     // We'd rather have an error for having < and _ characters than trimming them and updating the result for 1000 shards.
-    if let Err(_) = is_user_text_input_valid(&new_name, 35, true) {
+    if is_user_text_input_valid(&new_name, 35, true).is_err() {
         return Err("Invalid empire name".into());
     }
 
@@ -549,7 +547,7 @@ pub fn empire_rename(ctx: &ReducerContext, new_name: String) -> Result<(), Strin
         .db
         .previous_empire_name_state()
         .empire_lower_case_name()
-        .find(&new_name.to_lowercase())
+        .find(new_name.to_lowercase())
     {
         if previous_entry.emperor_identity != identity {
             return Err("This name is unavailable".into());
@@ -563,7 +561,7 @@ pub fn empire_rename(ctx: &ReducerContext, new_name: String) -> Result<(), Strin
         .db
         .empire_lowercase_name_state()
         .name_lowercase()
-        .find(&new_name.to_lowercase())
+        .find(new_name.to_lowercase())
         .is_some()
     {
         return Err("An empire with this name already exists".into());
@@ -605,7 +603,7 @@ pub fn empire_craft_supplies(ctx: &ReducerContext, foundry_entity_id: u64) -> Re
     }
 
     let mut foundry = unwrap_or_err!(
-        ctx.db.empire_foundry_state().entity_id().find(&foundry_entity_id),
+        ctx.db.empire_foundry_state().entity_id().find(foundry_entity_id),
         "This is not an empire foundry"
     );
     foundry.queued -= 1;
@@ -613,7 +611,7 @@ pub fn empire_craft_supplies(ctx: &ReducerContext, foundry_entity_id: u64) -> Re
 
     if foundry.queued > 0 {
         // Start the craft
-        let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+        let params = ctx.db.parameters_desc().version().find(0).unwrap();
         foundry.started = ctx.timestamp;
         ctx.db
             .empire_craft_supplies_timer()
@@ -634,7 +632,7 @@ pub fn empire_craft_supplies(ctx: &ReducerContext, foundry_entity_id: u64) -> Re
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_mark_for_siege(ctx: &ReducerContext, request: EmpireMarkForSiegeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     //// for now, make sure we only siege watch towers
     //let building_state = unwrap_or_err!(
@@ -709,10 +707,10 @@ pub fn empire_mark_for_siege(ctx: &ReducerContext, request: EmpireMarkForSiegeRe
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_set_directive_message(ctx: &ReducerContext, request: EmpireSetDirectiveMessageRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let player_rank = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "Not part of an empire"
     );
 
@@ -725,7 +723,7 @@ pub fn empire_set_directive_message(ctx: &ReducerContext, request: EmpireSetDire
     }
 
     let mut directive = unwrap_or_err!(
-        ctx.db.empire_directive_state().entity_id().find(&request.empire_entity_id),
+        ctx.db.empire_directive_state().entity_id().find(request.empire_entity_id),
         "Empire no longer exists."
     );
 
@@ -756,24 +754,24 @@ pub fn empire_donate_shards(ctx: &ReducerContext, request: EmpireDonateShardsReq
         return Err("Feature is currently disabled".into());
     }
 
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let mut player_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
-    if request.amount <= 0 {
+    if request.amount == 0 {
         return Err("You can only donate a positive amount of shards".into());
     }
 
-    let mut vault = unwrap_or_err!(ctx.db.player_shard_state().entity_id().find(&actor_id), "Player has no vault data");
+    let mut vault = unwrap_or_err!(ctx.db.player_shard_state().entity_id().find(actor_id), "Player has no vault data");
     if vault.shards < request.amount {
         return Err("You don't carry that many shards".into());
     }
 
     let mut empire_state = unwrap_or_err!(
-        ctx.db.empire_state().entity_id().find(&player_data.empire_entity_id),
+        ctx.db.empire_state().entity_id().find(player_data.empire_entity_id),
         "Empire no longer exists."
     );
 
@@ -787,7 +785,7 @@ pub fn empire_donate_shards(ctx: &ReducerContext, request: EmpireDonateShardsReq
     let nobility_threshold = empire_state.nobility_threshold as u32;
     EmpireState::update_shared(ctx, empire_state, crate::inter_module::InterModuleDestination::AllOtherRegions);
 
-    let donator_name = ctx.db.player_username_state().entity_id().find(&actor_id).unwrap().username;
+    let donator_name = ctx.db.player_username_state().entity_id().find(actor_id).unwrap().username;
     let mut on_behalf_name = None;
     if let Some(on_behalf) = request.on_behalf_username {
         let on_behalf_state = unwrap_or_err!(ctx.db.player_username_state().username().find(&on_behalf), "Player does not exist");
@@ -801,7 +799,7 @@ pub fn empire_donate_shards(ctx: &ReducerContext, request: EmpireDonateShardsReq
         }
     }
 
-    player_data.donated_shards += request.amount as u32;
+    player_data.donated_shards += request.amount;
 
     // Citizens-to-Noble auto-upgrade
     if player_data.donated_shards + player_data.donated_empire_currency >= nobility_threshold && player_data.noble.is_none() {
@@ -840,14 +838,14 @@ pub fn empire_donate_shards(ctx: &ReducerContext, request: EmpireDonateShardsReq
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_set_nobility_threshold(ctx: &ReducerContext, threshold: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     if threshold <= 0 {
         return Err("Threshold cannot be a null or negative value".into());
     }
 
     let player_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
@@ -856,7 +854,7 @@ pub fn empire_set_nobility_threshold(ctx: &ReducerContext, threshold: i32) -> Re
     }
 
     let mut empire_state = unwrap_or_err!(
-        ctx.db.empire_state().entity_id().find(&player_data.empire_entity_id),
+        ctx.db.empire_state().entity_id().find(player_data.empire_entity_id),
         "Empire no longer exists"
     );
     empire_state.nobility_threshold = threshold;
@@ -868,10 +866,10 @@ pub fn empire_set_nobility_threshold(ctx: &ReducerContext, threshold: i32) -> Re
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_change_emblem(ctx: &ReducerContext, request: EmpireChangeEmblemRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let mut emblem = unwrap_or_err!(
-        ctx.db.empire_emblem_state().entity_id().find(&request.empire_entity_id),
+        ctx.db.empire_emblem_state().entity_id().find(request.empire_entity_id),
         "Unknown empire"
     );
 
@@ -883,7 +881,7 @@ pub fn empire_change_emblem(ctx: &ReducerContext, request: EmpireChangeEmblemReq
         .db
         .empire_icon_desc()
         .id()
-        .find(&request.icon_id)
+        .find(request.icon_id)
         .is_none_or(|icon| icon.is_shape)
     {
         return Err("Invalid empire icon".into());
@@ -893,14 +891,14 @@ pub fn empire_change_emblem(ctx: &ReducerContext, request: EmpireChangeEmblemReq
         .db
         .empire_icon_desc()
         .id()
-        .find(&request.shape_id)
+        .find(request.shape_id)
         .is_none_or(|icon| !icon.is_shape)
     {
         return Err("Invalid empire shape".into());
     }
 
-    if ctx.db.empire_color_desc().id().find(&request.color1_id).is_none()
-        || ctx.db.empire_color_desc().id().find(&request.color2_id).is_none()
+    if ctx.db.empire_color_desc().id().find(request.color1_id).is_none()
+        || ctx.db.empire_color_desc().id().find(request.color2_id).is_none()
     {
         return Err("Invalid empire colors".into());
     }
@@ -918,10 +916,10 @@ pub fn empire_change_emblem(ctx: &ReducerContext, request: EmpireChangeEmblemReq
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_take_emperorship(ctx: &ReducerContext) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let target_data = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
@@ -962,9 +960,9 @@ pub fn empire_take_emperorship(ctx: &ReducerContext) -> Result<(), String> {
 #[shared_table_reducer]
 #[feature_gate("empire")]
 pub fn empire_move_capital(ctx: &ReducerContext, target_claim_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     let empire_player_data_state = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
@@ -1047,9 +1045,9 @@ pub fn empire_transfer_watchtower_ownership(
     watchtower_entity_id: u64,
     target_empire_entity_id: u64,
 ) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     let empire_player_data_state = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You are not part of an empire"
     );
 
@@ -1093,9 +1091,7 @@ pub fn empire_transfer_watchtower_ownership(
         ctx.db
             .empire_player_data_state()
             .empire_entity_id()
-            .filter(target_empire_entity_id)
-            .filter(|data| data.rank == 0)
-            .next(),
+            .filter(target_empire_entity_id).find(|data| data.rank == 0),
         "That empire no longer exist"
     );
 
@@ -1137,12 +1133,12 @@ pub fn delete_empire_building(ctx: &ReducerContext, player_entity_id: u64, build
     let mut send_region_message = false;
 
     // delete empire stuff
-    if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(&building_entity_id) {
+    if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(building_entity_id) {
         let empire_entity_id = empire_node.empire_entity_id;
         empire_node.delete(ctx);
         // If the node belongs to an empire that still exists, update that empire's upkeep.
         // The node might exist because of Empire Tech without being part of an empire or be the capital that was deleted in the previous call.
-        if ctx.db.empire_state().entity_id().find(&empire_entity_id).is_some() {
+        if ctx.db.empire_state().entity_id().find(empire_entity_id).is_some() {
             EmpireState::update_empire_upkeep(ctx, empire_entity_id);
         }
 

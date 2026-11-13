@@ -28,15 +28,13 @@ pub fn insert_developer_identity(
         return Err(format!(
             "The provided identity is already in use for player entity_id: {}. You muse provide a new identity.",
             user_state.entity_id
-        )
-        .into());
+        ));
     }
     if let Some(developer) = ctx.db.developer().identity().find(identity) {
         return Err(format!(
             "The provided identity is already in use for developer: {}.",
             developer.developer_name
-        )
-        .into());
+        ));
     }
 
     ctx.db.developer().insert(Developer {

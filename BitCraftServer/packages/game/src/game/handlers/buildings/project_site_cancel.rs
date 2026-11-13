@@ -10,14 +10,14 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate("build")]
 pub fn project_site_cancel(ctx: &ReducerContext, request: PlayerProjectSiteCancelRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let location = unwrap_or_err!(
-        ctx.db.location_state().entity_id().find(&request.owner_entity_id),
+        ctx.db.location_state().entity_id().find(request.owner_entity_id),
         "Invalid project site"
     );
 
@@ -32,10 +32,10 @@ pub fn project_site_cancel(ctx: &ReducerContext, request: PlayerProjectSiteCance
     }
 
     footprint_helpers::delete_footprint(ctx, request.owner_entity_id);
-    ctx.db.location_state().entity_id().delete(&request.owner_entity_id);
-    ctx.db.project_site_state().entity_id().delete(&request.owner_entity_id);
-    ctx.db.auto_claim_state().entity_id().delete(&request.owner_entity_id);
-    ctx.db.growth_state().entity_id().delete(&request.owner_entity_id);
+    ctx.db.location_state().entity_id().delete(request.owner_entity_id);
+    ctx.db.project_site_state().entity_id().delete(request.owner_entity_id);
+    ctx.db.auto_claim_state().entity_id().delete(request.owner_entity_id);
+    ctx.db.growth_state().entity_id().delete(request.owner_entity_id);
     delete_resource_growth_timer(ctx, request.owner_entity_id);
 
     Ok(())

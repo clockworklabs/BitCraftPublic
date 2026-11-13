@@ -15,7 +15,7 @@ pub fn admin_sign_out(ctx: &ReducerContext, identity: Identity) -> Result<(), St
         return Err("Unauthorized".into());
     }
 
-    if let Some(mut user_state) = ctx.db.user_state().identity().find(&identity) {
+    if let Some(mut user_state) = ctx.db.user_state().identity().find(identity) {
         user_state.can_sign_in = false;
         ctx.db.user_state().entity_id().update(user_state);
     }

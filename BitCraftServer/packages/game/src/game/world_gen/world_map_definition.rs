@@ -18,7 +18,7 @@ impl WorldMapDefinition {
     }
 
     fn is_water_internal(&self, position: Vector2) -> bool {
-        if self.shapes.len() == 0 {
+        if self.shapes.is_empty() {
             return true;
         }
 
@@ -28,11 +28,11 @@ impl WorldMapDefinition {
             }
         }
 
-        return true;
+        true
     }
 
     fn get_noise_internal(&self, position: Vector2) -> f32 {
-        if self.shapes.len() == 0 {
+        if self.shapes.is_empty() {
             return 0f32;
         }
 
@@ -46,6 +46,6 @@ impl WorldMapDefinition {
             noise = noise.max(shape.get_vec2(position));
         }
 
-        return noise;
+        noise
     }
 }

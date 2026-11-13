@@ -19,58 +19,58 @@ use crate::{
 };
 
 pub fn coordinates(ctx: &ReducerContext, entity_id: u64) -> SmallHexTile {
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.coordinates();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn offset_coordinates(ctx: &ReducerContext, entity_id: u64) -> OffsetCoordinatesSmall {
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.offset_coordinates();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn coordinates_float(ctx: &ReducerContext, entity_id: u64) -> FloatHexTile {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.coordinates_float();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn offset_coordinates_float(ctx: &ReducerContext, entity_id: u64) -> OffsetCoordinatesFloat {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.offset_coordinates_float();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn coordinates_any(ctx: &ReducerContext, entity_id: u64) -> SmallHexTile {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.coordinates();
     }
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.coordinates();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn coordinates_try_get(ctx: &ReducerContext, entity_id: u64) -> Result<SmallHexTile, String> {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return Ok(location.coordinates());
     }
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return Ok(location.coordinates());
     }
     Err("Invalid entity location".into())
 }
 
 pub fn coordinates_any_float(ctx: &ReducerContext, entity_id: u64) -> FloatHexTile {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.coordinates_float();
     }
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.coordinates().into();
     }
     panic!("No location for entity id {}", entity_id);
@@ -79,7 +79,7 @@ pub fn coordinates_any_float(ctx: &ReducerContext, entity_id: u64) -> FloatHexTi
 pub fn building_at_coordinates(ctx: &ReducerContext, coordinates: &SmallHexTile) -> Option<BuildingState> {
     let id = building_id_at_coordinates(ctx, coordinates);
     match id {
-        Some(id) => ctx.db.building_state().entity_id().find(&id),
+        Some(id) => ctx.db.building_state().entity_id().find(id),
         None => None,
     }
 }
@@ -106,7 +106,7 @@ pub fn project_site_at_coordinates(ctx: &ReducerContext, coordinates: &SmallHexT
 
 pub fn placeable_at_coordinates(ctx: &ReducerContext, coordinates: &SmallHexTile) -> Option<PlaceableState> {
     LocationState::select_all(ctx, coordinates)
-        .filter_map(|location| ctx.db.placeable_state().entity_id().find(&location.entity_id))
+        .filter_map(|location| ctx.db.placeable_state().entity_id().find(location.entity_id))
         .next()
 }
 
@@ -124,7 +124,7 @@ pub fn has_hitbox_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -> 
             return true;
         }
     }
-    return false;
+    false
 }
 
 pub fn has_blocking_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -> bool {
@@ -137,12 +137,7 @@ pub fn has_blocking_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -
 }
 
 pub fn get_hitbox_footprint(ctx: &ReducerContext, coordinates: SmallHexTile) -> Option<FootprintTileState> {
-    for footprint in FootprintTileState::get_at_location(ctx, &coordinates) {
-        if footprint.footprint_type == FootprintType::Hitbox {
-            return Some(footprint);
-        }
-    }
-    return None;
+    FootprintTileState::get_at_location(ctx, &coordinates).find(|footprint| footprint.footprint_type == FootprintType::Hitbox)
 }
 
 /// Returns the floating platform building (and its description) whose footprint covers these coordinates.
@@ -152,12 +147,12 @@ pub fn floating_platform_at_coordinates(ctx: &ReducerContext, coordinates: Small
         if footprint.footprint_type != FootprintType::Platform {
             continue;
         }
-        if let Some(building) = ctx.db.building_state().entity_id().find(&footprint.owner_entity_id) {
+        if let Some(building) = ctx.db.building_state().entity_id().find(footprint.owner_entity_id) {
             if let Some(desc) = ctx
                 .db
                 .floating_platform_desc()
                 .building_id()
-                .find(&building.building_description_id)
+                .find(building.building_description_id)
             {
                 return Some((building, desc));
             }
@@ -191,7 +186,7 @@ pub fn is_flat_corner(ctx: &ReducerContext, terrain_cache: &mut TerrainChunkCach
     let elevations: [i16; 3] = coordinates
         .get_terrain_coordinates()
         .map(|c| terrain_cache.get_terrain_cell(ctx, &c).unwrap_or_default().elevation);
-    return elevations[0] == elevations[1] && elevations[1] == elevations[2];
+    elevations[0] == elevations[1] && elevations[1] == elevations[2]
 }
 
 pub fn is_submerged(ctx: &ReducerContext, terrain_cache: &mut TerrainChunkCache, coordinates: SmallHexTile) -> bool {
@@ -202,10 +197,10 @@ pub fn is_submerged(ctx: &ReducerContext, terrain_cache: &mut TerrainChunkCache,
             .is_submerged();
     }
 
-    return coordinates
+    coordinates
         .get_terrain_coordinates()
         .iter()
-        .any(|c| terrain_cache.get_terrain_cell(ctx, &c).unwrap_or_default().is_submerged());
+        .any(|c| terrain_cache.get_terrain_cell(ctx, c).unwrap_or_default().is_submerged())
 }
 
 pub fn enemies_in_radius<'a>(
@@ -216,10 +211,7 @@ pub fn enemies_in_radius<'a>(
     chunk_indexes_in_radius(coord, radius)
         .flat_map(|chunk_index| ctx.db.mobile_entity_state().chunk_index().filter(chunk_index))
         .filter(move |mes| mes.coordinates().distance_to(coord) <= radius)
-        .filter_map(|mes| match ctx.db.enemy_state().entity_id().find(&mes.entity_id) {
-            Some(enemy) => Some((enemy, mes.coordinates())),
-            None => None,
-        })
+        .filter_map(|mes| ctx.db.enemy_state().entity_id().find(mes.entity_id).map(|enemy| (enemy, mes.coordinates())))
 }
 
 pub fn chunk_indexes_in_radius(coord: SmallHexTile, radius: i32) -> impl Iterator<Item = u64> {
@@ -252,7 +244,7 @@ pub fn any_claim_totems_in_radius(ctx: &ReducerContext, coord: SmallHexTile, rad
         .iter()
         .flat_map(|id| {
             ctx.db.building_state().building_description_id().filter(id).filter(|b| {
-                if let Some(loc) = ctx.db.location_state().entity_id().find(&b.entity_id) {
+                if let Some(loc) = ctx.db.location_state().entity_id().find(b.entity_id) {
                     loc.coordinates().distance_to(coord) <= radius
                 } else {
                     false
@@ -271,13 +263,13 @@ pub fn claims_in_radius_iter<'a>(ctx: &'a ReducerContext, coord: SmallHexTile, r
     SmallHexTile::coordinates_in_radius_with_center_iter(coord, radius).filter_map(|t| ClaimTileState::get_at_location(ctx, &t))
 }
 
-pub fn claims_in_radius_except(ctx: &ReducerContext, coord: SmallHexTile, radius: i32, entities_to_ignore: &Vec<u64>) -> Vec<u64> {
+pub fn claims_in_radius_except(ctx: &ReducerContext, coord: SmallHexTile, radius: i32, entities_to_ignore: &[u64]) -> Vec<u64> {
     let mut tiles = SmallHexTile::coordinates_in_radius(coord, radius);
     tiles.push(coord);
     let mut claims: Vec<u64> = Vec::new();
 
     for t in tiles {
-        if let Some(claim) = claim_helper::get_claim_on_tile(ctx, t.clone()) {
+        if let Some(claim) = claim_helper::get_claim_on_tile(ctx, t) {
             if !claims.contains(&claim.entity_id) && !entities_to_ignore.contains(&claim.entity_id) {
                 claims.push(claim.entity_id);
             }
@@ -292,7 +284,7 @@ pub fn buildings_in_radius(ctx: &ReducerContext, coord: SmallHexTile, radius: i3
         .building_state()
         .iter()
         .filter(|e| {
-            if let Some(loc) = ctx.db.location_state().entity_id().find(&e.entity_id) {
+            if let Some(loc) = ctx.db.location_state().entity_id().find(e.entity_id) {
                 loc.coordinates().distance_to(coord) <= radius
             } else {
                 false
@@ -308,7 +300,7 @@ pub fn project_sites_in_radius(ctx: &ReducerContext, coord: SmallHexTile, radius
         .project_site_state()
         .iter()
         .filter(|e| {
-            if let Some(loc) = ctx.db.location_state().entity_id().find(&e.entity_id) {
+            if let Some(loc) = ctx.db.location_state().entity_id().find(e.entity_id) {
                 loc.coordinates().distance_to(coord) <= radius
             } else {
                 false
@@ -323,7 +315,7 @@ pub fn placeables_in_radius(ctx: &ReducerContext, coord: SmallHexTile, radius: i
         .placeable_state()
         .iter()
         .filter(|placeable| {
-            if let Some(loc) = ctx.db.location_state().entity_id().find(&placeable.entity_id) {
+            if let Some(loc) = ctx.db.location_state().entity_id().find(placeable.entity_id) {
                 loc.coordinates().distance_to(coord) <= radius
             } else {
                 false
@@ -333,25 +325,25 @@ pub fn placeables_in_radius(ctx: &ReducerContext, coord: SmallHexTile, radius: i
 }
 
 pub fn get_location_for_entity(ctx: &ReducerContext, entity_id: u64) -> Option<SmallHexTile> {
-    if let Some(loc) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(loc) = ctx.db.location_state().entity_id().find(entity_id) {
         return Some(loc.coordinates());
     }
-    if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return Some(loc.coordinates());
     }
     // Progressive actions locations are their building's
-    if let Some(action) = ctx.db.progressive_action_state().entity_id().find(&entity_id) {
-        if let Some(loc) = ctx.db.location_state().entity_id().find(&action.building_entity_id) {
+    if let Some(action) = ctx.db.progressive_action_state().entity_id().find(entity_id) {
+        if let Some(loc) = ctx.db.location_state().entity_id().find(action.building_entity_id) {
             return Some(loc.coordinates());
         }
     }
     // Inventory locations are their owner's
-    if let Some(inventory) = ctx.db.inventory_state().entity_id().find(&entity_id) {
-        if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(&inventory.owner_entity_id) {
+    if let Some(inventory) = ctx.db.inventory_state().entity_id().find(entity_id) {
+        if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(inventory.owner_entity_id) {
             // Player or Deployable Inventory
             return Some(loc.coordinates());
         }
-        if let Some(loc) = ctx.db.location_state().entity_id().find(&inventory.owner_entity_id) {
+        if let Some(loc) = ctx.db.location_state().entity_id().find(inventory.owner_entity_id) {
             // Building Inventory
             return Some(loc.coordinates());
         }
@@ -370,19 +362,19 @@ pub fn untarget(ctx: &ReducerContext, entity_id: u64) {
         .map(|t| t.entity_id)
         .collect();
     for e in attackers {
-        ctx.db.target_state().entity_id().delete(&e);
+        ctx.db.target_state().entity_id().delete(e);
     }
 }
 
 pub fn award_experience_on_damage(ctx: &ReducerContext, damage: f32, entity_id: u64, attacker_entity_id: Option<u64>) {
     // Enemy damage
     if let Some(attacker_entity_id) = attacker_entity_id {
-        if let Some(enemy) = ctx.db.enemy_state().entity_id().find(&entity_id) {
+        if let Some(enemy) = ctx.db.enemy_state().entity_id().find(entity_id) {
             let enemy_type = enemy.enemy_type as i32;
             let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy_type).unwrap();
 
             // Grant experience to attacker
-            let experience_per_damage_dealt = enemy_desc.experience_per_damage_dealt.get(0);
+            let experience_per_damage_dealt = enemy_desc.experience_per_damage_dealt.first();
             if let Some(experience_per_damage_dealt) = experience_per_damage_dealt {
                 ExperienceState::add_experience(
                     ctx,
@@ -404,19 +396,19 @@ pub fn remove_entity_inventories(ctx: &ReducerContext, owner_entity_id: u64) {
         .map(|a| a.entity_id)
         .collect();
     for inventory in inventories {
-        ctx.db.inventory_state().entity_id().delete(&inventory);
+        ctx.db.inventory_state().entity_id().delete(inventory);
     }
 }
 
 pub fn inventory_index_for_function(ctx: &ReducerContext, building_id: i32, function_type: i32) -> Option<i32> {
     let mut inventory_index = -1;
     let mut ret_val = None;
-    let building = ctx.db.building_desc().id().find(&building_id).unwrap();
+    let building = ctx.db.building_desc().id().find(building_id).unwrap();
 
     for function in building.functions {
         let has_inventory = function.cargo_slots != 0 || function.storage_slots != 0;
         if has_inventory {
-            inventory_index = inventory_index + 1;
+            inventory_index += 1;
             if function.function_type == function_type {
                 ret_val = Some(inventory_index);
                 break;
@@ -428,14 +420,14 @@ pub fn inventory_index_for_function(ctx: &ReducerContext, building_id: i32, func
 
 pub fn is_interior_tile_walkable(ctx: &ReducerContext, coord: SmallHexTile) -> bool {
     if coord.dimension != dimensions::OVERWORLD {
-        let dimension_description = ctx.db.dimension_description_state().dimension_id().find(&coord.dimension).unwrap();
+        let dimension_description = ctx.db.dimension_description_state().dimension_id().find(coord.dimension).unwrap();
         let interior = ctx
             .db
             .interior_instance_desc()
             .id()
-            .find(&dimension_description.interior_instance_id)
+            .find(dimension_description.interior_instance_id)
             .unwrap();
-        let shape = ctx.db.interior_shape_desc().id().find(&interior.interior_shape_id).unwrap();
+        let shape = ctx.db.interior_shape_desc().id().find(interior.interior_shape_id).unwrap();
         let offset_coord = OffsetCoordinatesSmall::from(coord);
         return shape.footprint.iter().any(|f| {
             f.x - shape.min_x == offset_coord.x && f.z - shape.min_z == offset_coord.z && f.footprint_type != FootprintType::Hitbox
@@ -445,7 +437,7 @@ pub fn is_interior_tile_walkable(ctx: &ReducerContext, coord: SmallHexTile) -> b
 }
 
 pub fn teleport_home(ctx: &ReducerContext, actor_id: u64, from_death: bool) -> Result<(), String> {
-    let player = ctx.db.player_state().entity_id().find(&actor_id).unwrap();
+    let player = ctx.db.player_state().entity_id().find(actor_id).unwrap();
     let teleport_location = player.teleport_location;
 
     let teleport_location_float = OffsetCoordinatesFloat::from(teleport_location.location);
@@ -468,8 +460,8 @@ pub fn teleport_home(ctx: &ReducerContext, actor_id: u64, from_death: bool) -> R
     }
 
     // Innerlight buff
-    let mut active_buff_state = unwrap_or_err!(ctx.db.active_buff_state().entity_id().find(&actor_id), "Player has no buff state");
-    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(&0).unwrap().respawn_aggro_immunity;
+    let mut active_buff_state = unwrap_or_err!(ctx.db.active_buff_state().entity_id().find(actor_id), "Player has no buff state");
+    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(0).unwrap().respawn_aggro_immunity;
     active_buff_state.set_innerlight_buff(ctx, innerlight_buff_duration);
 
     let teleportation_energy_state = TeleportationEnergyState::get(ctx, actor_id);
@@ -487,7 +479,7 @@ pub fn teleport_waystone(
     dry_run: bool,
 ) -> Result<(), String> {
     let building_state_to = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id_to),
+        ctx.db.building_state().entity_id().find(building_entity_id_to),
         "Building does not exist."
     );
 
@@ -496,7 +488,7 @@ pub fn teleport_waystone(
     }
 
     let building_to = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state_to.building_description_id),
+        ctx.db.building_desc().id().find(building_state_to.building_description_id),
         "Building does not exist."
     );
 
@@ -512,7 +504,7 @@ pub fn teleport_waystone(
     }
 
     let building_state_from = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id_from),
+        ctx.db.building_state().entity_id().find(building_entity_id_from),
         "Building does not exist."
     );
 
@@ -521,7 +513,7 @@ pub fn teleport_waystone(
     }
 
     let building_from = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state_from.building_description_id),
+        ctx.db.building_desc().id().find(building_state_from.building_description_id),
         "Building does not exist."
     );
 
@@ -534,12 +526,12 @@ pub fn teleport_waystone(
 
     //verify from charter stone is nearby
     let location_state_from = unwrap_or_err!(
-        ctx.db.location_state().entity_id().find(&building_entity_id_from),
+        ctx.db.location_state().entity_id().find(building_entity_id_from),
         "Charter stone does not exist."
     );
     let coords_from = location_state_from.coordinates();
 
-    let player_location = ctx.db.mobile_entity_state().entity_id().find(&actor_id).unwrap();
+    let player_location = ctx.db.mobile_entity_state().entity_id().find(actor_id).unwrap();
 
     if player_location.coordinates().distance_to(coords_from) > 7 {
         let player_claim_tile = claim_helper::get_claim_on_tile(ctx, player_location.coordinates());
@@ -550,7 +542,7 @@ pub fn teleport_waystone(
 
     //verify charter stone to location exists
     let location_state_to = unwrap_or_err!(
-        ctx.db.location_state().entity_id().find(&building_entity_id_to),
+        ctx.db.location_state().entity_id().find(building_entity_id_to),
         "Charter stone does not exist."
     );
 
@@ -567,8 +559,8 @@ pub fn teleport_waystone(
     let teleport_location_float = OffsetCoordinatesFloat::from(teleport_location.location);
 
     // Innerlight buff
-    let mut active_buff_state = unwrap_or_err!(ctx.db.active_buff_state().entity_id().find(&actor_id), "Player has no buff state");
-    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(&0).unwrap().respawn_aggro_immunity;
+    let mut active_buff_state = unwrap_or_err!(ctx.db.active_buff_state().entity_id().find(actor_id), "Player has no buff state");
+    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(0).unwrap().respawn_aggro_immunity;
     active_buff_state.set_innerlight_buff(ctx, innerlight_buff_duration);
 
     // verify teleportation energy
@@ -603,7 +595,7 @@ pub fn teleport_to(
         .db
         .mobile_entity_state()
         .entity_id()
-        .find(&actor_id)
+        .find(actor_id)
         .unwrap()
         .coordinates_float();
 
@@ -643,7 +635,7 @@ pub fn teleport_to(
         // remove deployable when teleporting (from death or teleport command)
         deployable_helpers::dismount_deployable(ctx, actor_id, false);
     } else {
-        if let Some(mounting) = ctx.db.mounting_state().entity_id().find(&actor_id) {
+        if let Some(mounting) = ctx.db.mounting_state().entity_id().find(actor_id) {
             // teleport vehicle and passengers
             reducer_helpers::deployable_helpers::move_deployable(
                 ctx,
@@ -685,26 +677,26 @@ pub fn teleport_to(
 pub fn validate_barter_permissions(ctx: &ReducerContext, actor_id: u64, building: &BuildingState, dimension: u32) -> Result<(), String> {
     // This takes care of rental permissions and default non-members
 
-    if !PermissionState::can_interact_with_building(ctx, actor_id, &building, Permission::Inventory) {
+    if !PermissionState::can_interact_with_building(ctx, actor_id, building, Permission::Inventory) {
         return Err("You don't have permission".into());
     }
 
-    if !permission_helper::can_interact_with_building(ctx, &building, actor_id, ClaimPermission::Inventory) {
+    if !permission_helper::can_interact_with_building(ctx, building, actor_id, ClaimPermission::Inventory) {
         return Err("You don't have permission".into());
     }
 
-    let dimension = ctx.db.dimension_description_state().dimension_id().find(&dimension);
+    let dimension = ctx.db.dimension_description_state().dimension_id().find(dimension);
     // Check for co-owner role if not part of a rental
     if dimension.is_none()
         || ctx
             .db
             .rent_state()
             .dimension_network_id()
-            .find(&dimension.unwrap().dimension_network_entity_id)
+            .find(dimension.unwrap().dimension_network_entity_id)
             .is_none()
     {
         let claim = unwrap_or_err!(
-            ctx.db.claim_state().entity_id().find(&building.claim_entity_id),
+            ctx.db.claim_state().entity_id().find(building.claim_entity_id),
             "Building is not claimed"
         );
         if !claim.has_co_owner_permissions(ctx, actor_id) {
@@ -716,7 +708,7 @@ pub fn validate_barter_permissions(ctx: &ReducerContext, actor_id: u64, building
 }
 
 pub fn get_speed_on_water_type(
-    nautical_speed: &Vec<MovementSpeed>,
+    nautical_speed: &[MovementSpeed],
     mut water_body_type: u8,
     water_depth: Option<i16>,
     is_player: bool,

@@ -21,13 +21,13 @@ const PARTIAL_WIND_BONUS_ANGLE_RAD: f32 = std::f32::consts::PI * 2.0 / 3.0;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_move(ctx: &ReducerContext, request: PlayerDeployableMoveRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mounting = unwrap_or_err!(
-        ctx.db.mounting_state().entity_id().find(&actor_id),
+        ctx.db.mounting_state().entity_id().find(actor_id),
         "Player is not in a deployable!"
     ); //*DEPLOYABLE*//
 
@@ -38,7 +38,7 @@ pub fn deployable_move(ctx: &ReducerContext, request: PlayerDeployableMoveReques
     let deployable_entity_id = mounting.deployable_entity_id;
 
     let prev_mobile_entity = unwrap_or_err!(
-        ctx.db.mobile_entity_state().entity_id().find(&deployable_entity_id),
+        ctx.db.mobile_entity_state().entity_id().find(deployable_entity_id),
         "Deployable is no longer available"
     );
 
@@ -49,7 +49,7 @@ pub fn deployable_move(ctx: &ReducerContext, request: PlayerDeployableMoveReques
     let target_coordinates: FloatHexTile = dest.into();
 
     let paving = PavedTileState::get_at_location(ctx, &prev_origin.parent_small_tile())
-        .map(|t| ctx.db.paving_tile_desc().id().find(&t.tile_type_id).unwrap());
+        .map(|t| ctx.db.paving_tile_desc().id().find(t.tile_type_id).unwrap());
 
     let mut terrain_cache = TerrainChunkCache::empty();
     let terrain_prev = unwrap_or_err!(
@@ -68,11 +68,11 @@ pub fn deployable_move(ctx: &ReducerContext, request: PlayerDeployableMoveReques
     // Validate Boat Move. Note that this for the short term, ideally at some point
     // we will re-enable the above _validate_move that has more comprehensive checks
     let deployable = unwrap_or_err!(
-        ctx.db.deployable_state_v2().entity_id().find(&deployable_entity_id),
+        ctx.db.deployable_state_v2().entity_id().find(deployable_entity_id),
         "Deployable not found!"
     );
     let desc = unwrap_or_err!(
-        ctx.db.deployable_desc().id().find(&deployable.deployable_description_id),
+        ctx.db.deployable_desc().id().find(deployable.deployable_description_id),
         "Invalid deployable type"
     );
 
@@ -107,7 +107,7 @@ pub fn deployable_move(ctx: &ReducerContext, request: PlayerDeployableMoveReques
     }
 
     let pathfinding = unwrap_or_err!(
-        ctx.db.pathfinding_desc().id().find(&desc.pathfinding_id),
+        ctx.db.pathfinding_desc().id().find(desc.pathfinding_id),
         "Invalid deployable pathfinding info"
     );
 
@@ -159,7 +159,7 @@ pub fn deployable_move(ctx: &ReducerContext, request: PlayerDeployableMoveReques
     }
 
     let distance_moved = prev_origin.distance_to(source_coordinates);
-    let experience_per_progress = desc.experience_per_progress.get(0);
+    let experience_per_progress = desc.experience_per_progress.first();
     if let Some(experience_per_progress) = experience_per_progress {
         let quantity = experience_per_progress.quantity * distance_moved;
         ExperienceState::add_experience_f32(ctx, actor_id, experience_per_progress.skill_id, quantity);
@@ -175,6 +175,7 @@ pub fn deployable_move(ctx: &ReducerContext, request: PlayerDeployableMoveReques
     Ok(())
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn validate_move(
     ctx: &ReducerContext,
     actor_id: u64,
@@ -237,6 +238,7 @@ fn validate_move(
     Ok(())
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn get_move_speed(
     ctx: &ReducerContext,
     actor_id: u64,

@@ -16,14 +16,14 @@ use crate::{
 use super::sleep;
 
 pub fn event_delay(ctx: &ReducerContext, _actor_id: u64, _request: &PlayerTeleportWaystoneRequest) -> Duration {
-    return Duration::from_secs_f32(params!(ctx).teleport_channel_time_waystone);
+    Duration::from_secs_f32(params!(ctx).teleport_channel_time_waystone)
 }
 
 #[spacetimedb::reducer]
 #[shared_table_reducer]
 #[feature_gate]
 pub fn player_teleport_waystone_start(ctx: &ReducerContext, request: PlayerTeleportWaystoneRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let delay = event_delay(ctx, actor_id, &request);
     let result = player_action_helpers::start_action(
@@ -48,13 +48,13 @@ pub fn player_teleport_waystone_start(ctx: &ReducerContext, request: PlayerTelep
 #[shared_table_reducer]
 #[feature_gate]
 pub fn player_teleport_waystone(ctx: &ReducerContext, request: PlayerTeleportWaystoneRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     let entity_id_from = request.entity_id_from;
     let entity_id_to = request.entity_id_to;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     //get building location
-    let location_state_to = unwrap_or_err!(ctx.db.location_state().entity_id().find(&entity_id_to), "Waystone does not exist.");
+    let location_state_to = unwrap_or_err!(ctx.db.location_state().entity_id().find(entity_id_to), "Waystone does not exist.");
     let coords = location_state_to.coordinates();
     let teleport_location_tile = coords;
 

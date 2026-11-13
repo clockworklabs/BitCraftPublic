@@ -22,7 +22,7 @@ pub fn admin_sign_out_all_region(ctx: &ReducerContext) -> Result<(), String> {
     );
 
     for player in ctx.db.signed_in_player_state().iter() {
-        if let Some(user) = ctx.db.user_state().entity_id().find(&player.entity_id) {
+        if let Some(user) = ctx.db.user_state().entity_id().find(player.entity_id) {
             sign_out_internal(ctx, user.identity, false);
         }
     }

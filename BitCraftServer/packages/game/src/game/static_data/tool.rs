@@ -12,7 +12,7 @@ impl ToolDesc {
 
         if let Some(pocket) = toolbelt.get(toolbelt_pocket) {
             if let Some(contents) = pocket.contents {
-                if let Some(equipment_info) = ctx.db.equipment_desc().item_id().find(&contents.item_id) {
+                if let Some(equipment_info) = ctx.db.equipment_desc().item_id().find(contents.item_id) {
                     if let Some(level_req) = &equipment_info.level_requirement {
                         if PlayerState::meets_level_requirement(ctx, player_entity_id, level_req) {
                             let tool = ctx.db.tool_desc().item_id().filter(contents.item_id).next().unwrap();
@@ -20,7 +20,7 @@ impl ToolDesc {
                                 return Result::Ok(tool);
                             }
                         } else {
-                            let tool_name = ctx.db.item_desc().id().find(&contents.item_id).unwrap().name;
+                            let tool_name = ctx.db.item_desc().id().find(contents.item_id).unwrap().name;
                             return Err(format!("You need a higher skill to use your {{0}}|~{}", tool_name));
                         }
                     }
@@ -28,7 +28,7 @@ impl ToolDesc {
             }
         }
 
-        let tool_name = ctx.db.tool_type_desc().id().find(&tool_requirement.tool_type).unwrap().name;
+        let tool_name = ctx.db.tool_type_desc().id().find(tool_requirement.tool_type).unwrap().name;
 
         let article = if tool_name.chars().nth(0).unwrap() == 'A' { "an" } else { "a" };
 
@@ -49,7 +49,7 @@ impl ToolDesc {
 
         if let Some(pocket) = toolbelt.get(toolbelt_pocket) {
             if let Some(contents) = pocket.contents {
-                if ctx.db.equipment_desc().item_id().find(&contents.item_id).is_some() {
+                if ctx.db.equipment_desc().item_id().find(contents.item_id).is_some() {
                     let tool = ctx.db.tool_desc().item_id().filter(contents.item_id).next().unwrap();
                     return Some(tool);
                 }
@@ -75,11 +75,11 @@ impl ToolDesc {
         }
 
         // calculate time factor
-        let log_f = ctx.db.parameters_desc().version().find(&0).unwrap().tech_time_log_base.ln();
+        let log_f = ctx.db.parameters_desc().version().find(0).unwrap().tech_time_log_base.ln();
         // transform to float range of [0, 2]
         let modified_tech_power_delta = 1.0 + tech_power_delta as f32 / 100.0;
         let speed_factor = if tech_power_delta < 0 {
-            modified_tech_power_delta.powf(ctx.db.parameters_desc().version().find(&0).unwrap().tech_time_power_exponent)
+            modified_tech_power_delta.powf(ctx.db.parameters_desc().version().find(0).unwrap().tech_time_power_exponent)
         } else {
             modified_tech_power_delta.ln() / log_f + 1.0
         };

@@ -11,7 +11,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn create_chat_channel(ctx: &ReducerContext, name: String, description: String, visibility: ChatChannelVisibility) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your chat privileges have been suspended")?;
 
@@ -33,14 +33,14 @@ pub fn create_chat_channel(ctx: &ReducerContext, name: String, description: Stri
     let entity_id = game_state::create_entity(ctx);
 
     ctx.db.chat_channel_state().insert(ChatChannelState {
-        entity_id: entity_id,
+        entity_id,
         name: sanitized_name,
-        lowercase_name: lowercase_name,
-        description: description,
-        visibility: visibility
+        lowercase_name,
+        description,
+        visibility
     });
 
-    let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(&actor_id), "Invalid user.");
+    let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(actor_id), "Invalid user.");
     ctx.db.chat_channel_permission_state().insert(ChatChannelPermissionState {
         entity_id: game_state::create_entity(ctx),
         chat_channel_entity_id: entity_id,
@@ -55,7 +55,7 @@ pub fn create_chat_channel(ctx: &ReducerContext, name: String, description: Stri
 const MIN_LENGTH: usize = 2;
 const MAX_LENGTH: usize = 35;
 
-pub fn validate_chat_channel_name(name: &String) -> Result<(), String> {
+pub fn validate_chat_channel_name(name: &str) -> Result<(), String> {
     if name.len() < MIN_LENGTH {
         return Err("This name is too short.".into());
     }
@@ -64,7 +64,7 @@ pub fn validate_chat_channel_name(name: &String) -> Result<(), String> {
         return Err("This name is too long.".into());
     }
 
-    if let Err(_) = is_user_text_input_valid(&name, MAX_LENGTH, true) {
+    if is_user_text_input_valid(name, MAX_LENGTH, true).is_err() {
         return Err("Invalid name".into());
     }
 

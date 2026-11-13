@@ -10,10 +10,10 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireClaim
     let building_entity_id = request.claim_building_entity_id;
     let empire_entity_id = request.empire_entity_id;
 
-    let mut empire = unwrap_or_err!(ctx.db.empire_state().entity_id().find(&empire_entity_id), "Empire does not exist");
+    let mut empire = unwrap_or_err!(ctx.db.empire_state().entity_id().find(empire_entity_id), "Empire does not exist");
 
     let mut settlement = unwrap_or_err!(
-        ctx.db.empire_settlement_state().building_entity_id().find(&building_entity_id),
+        ctx.db.empire_settlement_state().building_entity_id().find(building_entity_id),
         "This claim does not have the tech to join an empire"
     );
 

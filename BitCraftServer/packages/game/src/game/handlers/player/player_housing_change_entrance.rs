@@ -20,7 +20,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 fn update_moving_cost(ctx: &ReducerContext, player_housing_entity_id: u64, moving_cost: i32) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     let mut player_housing_cost = ctx
         .db
         .player_housing_moving_cost_state()
@@ -36,11 +36,11 @@ fn update_moving_cost(ctx: &ReducerContext, player_housing_entity_id: u64, movin
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_housing_change_entrance(ctx: &ReducerContext, building_entity_id: u64, expected_time_cost: i32) -> Result<(), String> {
-    return reduce(ctx, building_entity_id, expected_time_cost);
+    reduce(ctx, building_entity_id, expected_time_cost)
 }
 
 pub fn reduce(ctx: &ReducerContext, building_entity_id: u64, expected_time_cost: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 

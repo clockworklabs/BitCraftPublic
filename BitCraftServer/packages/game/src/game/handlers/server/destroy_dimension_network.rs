@@ -14,7 +14,7 @@ pub struct DestroyDimensionNetworkTimer {
 
 #[spacetimedb::reducer]
 fn destroy_dimension_network(ctx: &ReducerContext, timer: DestroyDimensionNetworkTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     let teleport_oc = timer.player_teleport_location;
     interior_helpers::delete_dimension_network(ctx, timer.dimension_network_entity_id, teleport_oc);

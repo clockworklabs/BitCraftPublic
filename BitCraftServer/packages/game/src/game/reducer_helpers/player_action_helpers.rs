@@ -34,7 +34,7 @@ pub fn validate_action_elevation(
         return Ok(());
     }
     let target_elevation = target_cell.elevation;
-    return validate_action_elevation_known(player_elevation, target_elevation, max_elevation, error_verb);
+    validate_action_elevation_known(player_elevation, target_elevation, max_elevation, error_verb)
 }
 
 pub fn validate_action_elevation_known(
@@ -46,9 +46,10 @@ pub fn validate_action_elevation_known(
     if (player_elevation - target_elevation).abs() > max_elevation {
         return Err(format!("Can't {{0}} over a cliff.|~{error_verb}"));
     }
-    return Ok(());
+    Ok(())
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn start_action(
     ctx: &ReducerContext,
     actor_id: u64,
@@ -70,7 +71,7 @@ pub fn start_action(
         if base_action_type != PlayerActionType::None && player_action_base_state.last_action_result == PlayerActionResult::Success {
             let base_action_id = base_action_type as i32;
             let action_desc = unwrap_or_err!(
-                ctx.db.player_action_desc().action_type_id().find(&(action_type as i32)),
+                ctx.db.player_action_desc().action_type_id().find(action_type as i32 ),
                 "Cannot find allowable action matrix"
             );
             if !action_desc.allowed_concurrent_action_ids.contains(&base_action_id) {
@@ -88,7 +89,7 @@ pub fn start_action(
         if upper_action_type != PlayerActionType::None {
             let upper_action_id = upper_action_type as i32;
             let upper_action_desc = unwrap_or_err!(
-                ctx.db.player_action_desc().action_type_id().find(&upper_action_id),
+                ctx.db.player_action_desc().action_type_id().find(upper_action_id),
                 "Cannot find allowable action matrix"
             );
             if !upper_action_desc.allowed_concurrent_action_ids.contains(&(action_type as i32)) {
@@ -148,7 +149,7 @@ pub fn schedule_clear_player_action(actor_id: u64, layer: PlayerActionLayer, res
 }
 
 pub fn schedule_clear_player_action_on_err(actor_id: u64, layer: PlayerActionLayer, result: Result<(), String>) -> Result<(), String> {
-    if let Err(_) = result {
+    if result.is_err() {
         spacetimedb::volatile_nonatomic_schedule_immediate!(player_clear_action_state(
             actor_id,
             PlayerActionType::None,
@@ -170,10 +171,10 @@ pub fn post_reducer_update_cargo(ctx: &ReducerContext, player_entity_id: u64) {
             log::error!("Unable to deactivate cargo buff for entity {}", player_entity_id);
         }
     } else if carries_cargo {
-        let movement_modifier = ctx.db.cargo_desc().id().find(&carried_cargo_id).unwrap().movement_modifier;
+        let movement_modifier = ctx.db.cargo_desc().id().find(carried_cargo_id).unwrap().movement_modifier;
         if has_cargo_debuff {
             // Make sure the cargo debuff strength is the same as before
-            let stats = ctx.db.active_buff_state().entity_id().find(&player_entity_id).unwrap();
+            let stats = ctx.db.active_buff_state().entity_id().find(player_entity_id).unwrap();
             let value = stats.active_buff_id(cargo_debuff_id).unwrap().values[0];
             if value != movement_modifier {
                 let values = Some(vec![movement_modifier]);

@@ -42,11 +42,11 @@ fn user_moderation_create(ctx: &ReducerContext, request: UserModerationCreateUse
 
     if delete_chat {
         // Look up the player's entity_id from their identity to delete chat messages
-        if let Some(user) = ctx.db.user_state().identity().find(&request.target_identity) {
+        if let Some(user) = ctx.db.user_state().identity().find(request.target_identity) {
             let deleted_count = ctx.db.chat_message_state().owner_entity_id().delete(user.entity_id);
             log::info!(
                 "[GM] user_moderation_create(): Deleted chat messages for user identity : {}, count : {}",
-                &request.target_identity.to_hex(),
+                request.target_identity.to_hex(),
                 deleted_count
             );
         }
@@ -59,20 +59,20 @@ fn user_moderation_create(ctx: &ReducerContext, request: UserModerationCreateUse
     if sign_out_user {
         log::info!(
             "[GM] user_moderation_create(): Trying to sign out the user ... by target_identity : {}",
-            &request.target_identity.to_hex()
+            request.target_identity.to_hex()
         );
 
         let result = sign_player_out::send_message(ctx, request.target_identity);
         if result.is_err() {
             log::info!(
                 "[GM] user_moderation_create(): Failed to sign out the user by target_identity : {}, error: {}",
-                &request.target_identity.to_hex(),
+                request.target_identity.to_hex(),
                 result.err().unwrap()
             );
         } else {
             log::info!(
                 "[GM] user_moderation_create(): Successfully signed out the user by target_identity : {}",
-                &request.target_identity.to_hex()
+                request.target_identity.to_hex()
             );
         }
     }

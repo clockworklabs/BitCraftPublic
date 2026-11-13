@@ -25,16 +25,13 @@ const CASE_CONVERSION_POLICY: CaseConversionPolicy = CaseConversionPolicy::None;
 
 #[spacetimedb::reducer(init)]
 pub fn initialize(ctx: &ReducerContext) -> Result<(), String> {
-    match ctx.db.config().version().find(&0) {
-        Some(config) => {
-            if config.env != "dev" {
-                // This check is to prevent access to this reducer after the db has been initialized.
-                if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
-                    return Err("Caller is not the owner of the database".into());
-                }
+    if let Some(config) = ctx.db.config().version().find(0) {
+        if config.env != "dev" {
+            // This check is to prevent access to this reducer after the db has been initialized.
+            if ServerIdentity::validate_server_or_admin(ctx).is_err() {
+                return Err("Caller is not the owner of the database".into());
             }
         }
-        _ => {}
     };
 
     if ctx
@@ -60,7 +57,7 @@ pub fn initialize(ctx: &ReducerContext) -> Result<(), String> {
         log::error!("Failed to insert database identity");
     }
 
-    ServerIdentity::set(&ctx);
+    ServerIdentity::set(ctx);
 
     if ctx
         .db

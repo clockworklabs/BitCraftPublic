@@ -16,7 +16,7 @@ pub fn send_message(ctx: &ReducerContext, region_id: u8) -> Result<(), String> {
         super::InterModuleDestination::Region(region_id),
     );
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: PlayerCreateMsg, error: Option<String>) {

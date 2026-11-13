@@ -31,7 +31,7 @@ pub fn event_delay_recipe_id(
     request: &PlayerBuildingDeconstructRequest,
     stats: CharacterStatsState,
 ) -> (Duration, Option<i32>) {
-    if let Some(building) = ctx.db.building_state().entity_id().find(&request.building_entity_id) {
+    if let Some(building) = ctx.db.building_state().entity_id().find(request.building_entity_id) {
         if let Some(recipe) = get_recipe(ctx, building.building_description_id) {
             let mut delay = recipe.time_requirement;
             // Tech time reduction
@@ -39,7 +39,7 @@ pub fn event_delay_recipe_id(
                 Some(skill) => stats.get_skill_speed(skill),
                 None => 1.0,
             };
-            if recipe.tool_requirements.len() > 0 {
+            if !recipe.tool_requirements.is_empty() {
                 let desired_tool_power = recipe.tool_requirements[0].power;
                 let tool = ToolDesc::get_required_tool(ctx, actor_id, &recipe.tool_requirements[0]);
                 let time_factor = match tool {
@@ -50,7 +50,7 @@ pub fn event_delay_recipe_id(
             }
             return (Duration::from_secs_f32(delay / skill_speed), Some(recipe.id));
         } else {
-            let default_delay = ctx.db.parameters_desc().version().find(&0).unwrap().deconstruct_default_time;
+            let default_delay = ctx.db.parameters_desc().version().find(0).unwrap().deconstruct_default_time;
             return (Duration::from_secs_f32(default_delay), None);
         }
     }
@@ -60,10 +60,10 @@ pub fn event_delay_recipe_id(
 #[spacetimedb::reducer]
 #[feature_gate("build")]
 pub fn building_deconstruct_start(ctx: &ReducerContext, request: PlayerBuildingDeconstructRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     let target = Some(request.building_entity_id);
     let (delay, recipe_id) = event_delay_recipe_id(ctx, actor_id, &request, stats);
     let result = player_action_helpers::start_action(
@@ -88,7 +88,7 @@ pub fn building_deconstruct_start(ctx: &ReducerContext, request: PlayerBuildingD
 #[shared_table_reducer]
 #[feature_gate("build")]
 pub fn building_deconstruct(ctx: &ReducerContext, request: PlayerBuildingDeconstructRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     player_action_helpers::schedule_clear_player_action(
         actor_id,
@@ -106,7 +106,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
 
     let building_entity_id = request.building_entity_id;
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "Could not find building"
     );
 
@@ -114,7 +114,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
 
     let coord = game_state_filters::coordinates(ctx, building_entity_id);
 
-    let building_desc = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+    let building_desc = ctx.db.building_desc().id().find(building.building_description_id).unwrap();
     if building_desc.not_deconstructible {
         return Err("That building cannot be deconstructed.".into());
     }
@@ -149,11 +149,11 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
     }
 
     if coord.dimension != dimensions::OVERWORLD {
-        if let Some(_) = ctx.db.portal_state().entity_id().find(&building_entity_id) {
+        if ctx.db.portal_state().entity_id().find(building_entity_id).is_some() {
             return Err("Can't deconstruct portal buildings inside interiors".into());
         }
         let dimension_desc = unwrap_or_err!(
-            ctx.db.dimension_description_state().dimension_id().find(&coord.dimension),
+            ctx.db.dimension_description_state().dimension_id().find(coord.dimension),
             "Invalid coordinates"
         );
         if dimension_desc.dimension_type == DimensionType::AncientRuin || dimension_desc.dimension_type == DimensionType::Dungeon {
@@ -181,10 +181,8 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
     let recipe = get_recipe(ctx, building.building_description_id);
     if let Some(recipe) = &recipe {
         // validate tool requirements
-        if recipe.tool_requirements.len() > 0 {
-            if let Err(err_str) = ToolDesc::get_required_tool(ctx, actor_id, &recipe.tool_requirements[0]) {
-                return Err(err_str.into());
-            }
+        if !recipe.tool_requirements.is_empty() {
+            ToolDesc::get_required_tool(ctx, actor_id, &recipe.tool_requirements[0])?;
         }
     }
 
@@ -200,23 +198,22 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingDecon
         let drop_inventory_items = !building_desc.has_category(ctx, BuildingCategory::Bank) && !building_desc.has_category(ctx, BuildingCategory::RegionalBank);
         delete_building(ctx, actor_id, building_entity_id, None, false, drop_inventory_items);
 
-        if building_desc.has_category(ctx, BuildingCategory::Elevator) {
-            if ctx
+        if building_desc.has_category(ctx, BuildingCategory::Elevator)
+            && (ctx
                 .db
                 .player_use_elevator_timer()
                 .origin_platform_entity_id()
-                .find(&building_entity_id)
+                .find(building_entity_id)
                 .is_some()
                 || ctx
                     .db
                     .player_use_elevator_timer()
                     .destination_platform_entity_id()
-                    .find(&building_entity_id)
-                    .is_some()
+                    .find(building_entity_id)
+                    .is_some())
             {
                 return Err("Cannot deconstruct an elevator that is in use".into());
             }
-        }
 
         player_action_helpers::post_reducer_update_cargo(ctx, actor_id);
     }
@@ -233,7 +230,7 @@ fn get_recipe(ctx: &ReducerContext, building_description_id: i32) -> Option<Deco
 }
 
 pub fn grant_deconstructed_items_for_entity(ctx: &ReducerContext, actor_id: u64, building_entity_id: u64) {
-    let building = ctx.db.building_state().entity_id().find(&building_entity_id).unwrap();
+    let building = ctx.db.building_state().entity_id().find(building_entity_id).unwrap();
     if let Some(recipe) = get_recipe(ctx, building.building_description_id) {
         grant_deconstructed_items(ctx, actor_id, &recipe);
     }
@@ -247,11 +244,11 @@ pub fn grant_deconstructed_items(ctx: &ReducerContext, actor_id: u64, recipe: &D
 
     for stack in &recipe.output_item_stacks {
         if stack.item_type == ItemType::Cargo {
-            inventory.add_multiple_with_overflow(ctx, &vec![stack.clone()]);
+            inventory.add_multiple_with_overflow(ctx, &vec![*stack]);
             continue;
         }
 
-        let mut converted_stacks = ItemListDesc::extract_item_stacks_from_item(ctx, stack.clone(), Some(actor_id));
+        let mut converted_stacks = ItemListDesc::extract_item_stacks_from_item(ctx, *stack, Some(actor_id));
         for output in converted_stacks.iter_mut() {
             discovery.acquire_item_stack(ctx, output);
             output.auto_collect(ctx, &mut discovery, actor_id);
@@ -263,7 +260,7 @@ pub fn grant_deconstructed_items(ctx: &ReducerContext, actor_id: u64, recipe: &D
 
     ctx.db.inventory_state().entity_id().update(inventory);
 
-    if let Some(experience_per_progress) = recipe.experience_per_progress.get(0) {
+    if let Some(experience_per_progress) = recipe.experience_per_progress.first() {
         ExperienceState::add_experience(
             ctx,
             actor_id,

@@ -14,7 +14,7 @@ impl ChestRarityDesc {
         }
     }
 
-    pub fn roll(&self, ctx: &ReducerContext, loot_table_indices: &Vec<i32>, verbose: bool) -> Option<LootTableDesc> {
+    pub fn roll(&self, ctx: &ReducerContext, loot_table_indices: &[i32], verbose: bool) -> Option<LootTableDesc> {
         let loot_table_chances: Vec<(f32, LootTableDesc)> = loot_table_indices
             .iter()
             .map(|li| {

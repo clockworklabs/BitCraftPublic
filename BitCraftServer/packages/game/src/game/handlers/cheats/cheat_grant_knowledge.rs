@@ -64,7 +64,7 @@ fn cheat_grant_knowledge(ctx: &ReducerContext, request: CheatGrantKnowledgeReque
     }
 
     // enemy
-    let enemy_ids: Vec<i32> = ctx.db.enemy_desc().iter().map(|x| x.enemy_type as i32).collect();
+    let enemy_ids: Vec<i32> = ctx.db.enemy_desc().iter().map(|x| x.enemy_type).collect();
     for enemy_id in enemy_ids {
         if also_learn {
             discovery.acquire_enemy(ctx, enemy_id);
@@ -104,7 +104,7 @@ fn cheat_grant_knowledge(ctx: &ReducerContext, request: CheatGrantKnowledgeReque
     }
 
     // npc
-    let npc_ids: Vec<i32> = ctx.db.npc_desc().iter().map(|x| x.npc_type as i32).collect();
+    let npc_ids: Vec<i32> = ctx.db.npc_desc().iter().map(|x| x.npc_type).collect();
     for npc_id in npc_ids {
         if also_learn {
             discovery.acquire_npc(ctx, npc_id);

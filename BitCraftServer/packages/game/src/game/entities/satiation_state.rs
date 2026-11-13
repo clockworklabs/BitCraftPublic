@@ -20,7 +20,7 @@ impl SatiationState {
             return false;
         }
 
-        if let Some(mut statiation_state) = ctx.db.satiation_state().entity_id().find(&player_entity_id) {
+        if let Some(mut statiation_state) = ctx.db.satiation_state().entity_id().find(player_entity_id) {
             let new_value = (statiation_state.satiation + value).min(Self::get_player_max_satiation(ctx, player_entity_id));
 
             if statiation_state.satiation == new_value {
@@ -47,7 +47,7 @@ impl SatiationState {
             return false;
         }
 
-        if let Some(mut statiation_state) = ctx.db.satiation_state().entity_id().find(&player_entity_id) {
+        if let Some(mut statiation_state) = ctx.db.satiation_state().entity_id().find(player_entity_id) {
             let new_value = (statiation_state.satiation - value).max(0f32);
 
             if statiation_state.satiation == new_value {
@@ -70,7 +70,7 @@ impl SatiationState {
             return Self::decrease_player_satiation(ctx, player_entity_id, value.abs());
         }
 
-        return Self::increase_player_satiation(ctx, player_entity_id, value);
+        Self::increase_player_satiation(ctx, player_entity_id, value)
     }
 
     pub fn get_player_max_satiation(ctx: &ReducerContext, player_entity_id: u64) -> f32 {
@@ -95,7 +95,7 @@ impl SatiationState {
         if let Some(starving_debuff) = BuffDesc::find_by_buff_category_single(ctx, BuffCategory::Starving) {
             let _ = buff::deactivate(ctx, player_entity_id, starving_debuff.id);
 
-            if !ctx.db.starving_player_state().entity_id().delete(&player_entity_id) {
+            if !ctx.db.starving_player_state().entity_id().delete(player_entity_id) {
                 log::error!("Failed to delete StarvingPlayerState");
             }
         }

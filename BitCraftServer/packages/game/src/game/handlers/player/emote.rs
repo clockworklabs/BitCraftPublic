@@ -25,9 +25,9 @@ pub fn event_delay(emote: &EmoteDesc) -> Duration {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn emote_start(ctx: &ReducerContext, request: PlayerEmoteRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
-    let emote = unwrap_or_err!(ctx.db.emote_desc().id().find(&request.emote_id), "Invalid emote");
+    let emote = unwrap_or_err!(ctx.db.emote_desc().id().find(request.emote_id), "Invalid emote");
     let delay = event_delay(&emote);
     let action_type = if emote.allow_while_moving {
         PlayerActionType::MobileEmote
@@ -54,9 +54,9 @@ pub fn emote_start(ctx: &ReducerContext, request: PlayerEmoteRequest) -> Result<
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn emote(ctx: &ReducerContext, request: PlayerEmoteRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
-    let emote = unwrap_or_err!(ctx.db.emote_desc().id().find(&request.emote_id), "Invalid emote");
+    let emote = unwrap_or_err!(ctx.db.emote_desc().id().find(request.emote_id), "Invalid emote");
     let action_type = if emote.allow_while_moving {
         PlayerActionType::MobileEmote
     } else {
@@ -82,7 +82,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, emote_id: i32, dry_run: bool)
         return Err("Cannot emote while climbing".into());
     }
 
-    let emote = unwrap_or_err!(ctx.db.emote_desc().id().find(&emote_id), "Invalid emote");
+    let emote = unwrap_or_err!(ctx.db.emote_desc().id().find(emote_id), "Invalid emote");
 
     let vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(actor_id), "Player missing VaultState");
     let mut has_in_vault = false;
@@ -100,15 +100,15 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, emote_id: i32, dry_run: bool)
     let mut is_driver = false;
 
     //validate emotes that cannot be use while mounted
-    if let Some(mounting_state) = ctx.db.mounting_state().entity_id().find(&actor_id) {
+    if let Some(mounting_state) = ctx.db.mounting_state().entity_id().find(actor_id) {
         if !emote.allow_while_mounted {
             return Err("Cannot use this emote while mounted".into());
         }
 
         //validate emotes that cannot be use in certain deployables
-        if let Some(deployable_state) = ctx.db.deployable_state_v2().entity_id().find(&mounting_state.deployable_entity_id) {
+        if let Some(deployable_state) = ctx.db.deployable_state_v2().entity_id().find(mounting_state.deployable_entity_id) {
             let deployable_desc = unwrap_or_err!(
-                ctx.db.deployable_desc().id().find(&deployable_state.deployable_description_id),
+                ctx.db.deployable_desc().id().find(deployable_state.deployable_description_id),
                 "Deployable does not exist"
             );
 

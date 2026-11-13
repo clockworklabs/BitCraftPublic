@@ -27,7 +27,7 @@ pub fn send_message(ctx: &ReducerContext, player_housing_entity_id: u64, new_ent
             super::InterModuleDestination::Region(player_housing.region_index),
         );
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn process_message_on_destination(ctx: &ReducerContext, msg: TransferPlayerHousingMsg) -> Result<(), String> {
@@ -120,7 +120,6 @@ pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: Transf
                         });
                 }
             };
-            return;
         }
         Err(error_msg) => PlayerNotificationEvent::new_event(ctx, actor_id, error_msg, NotificationSeverity::ActionDenied),
     }

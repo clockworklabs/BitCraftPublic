@@ -49,7 +49,7 @@ pub fn cheat_paving_add_tile(ctx: &ReducerContext, request: PlayerPavingPlaceTil
         delete_entity(ctx, existing_paving_entity_id);
     }
 
-    let _tile_description = unwrap_or_err!(ctx.db.paving_tile_desc().id().find(&paving_type_id), "Invalid paving tile type");
+    let _tile_description = unwrap_or_err!(ctx.db.paving_tile_desc().id().find(paving_type_id), "Invalid paving tile type");
 
     // Create paved tile
     let entity_id = game_state::create_entity(ctx);
@@ -70,14 +70,14 @@ pub fn cheat_paving_add_tile(ctx: &ReducerContext, request: PlayerPavingPlaceTil
     }
 
     // Despawn resources under paving
-    if let Some(deposit) = ResourceState::get_at_location(ctx, &target_coord.into()) {
+    if let Some(deposit) = ResourceState::get_at_location(ctx, &target_coord) {
         deposit.despawn_self(ctx);
     }
 
-    let actor_id = game_state::actor_id(&ctx, false)?;
+    let actor_id = game_state::actor_id(ctx, false)?;
     let mut discovery = Discovery::new(actor_id);
     discovery.acquire_paving(ctx, paving_type_id);
     discovery.commit(ctx);
 
-    return Ok(());
+    Ok(())
 }

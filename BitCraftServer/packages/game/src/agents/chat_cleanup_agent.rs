@@ -58,7 +58,7 @@ fn chat_cleanup_agent_insert(ctx: &ReducerContext) -> Result<(), String> {
 
 #[spacetimedb::reducer]
 fn chat_cleanup_agent_loop(ctx: &ReducerContext, _timer: ChatCleanupTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to chat cleanup agent");
         return;
     }

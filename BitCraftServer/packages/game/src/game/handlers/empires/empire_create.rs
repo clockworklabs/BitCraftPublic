@@ -22,20 +22,20 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_create(ctx: &ReducerContext, request: EmpireCreateRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your naming privileges have been suspended")?;
 
-    if let Err(_) = is_user_text_input_valid(&request.empire_name, 35, true) {
+    if is_user_text_input_valid(&request.empire_name, 35, true).is_err() {
         return Err("Invalid characters in the empire name".into());
     }
 
-    if ctx.db.empire_player_data_state().entity_id().find(&actor_id).is_some() {
+    if ctx.db.empire_player_data_state().entity_id().find(actor_id).is_some() {
         return Err("Player is already a member of an empire".into());
     }
 
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().owner_building_entity_id().find(&request.building_entity_id),
+        ctx.db.claim_state().owner_building_entity_id().find(request.building_entity_id),
         "This is not a claim"
     );
 
@@ -47,7 +47,7 @@ pub fn empire_create(ctx: &ReducerContext, request: EmpireCreateRequest) -> Resu
         .db
         .empire_state()
         .capital_building_entity_id()
-        .find(&request.building_entity_id)
+        .find(request.building_entity_id)
         .is_some()
     {
         return Err("Already the capital of an empire".into());
@@ -61,7 +61,7 @@ pub fn empire_create(ctx: &ReducerContext, request: EmpireCreateRequest) -> Resu
         ctx.db
             .empire_settlement_state()
             .building_entity_id()
-            .find(&request.building_entity_id),
+            .find(request.building_entity_id),
         "This claim does not have the tech to form an empire"
     );
 
@@ -73,7 +73,7 @@ pub fn empire_create(ctx: &ReducerContext, request: EmpireCreateRequest) -> Resu
         .db
         .empire_icon_desc()
         .id()
-        .find(&request.icon_id)
+        .find(request.icon_id)
         .is_none_or(|icon| icon.is_shape)
     {
         return Err("Invalid empire icon".into());
@@ -83,20 +83,20 @@ pub fn empire_create(ctx: &ReducerContext, request: EmpireCreateRequest) -> Resu
         .db
         .empire_icon_desc()
         .id()
-        .find(&request.shape_id)
+        .find(request.shape_id)
         .is_none_or(|icon| !icon.is_shape)
     {
         return Err("Invalid empire shape".into());
     }
 
     // empire colors can only be verified on the global module?
-    if ctx.db.empire_color_desc().id().find(&request.color1_id).is_none()
-        || ctx.db.empire_color_desc().id().find(&request.color2_id).is_none()
+    if ctx.db.empire_color_desc().id().find(request.color1_id).is_none()
+        || ctx.db.empire_color_desc().id().find(request.color2_id).is_none()
     {
         return Err("Invalid empire colors".into());
     }
 
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
 
     let empire_currency_id = ctx.db.item_desc().tag().filter("Empire Currency").next().unwrap().id;
 
@@ -124,24 +124,24 @@ pub fn empire_create(ctx: &ReducerContext, request: EmpireCreateRequest) -> Resu
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireCreateMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         //Refund empire currency
         let mut player_inventory = unwrap_or_return!(
             InventoryState::get_player_inventory(ctx, request.player_entity_id),
             "Player has no inventory"
         );
 
-        let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+        let params = ctx.db.parameters_desc().version().find(0).unwrap();
         let empire_currency_id = ctx.db.item_desc().tag().filter("Empire Currency").next().unwrap().id;
 
         let supplies = vec![ItemStack::new(
             ctx,
             empire_currency_id,
             ItemType::Item,
-            params.empire_shard_cost as i32,
+            params.empire_shard_cost,
         )];
         player_inventory.add_multiple_with_overflow(ctx, &supplies);
         ctx.db.inventory_state().entity_id().update(player_inventory);
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     }
 }

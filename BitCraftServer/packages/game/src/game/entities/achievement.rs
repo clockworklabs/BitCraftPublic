@@ -19,7 +19,7 @@ impl AchievementDesc {
 
     pub fn discover_eligible(ctx: &ReducerContext, entity_id: u64) {
         // Discover any achievement that isn't already acquired and whose achievement requirements are met
-        let known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(&entity_id).unwrap();
+        let known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(entity_id).unwrap();
 
         let mut discovered_achievements = Vec::new();
 
@@ -43,7 +43,7 @@ impl AchievementDesc {
         }
 
         // no new achievement to track, early exit.
-        if discovered_achievements.len() == 0 {
+        if discovered_achievements.is_empty() {
             return;
         }
 
@@ -58,14 +58,15 @@ impl AchievementDesc {
         discovery.commit(ctx);
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     fn evaluate_achievement(
         achievement: &AchievementDesc,
         experience: &ExperienceState,
-        known_resources: &Vec<KnowledgeEntry>,
-        known_crafts: &Vec<KnowledgeEntry>,
-        known_cargos: &Vec<KnowledgeEntry>,
-        known_items: &Vec<KnowledgeEntry>,
-        known_achievements: &Vec<KnowledgeEntry>,
+        known_resources: &[KnowledgeEntry],
+        known_crafts: &[KnowledgeEntry],
+        known_cargos: &[KnowledgeEntry],
+        known_items: &[KnowledgeEntry],
+        known_achievements: &[KnowledgeEntry],
         known_chunks: i32,
         known_chunks_pct: f32,
     ) -> bool {
@@ -76,11 +77,10 @@ impl AchievementDesc {
             }
         }
 
-        if achievement.skill_id != 0 {
-            if experience.get_level(achievement.skill_id) < achievement.skill_level {
+        if achievement.skill_id != 0
+            && experience.get_level(achievement.skill_id) < achievement.skill_level {
                 return false;
             }
-        }
 
         for discovery in &achievement.resource_disc {
             let known = known_resources.iter().find(|k| k.id == *discovery);
@@ -168,21 +168,21 @@ impl AchievementDesc {
 
     // This is basically evaluate_all but filtering with a specific achievement_id
     pub fn acquire(ctx: &ReducerContext, entity_id: u64, achievement_id: i32) -> bool {
-        let mut known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(&entity_id).unwrap();
+        let mut known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(entity_id).unwrap();
 
         // caching knowledges for faster evaluation
-        let known_resources = ctx.db.knowledge_resource_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_crafts = ctx.db.knowledge_craft_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_cargos = ctx.db.knowledge_cargo_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_items = ctx.db.knowledge_item_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_achievements_cache = ctx.db.knowledge_achievement_state().entity_id().find(&entity_id).unwrap().entries;
+        let known_resources = ctx.db.knowledge_resource_state().entity_id().find(entity_id).unwrap().entries;
+        let known_crafts = ctx.db.knowledge_craft_state().entity_id().find(entity_id).unwrap().entries;
+        let known_cargos = ctx.db.knowledge_cargo_state().entity_id().find(entity_id).unwrap().entries;
+        let known_items = ctx.db.knowledge_item_state().entity_id().find(entity_id).unwrap().entries;
+        let known_achievements_cache = ctx.db.knowledge_achievement_state().entity_id().find(entity_id).unwrap().entries;
 
-        let experience_state = ctx.db.experience_state().entity_id().find(&entity_id).unwrap();
+        let experience_state = ctx.db.experience_state().entity_id().find(entity_id).unwrap();
         let known_chunks = ctx
             .db
             .exploration_chunks_state_v2()
             .entity_id()
-            .find(&entity_id)
+            .find(entity_id)
             .unwrap()
             .achievement_explored_chunks_count();
 
@@ -201,7 +201,7 @@ impl AchievementDesc {
 
             // this will evaluate these newly discovered achievements.
             discovery.commit(ctx);
-            known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(&entity_id).unwrap();
+            known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(entity_id).unwrap();
         }
 
         // Evaluate all "discovered" achievements.
@@ -210,7 +210,7 @@ impl AchievementDesc {
             .iter()
             .filter(|e| e.state == KnowledgeState::Discovered && e.id == achievement_id)
         {
-            let achievement = ctx.db.achievement_desc().id().find(&achievement_knowledge.id).unwrap();
+            let achievement = ctx.db.achievement_desc().id().find(achievement_knowledge.id).unwrap();
             if Self::evaluate_achievement(
                 &achievement,
                 &experience_state,
@@ -227,7 +227,7 @@ impl AchievementDesc {
             }
         }
 
-        if acquired_achievements.len() > 0 {
+        if !acquired_achievements.is_empty() {
             let mut discovery = Discovery::new(entity_id);
             for acq_ach in acquired_achievements {
                 discovery.acquire_achievement(ctx, acq_ach);
@@ -241,7 +241,7 @@ impl AchievementDesc {
     }
 
     pub fn evaluate_achievements(ctx: &ReducerContext, player_entity_id: u64, required_achievements: Vec<i32>) -> bool {
-        if required_achievements.len() == 0 {
+        if required_achievements.is_empty() {
             return true;
         }
 
@@ -250,18 +250,18 @@ impl AchievementDesc {
             .db
             .knowledge_resource_state()
             .entity_id()
-            .find(&player_entity_id)
+            .find(player_entity_id)
             .unwrap()
             .entries;
-        let known_crafts = ctx.db.knowledge_craft_state().entity_id().find(&player_entity_id).unwrap().entries;
-        let known_cargos = ctx.db.knowledge_cargo_state().entity_id().find(&player_entity_id).unwrap().entries;
-        let known_items = ctx.db.knowledge_item_state().entity_id().find(&player_entity_id).unwrap().entries;
-        let experience_state = ctx.db.experience_state().entity_id().find(&player_entity_id).unwrap();
+        let known_crafts = ctx.db.knowledge_craft_state().entity_id().find(player_entity_id).unwrap().entries;
+        let known_cargos = ctx.db.knowledge_cargo_state().entity_id().find(player_entity_id).unwrap().entries;
+        let known_items = ctx.db.knowledge_item_state().entity_id().find(player_entity_id).unwrap().entries;
+        let experience_state = ctx.db.experience_state().entity_id().find(player_entity_id).unwrap();
         let known_achievements = ctx
             .db
             .knowledge_achievement_state()
             .entity_id()
-            .find(&player_entity_id)
+            .find(player_entity_id)
             .unwrap()
             .entries;
 
@@ -269,14 +269,14 @@ impl AchievementDesc {
             .db
             .exploration_chunks_state_v2()
             .entity_id()
-            .find(&player_entity_id)
+            .find(player_entity_id)
             .unwrap()
             .achievement_explored_chunks_count();
 
         let known_chunks_pct = Self::known_chunks_pct(ctx, known_chunks);
 
         for required_achievement_id in required_achievements {
-            let achievement = ctx.db.achievement_desc().id().find(&required_achievement_id).unwrap();
+            let achievement = ctx.db.achievement_desc().id().find(required_achievement_id).unwrap();
 
             if !Self::evaluate_achievement(
                 &achievement,
@@ -293,30 +293,30 @@ impl AchievementDesc {
             }
         }
 
-        return true;
+        true
     }
 
     pub fn meets_requirements_for_achievement(ctx: &ReducerContext, entity_id: u64, achievement_id: i32) -> bool {
         // caching knowledges for faster evaluation
-        let known_resources = ctx.db.knowledge_resource_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_crafts = ctx.db.knowledge_craft_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_cargos = ctx.db.knowledge_cargo_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_items = ctx.db.knowledge_item_state().entity_id().find(&entity_id).unwrap().entries;
-        let known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(&entity_id).unwrap().entries;
+        let known_resources = ctx.db.knowledge_resource_state().entity_id().find(entity_id).unwrap().entries;
+        let known_crafts = ctx.db.knowledge_craft_state().entity_id().find(entity_id).unwrap().entries;
+        let known_cargos = ctx.db.knowledge_cargo_state().entity_id().find(entity_id).unwrap().entries;
+        let known_items = ctx.db.knowledge_item_state().entity_id().find(entity_id).unwrap().entries;
+        let known_achievements = ctx.db.knowledge_achievement_state().entity_id().find(entity_id).unwrap().entries;
 
-        let experience_state = ctx.db.experience_state().entity_id().find(&entity_id).unwrap();
+        let experience_state = ctx.db.experience_state().entity_id().find(entity_id).unwrap();
         let known_chunks = ctx
             .db
             .exploration_chunks_state_v2()
             .entity_id()
-            .find(&entity_id)
+            .find(entity_id)
             .unwrap()
             .achievement_explored_chunks_count();
 
         let known_chunks_pct = Self::known_chunks_pct(ctx, known_chunks);
 
-        let achievement = ctx.db.achievement_desc().id().find(&achievement_id).unwrap();
-        return Self::evaluate_achievement(
+        let achievement = ctx.db.achievement_desc().id().find(achievement_id).unwrap();
+        Self::evaluate_achievement(
             &achievement,
             &experience_state,
             &known_resources,
@@ -326,6 +326,6 @@ impl AchievementDesc {
             &known_achievements,
             known_chunks,
             known_chunks_pct,
-        );
+        )
     }
 }

@@ -34,7 +34,7 @@ pub fn enemy_spawn_batch(ctx: &ReducerContext, requests: Vec<EnemySpawnRequest>)
 }
 
 fn reduce(ctx: &ReducerContext, request: EnemySpawnRequest) {
-    let attached_resource = ctx.db.resource_state().entity_id().find(&request.herd_entity_id);
+    let attached_resource = ctx.db.resource_state().entity_id().find(request.herd_entity_id);
 
     // Don't spawn over player claims, but don't return an error either. Just ignore this spawn
     // (except for resource spawns, those are rude and inconsiderate).
@@ -44,14 +44,14 @@ fn reduce(ctx: &ReducerContext, request: EnemySpawnRequest) {
         attached_resource.is_some(),
         request.coord.dimension,
         claim_helper::get_claim_on_tile(ctx, request.coord.into())
-            .and_then(|claim_tile| ctx.db.claim_state().entity_id().find(&claim_tile.claim_id)),
+            .and_then(|claim_tile| ctx.db.claim_state().entity_id().find(claim_tile.claim_id)),
     ) {
         return;
     }
 
     let enemy_type: EnemyType = request.enemy_type;
     let mut herd = unwrap_or_return!(
-        ctx.db.herd_state().entity_id().find(&request.herd_entity_id),
+        ctx.db.herd_state().entity_id().find(request.herd_entity_id),
         "Request a spawn from an unexistent herd"
     );
 

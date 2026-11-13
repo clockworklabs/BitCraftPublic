@@ -38,7 +38,7 @@ fn calculate_watchtower_upkeep(assigned_chunks: usize, empire_chunks: usize, per
 
 impl EmpireNodeState {
     pub fn chunk_coordinates(&self, ctx: &ReducerContext) -> Option<ChunkCoordinates> {
-        if let Some(claim_building_location) = ctx.db.location_state().entity_id().find(&self.entity_id) {
+        if let Some(claim_building_location) = ctx.db.location_state().entity_id().find(self.entity_id) {
             return Some(claim_building_location.coordinates().chunk_coordinates());
         }
         None
@@ -62,7 +62,7 @@ impl EmpireNodeState {
     }
 
     pub fn add_energy(&mut self, ctx: &ReducerContext, energy: i32, params: Option<ParametersDesc>) -> bool {
-        let params = params.unwrap_or_else(|| ctx.db.parameters_desc().version().find(&0).unwrap());
+        let params = params.unwrap_or_else(|| ctx.db.parameters_desc().version().find(0).unwrap());
         if self.energy >= params.empire_node_max_energy {
             return false;
         }
@@ -264,7 +264,7 @@ impl EmpireState {
         for rank in ctx.db.empire_player_data_state().empire_entity_id().filter(self.entity_id) {
             let rank_entity_id = rank.entity_id;
             EmpirePlayerDataState::delete_shared(ctx, rank, crate::inter_module::InterModuleDestination::AllOtherRegions);
-            ctx.db.empire_player_log_state().entity_id().delete(&rank_entity_id);
+            ctx.db.empire_player_log_state().entity_id().delete(rank_entity_id);
 
             send_inter_module_message(
                 ctx,
@@ -289,7 +289,7 @@ impl EmpireState {
             .filter(self.entity_id)
             .map(|n| n.entity_id)
         {
-            ctx.db.empire_notification_state().entity_id().delete(&notification_entity_id);
+            ctx.db.empire_notification_state().entity_id().delete(notification_entity_id);
         }
 
         // Remove emperor crown collectible if the emperor exists (a merged empire no longer has an emperor)
@@ -300,7 +300,7 @@ impl EmpireState {
         let entity_id = self.entity_id;
         EmpireState::delete_shared(ctx, self.clone(), crate::inter_module::InterModuleDestination::AllOtherRegions);
         ctx.db.empire_lowercase_name_state().entity_id().delete(entity_id);
-        ctx.db.empire_log_state().entity_id().delete(&entity_id);
+        ctx.db.empire_log_state().entity_id().delete(entity_id);
         ctx.db.empire_emblem_state().entity_id().delete(entity_id);
         ctx.db.empire_blacklist_state().empire_entity_id().delete(entity_id);
     }
@@ -339,7 +339,7 @@ impl EmpireState {
             EmpireNodeState::update_shared(ctx, empire_node, crate::inter_module::InterModuleDestination::AllOtherRegions);
         }
 
-        let mut new_empire_state = ctx.db.empire_state().entity_id().find(&new_empire_entity_id).unwrap();
+        let mut new_empire_state = ctx.db.empire_state().entity_id().find(new_empire_entity_id).unwrap();
 
         // Update all aligned settlements
         for mut settlement in ctx.db.empire_settlement_state().empire_entity_id().filter(self.entity_id) {
@@ -379,7 +379,7 @@ impl EmpireState {
                         // it is attacked by the empire it merges into, let's conclude this siege as a successful attack that combines supplies
                         attacking_siege.energy += siege.energy;
                         siege.energy = 0;
-                        let empire_node = ctx.db.empire_node_state().entity_id().find(&siege.building_entity_id).unwrap();
+                        let empire_node = ctx.db.empire_node_state().entity_id().find(siege.building_entity_id).unwrap();
                         EmpireNodeSiegeState::end_siege_internal(ctx, attacking_siege, siege, empire_node);
                     } else {
                         // it is attacked by another empire, let's swap the defending siege allegiance
@@ -405,7 +405,7 @@ impl EmpireState {
             return;
         }
 
-        let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
+        let parameters = ctx.db.parameters_desc().version().find(0).unwrap();
         let empire_chunks = ctx.db.empire_chunk_state().empire_entity_id().filter(empire_entity_id).count();
         for mut node in ctx.db.empire_node_state().empire_entity_id().filter(empire_entity_id) {
             let upkeep = if node.active {
@@ -465,7 +465,7 @@ impl EmpireSettlementState {
 
         EmpireState::update_empire_upkeep(ctx, empire_entity_id);
 
-        let mut empire = ctx.db.empire_state().entity_id().find(&empire_entity_id).unwrap();
+        let mut empire = ctx.db.empire_state().entity_id().find(empire_entity_id).unwrap();
         empire.num_claims -= 1;
         EmpireState::update_shared(ctx, empire, crate::inter_module::InterModuleDestination::AllOtherRegions);
 
@@ -481,19 +481,15 @@ impl EmpireSettlementState {
                 .claim_entity_id()
                 .filter(&claim_entity_id)
                 .map(|m| m.player_entity_id)
-                .map(|eid| match ctx.db.empire_player_data_state().entity_id().find(&eid) {
-                    Some(rank) => {
-                        if rank.empire_entity_id == settlement.empire_entity_id {
-                            if rank.entity_id == ignored_player_eid {
-                                0
-                            } else {
-                                rank.donated_shards + rank.donated_empire_currency
-                            }
-                        } else {
+                .map(|eid| match ctx.db.empire_player_data_state().entity_id().find(eid) {
+                    Some(rank) if rank.empire_entity_id == settlement.empire_entity_id => {
+                        if rank.entity_id == ignored_player_eid {
                             0
+                        } else {
+                            rank.donated_shards + rank.donated_empire_currency
                         }
                     }
-                    None => 0,
+                    _ => 0,
                 })
                 .sum();
             settlement.members_donations = sum;
@@ -509,7 +505,7 @@ impl EmpireSettlementState {
         ignore_player_contributions: bool,
     ) -> Result<(), String> {
         let empire_entity_id = unwrap_or_err!(
-            ctx.db.empire_player_data_state().entity_id().find(&player_entity_id),
+            ctx.db.empire_player_data_state().entity_id().find(player_entity_id),
             "Player is not part of an empire"
         )
         .empire_entity_id;
@@ -520,19 +516,13 @@ impl EmpireSettlementState {
             .empire_entity_id()
             .filter(empire_entity_id)
             .map(|node| node.entity_id)
-            .filter_map(|eid| {
-                if ctx
-                    .db
+            .filter(|&eid| {
+                ctx.db
                     .claim_member_state()
                     .player_claim()
                     .filter((player_entity_id, eid))
                     .next()
                     .is_some()
-                {
-                    Some(eid)
-                } else {
-                    None
-                }
             });
 
         for claim_entity_id in player_claims {
@@ -581,6 +571,7 @@ impl EmpireChunkState {
 }
 
 impl EmpirePlayerDataState {
+    #[expect(clippy::new_ret_no_self, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn new(ctx: &ReducerContext, actor_id: u64, empire_entity_id: u64, rank: u8) -> Result<(), String> {
         super::empires::validate_not_blacklisted(ctx, empire_entity_id, actor_id)?;
         EmpirePlayerDataState::insert_shared(
@@ -611,21 +602,21 @@ impl EmpirePlayerDataState {
     }
 
     pub fn is_emperor(ctx: &ReducerContext, player_entity_id: u64, empire_entity_id: u64) -> bool {
-        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(&player_entity_id) {
+        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(player_entity_id) {
             return rank.rank == 0 && rank.empire_entity_id == empire_entity_id;
         }
         false
     }
 
     pub fn is_part_of_empire(ctx: &ReducerContext, player_entity_id: u64, empire_entity_id: u64) -> bool {
-        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(&player_entity_id) {
+        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(player_entity_id) {
             return rank.empire_entity_id == empire_entity_id;
         }
         false
     }
 
     pub fn get_player_empire_id(ctx: &ReducerContext, player_entity_id: u64) -> Option<u64> {
-        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(&player_entity_id) {
+        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(player_entity_id) {
             return Some(rank.empire_entity_id);
         }
         None
@@ -634,28 +625,24 @@ impl EmpirePlayerDataState {
 
 impl EmpireNodeSiegeState {
     pub fn get_attacking_siege(ctx: &ReducerContext, building_entity_id: u64) -> Option<EmpireNodeSiegeState> {
-        if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(&building_entity_id) {
-            let sieges_on_node = ctx.db.empire_node_siege_state().building_entity_id().filter(building_entity_id);
-            return sieges_on_node
-                .filter(|s| s.active && s.empire_entity_id != empire_node.empire_entity_id)
-                .next();
+        if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(building_entity_id) {
+            let mut sieges_on_node = ctx.db.empire_node_siege_state().building_entity_id().filter(building_entity_id);
+            return sieges_on_node.find(|s| s.active && s.empire_entity_id != empire_node.empire_entity_id);
         }
         None
     }
 
     pub fn get_defending_siege(ctx: &ReducerContext, building_entity_id: u64) -> Option<EmpireNodeSiegeState> {
-        if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(&building_entity_id) {
-            let sieges_on_node = ctx.db.empire_node_siege_state().building_entity_id().filter(building_entity_id);
-            return sieges_on_node
-                .filter(|s| s.active && s.empire_entity_id == empire_node.empire_entity_id)
-                .next();
+        if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(building_entity_id) {
+            let mut sieges_on_node = ctx.db.empire_node_siege_state().building_entity_id().filter(building_entity_id);
+            return sieges_on_node.find(|s| s.active && s.empire_entity_id == empire_node.empire_entity_id);
         }
         None
     }
 
     pub fn end_siege(ctx: &ReducerContext, building_entity_id: u64, sieging_empire_entity_id: u64) {
         let siege = Self::get(ctx, building_entity_id, sieging_empire_entity_id).unwrap();
-        let empire_node = ctx.db.empire_node_state().entity_id().find(&building_entity_id).unwrap();
+        let empire_node = ctx.db.empire_node_state().entity_id().find(building_entity_id).unwrap();
         let defense = Self::get(ctx, building_entity_id, empire_node.empire_entity_id).unwrap();
         Self::end_siege_internal(ctx, siege, defense, empire_node);
     }
@@ -673,9 +660,9 @@ impl EmpireNodeSiegeState {
             .db
             .empire_siege_engine_state()
             .building_entity_id()
-            .find(&defense.building_entity_id)
+            .find(defense.building_entity_id)
         {
-            ctx.db.empire_siege_engine_state().entity_id().delete(&siege_engine.entity_id);
+            ctx.db.empire_siege_engine_state().entity_id().delete(siege_engine.entity_id);
 
             send_inter_module_message(
                 ctx,
@@ -743,7 +730,7 @@ impl EmpireNodeSiegeState {
     pub fn cancel_siege(self, ctx: &ReducerContext) {
         if self.active {
             // Need to cancel the ongoing siege for both parties. The cancelled siege will drop to 0 supplies and lose.
-            let mut empire_node = ctx.db.empire_node_state().entity_id().find(&self.building_entity_id).unwrap();
+            let mut empire_node = ctx.db.empire_node_state().entity_id().find(self.building_entity_id).unwrap();
             let mut siege;
             let mut defense;
             if self.empire_entity_id == empire_node.empire_entity_id {
@@ -781,8 +768,8 @@ impl EmpireNodeSiegeState {
     ) -> Result<(), String> {
         Self::validate_action(ctx, actor_id, building_entity_id)?;
 
-        let rank = ctx.db.empire_player_data_state().entity_id().find(&actor_id).unwrap();
-        let mut defending_node = ctx.db.empire_node_state().entity_id().find(&building_entity_id).unwrap();
+        let rank = ctx.db.empire_player_data_state().entity_id().find(actor_id).unwrap();
+        let mut defending_node = ctx.db.empire_node_state().entity_id().find(building_entity_id).unwrap();
 
         let defending_empire = defending_node.empire_entity_id;
 
@@ -853,7 +840,7 @@ impl EmpireNodeSiegeState {
                 let entity_id = game_state::create_entity(ctx);
                 let siege_node = EmpireNodeSiegeState {
                     entity_id,
-                    building_entity_id: building_entity_id,
+                    building_entity_id,
                     empire_entity_id: defending_empire,
                     energy: 0,
                     active: true,
@@ -903,7 +890,7 @@ impl EmpireNotificationState {
             .db
             .building_nickname_state()
             .entity_id()
-            .find(&building_entity_id)
+            .find(building_entity_id)
             .unwrap()
             .nickname;
         if nickname.is_empty() {
@@ -917,16 +904,17 @@ impl EmpireNotificationState {
         Self::new(ctx, notification_type, empire_entity_id, vec![Self::coord_to_string(coord)])
     }
 
+    #[expect(clippy::new_ret_no_self, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn new(ctx: &ReducerContext, notification_type: EmpireNotificationType, empire_entity_id: u64, text: Vec<String>) {
         let entity_id = game_state::create_entity(ctx);
         for mut player in ctx.db.empire_player_log_state().empire_entity_id().filter(empire_entity_id) {
-            if ctx.db.signed_in_player_state().entity_id().find(&player.entity_id).is_some() {
+            if ctx.db.signed_in_player_state().entity_id().find(player.entity_id).is_some() {
                 player.last_viewed = entity_id;
                 ctx.db.empire_player_log_state().entity_id().update(player);
             }
         }
 
-        let mut empire_log = ctx.db.empire_log_state().entity_id().find(&empire_entity_id).unwrap();
+        let mut empire_log = ctx.db.empire_log_state().entity_id().find(empire_entity_id).unwrap();
         empire_log.last_posted = entity_id;
         ctx.db.empire_log_state().entity_id().update(empire_log);
 

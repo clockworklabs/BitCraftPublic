@@ -16,13 +16,13 @@ use super::craft_collect;
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_cancel(ctx: &ReducerContext, request: PlayerCraftCancelRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let action = unwrap_or_err!(
-        ctx.db.progressive_action_state().entity_id().find(&request.pocket_id),
+        ctx.db.progressive_action_state().entity_id().find(request.pocket_id),
         "Invalid pocket"
     );
     if action.recipe_id == 0 {
@@ -30,7 +30,7 @@ pub fn craft_cancel(ctx: &ReducerContext, request: PlayerCraftCancelRequest) -> 
     }
 
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&action.building_entity_id),
+        ctx.db.building_state().entity_id().find(action.building_entity_id),
         "Invalid building"
     );
 
@@ -47,7 +47,7 @@ pub fn craft_cancel(ctx: &ReducerContext, request: PlayerCraftCancelRequest) -> 
     // if player is not inside a building check if the request is for
     // an unenterable building (e.g. firepit) and if they are close enough
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Unknown building type"
     );
     if building_desc.unenterable {
@@ -71,11 +71,11 @@ pub fn craft_cancel(ctx: &ReducerContext, request: PlayerCraftCancelRequest) -> 
 
     // Collect completed crafts
     let mut progressive_action = unwrap_or_err!(
-        ctx.db.progressive_action_state().entity_id().find(&request.pocket_id),
+        ctx.db.progressive_action_state().entity_id().find(request.pocket_id),
         "Invalid pocket"
     );
     let crafting_recipe_desc: CraftingRecipeDesc = unwrap_or_err!(
-        ctx.db.crafting_recipe_desc().id().find(&progressive_action.recipe_id),
+        ctx.db.crafting_recipe_desc().id().find(progressive_action.recipe_id),
         "Invalid recipe"
     );
 
@@ -109,8 +109,8 @@ pub fn craft_cancel(ctx: &ReducerContext, request: PlayerCraftCancelRequest) -> 
     }
 
     player_action_helpers::post_reducer_update_cargo(ctx, actor_id);
-    ctx.db.progressive_action_state().entity_id().delete(&request.pocket_id);
-    ctx.db.public_progressive_action_state().entity_id().delete(&request.pocket_id);
+    ctx.db.progressive_action_state().entity_id().delete(request.pocket_id);
+    ctx.db.public_progressive_action_state().entity_id().delete(request.pocket_id);
 
     Ok(())
 }

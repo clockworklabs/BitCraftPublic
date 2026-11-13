@@ -47,16 +47,13 @@ const CASE_CONVERSION_POLICY: CaseConversionPolicy = CaseConversionPolicy::None;
 
 #[spacetimedb::reducer(init)]
 pub fn initialize(ctx: &ReducerContext) -> Result<(), String> {
-    match ctx.db.config().version().find(&0) {
-        Some(config) => {
-            if config.env != "dev" {
-                // This check is to prevent access to this reducer after the db has been initialized.
-                if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
-                    return Err("Caller is not the owner of the database".into());
-                }
+    if let Some(config) = ctx.db.config().version().find(0) {
+        if config.env != "dev" {
+            // This check is to prevent access to this reducer after the db has been initialized.
+            if ServerIdentity::validate_server_or_admin(ctx).is_err() {
+                return Err("Caller is not the owner of the database".into());
             }
         }
-        _ => {}
     };
 
     if ctx
@@ -82,7 +79,7 @@ pub fn initialize(ctx: &ReducerContext) -> Result<(), String> {
         log::error!("Failed to insert database identity");
     }
 
-    ServerIdentity::set(&ctx);
+    ServerIdentity::set(ctx);
 
     if ctx
         .db
@@ -222,7 +219,7 @@ pub fn init_region_info(
         region_height_chunks: world_height as u16,
         region_min_chunk_x: (region_coord.x as i32 * world_width) as u16,
         region_min_chunk_z: (region_coord.z as i32 * world_height) as u16,
-        region_index: region_index,
+        region_index,
         region_count,
         region_count_sqrt,
     }) {
@@ -231,14 +228,14 @@ pub fn init_region_info(
     }
     if let Err(error) = ctx.db.world_region_name_state().try_insert(WorldRegionNameState {
         id: 0,
-        player_facing_name: format!("Region {}", region_index).into(),
+        player_facing_name: format!("Region {}", region_index),
         module_name_prefix: "bitcraft_region_".into(),
     }) {
         log::error!("Failed to insert world region name: {}", error);
         return Err(format!("Failed to insert world region name: {}", error));
     }
 
-    let mut globals = ctx.db.globals().version().find(&0).unwrap();
+    let mut globals = ctx.db.globals().version().find(0).unwrap();
     globals.region_index = region_index;
     ctx.db.globals().version().update(globals);
 
@@ -337,7 +334,7 @@ fn insert_buildings(ctx: &ReducerContext, buildings: Vec<WorldGenGeneratedBuildi
 
     for building in buildings.iter() {
         let building_component = building.building.as_ref().unwrap();
-        let building_description = ctx.db.building_desc().id().find(&building_component.building_description_id);
+        let building_description = ctx.db.building_desc().id().find(building_component.building_description_id);
         if building_description.is_none() {
             continue;
         }
@@ -368,7 +365,7 @@ fn insert_buildings(ctx: &ReducerContext, buildings: Vec<WorldGenGeneratedBuildi
             entity_id,
             claim_entity_id,
             building_description,
-            SmallHexTile::from(offset).into(),
+            SmallHexTile::from(offset),
         )
         .expect("Invalid generated bank placement");
         create_building_footprint(ctx, entity_id, building_component.direction_index, building_description, &None);
@@ -384,7 +381,7 @@ fn insert_buildings(ctx: &ReducerContext, buildings: Vec<WorldGenGeneratedBuildi
             .db
             .interior_network_desc()
             .building_id()
-            .find(&building_description.id)
+            .find(building_description.id)
             .is_some()
         {
             if let Err(error) = create_building_interior(ctx, entity_id) {
@@ -426,7 +423,7 @@ fn insert_resources(ctx: &ReducerContext, resources: Vec<WorldGenGeneratedResour
             dimension: resource.dimension,
         };
 
-        let deposit_description = ctx.db.resource_desc().id().find(&resource_deposit.resource_id).unwrap();
+        let deposit_description = ctx.db.resource_desc().id().find(resource_deposit.resource_id).unwrap();
         let _ = ResourceState::spawn(
             ctx,
             Some(entity_id),
@@ -498,7 +495,7 @@ pub fn insert_resources_log(ctx: &ReducerContext, resources_log: ResourcesLog) -
     ResourcesLog::populate_single_resource_chunks_info(ctx);
 
     //Re-enable agents in case they were disabled after deleting a world
-    let mut config = ctx.db.config().version().find(&0).unwrap();
+    let mut config = ctx.db.config().version().find(0).unwrap();
     config.agents_enabled = true;
     ctx.db.config().version().update(config);
 
@@ -521,7 +518,7 @@ pub fn insert_resources_log(ctx: &ReducerContext, resources_log: ResourcesLog) -
 
     log::info!("World generated");
 
-    return Ok(());
+    Ok(())
 }
 
 #[spacetimedb::reducer]
@@ -706,7 +703,7 @@ fn commit_generated_world(ctx: &ReducerContext, generated_world: GeneratedWorld)
     // ResourcesLog::populate_single_resource_chunks_info();
 
     //Re-enable agents in case they were disabled after deleting a world
-    let mut config = ctx.db.config().version().find(&0).unwrap();
+    let mut config = ctx.db.config().version().find(0).unwrap();
     config.agents_enabled = true;
     ctx.db.config().version().update(config);
 
@@ -722,7 +719,7 @@ pub fn stop_agents(ctx: &ReducerContext) {
         return;
     }
 
-    let mut config = ctx.db.config().version().find(&0).unwrap().clone();
+    let mut config = ctx.db.config().version().find(0).unwrap().clone();
     if !config.agents_enabled {
         return;
     }
@@ -740,7 +737,7 @@ pub fn start_agents(ctx: &ReducerContext) {
         return;
     }
 
-    let mut config = ctx.db.config().version().find(&0).unwrap().clone();
+    let mut config = ctx.db.config().version().find(0).unwrap().clone();
     if config.agents_enabled {
         return;
     }
@@ -763,7 +760,7 @@ pub fn force_start_agents(ctx: &ReducerContext) {
         return;
     }
 
-    let mut config = ctx.db.config().version().find(&0).unwrap().clone();
+    let mut config = ctx.db.config().version().find(0).unwrap().clone();
     if config.agents_enabled {
         return;
     }

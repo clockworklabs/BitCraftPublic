@@ -13,12 +13,12 @@ use crate::{
 #[shared_table_reducer]
 #[feature_gate]
 pub fn claim_rename(ctx: &ReducerContext, request: PlayerClaimRenameRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your naming privileges have been suspended")?;
 
-    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&request.claim_entity_id), "No such claim.");
+    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.claim_entity_id), "No such claim.");
     if !claim.has_owner_permissions(actor_id) {
         return Err("Only the owner can rename the claim.".into());
     }
@@ -31,7 +31,7 @@ pub fn claim_rename(ctx: &ReducerContext, request: PlayerClaimRenameRequest) -> 
 }
 
 pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: PlayerClaimRenameRequest) -> Result<(), String> {
-    let _ = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&request.claim_entity_id), "No such claim.");
+    let _ = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.claim_entity_id), "No such claim.");
 
     if let Err(msg) = is_user_text_input_valid(&request.claim_name, 35, true) {
         log::info!("Failed to rename claim: {msg}");

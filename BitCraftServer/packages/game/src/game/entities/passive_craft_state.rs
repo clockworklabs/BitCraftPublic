@@ -23,7 +23,7 @@ impl PassiveCraftState {
                 .db
                 .crafting_recipe_desc()
                 .id()
-                .find(&oldest_queued_craft.recipe_id)
+                .find(oldest_queued_craft.recipe_id)
                 .unwrap()
                 .time_requirement;
 

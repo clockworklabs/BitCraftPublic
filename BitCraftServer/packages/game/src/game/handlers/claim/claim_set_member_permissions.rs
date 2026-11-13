@@ -10,11 +10,11 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_set_member_permissions(ctx: &ReducerContext, request: PlayerClaimSetMemberPermissionsRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&request.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(request.claim_entity_id),
         "No such claim."
     );
 
@@ -25,11 +25,10 @@ pub fn claim_set_member_permissions(ctx: &ReducerContext, request: PlayerClaimSe
         return Err("Can't edit owner's permissions.".into());
     }
 
-    if request.co_owner && !claim.has_owner_permissions(actor_id) {
-        return Err("You don't have the credentials to bestow those permissions.".into());
-    } else if request.officer && !claim.has_co_owner_permissions(ctx, actor_id) {
-        return Err("You don't have the credentials to bestow those permissions.".into());
-    } else if !claim.has_officer_permissions(ctx, actor_id) {
+    if (request.co_owner && !claim.has_owner_permissions(actor_id))
+        || (request.officer && !claim.has_co_owner_permissions(ctx, actor_id))
+        || !claim.has_officer_permissions(ctx, actor_id)
+    {
         return Err("You don't have the credentials to bestow those permissions.".into());
     }
 

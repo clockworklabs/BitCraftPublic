@@ -68,26 +68,26 @@ pub struct Knowledges {
 }
 
 pub fn generate_knowledges(ctx: &ReducerContext, entity_id: u64) {
-    if ctx.db.knowledge_achievement_state().try_insert(KnowledgeAchievementState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_battle_action_state().try_insert(KnowledgeBattleActionState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_building_state().try_insert(KnowledgeBuildingState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_cargo_state().try_insert(KnowledgeCargoState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_claim_state().try_insert(KnowledgeClaimState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_construction_state().try_insert(KnowledgeConstructionState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_craft_state().try_insert(KnowledgeCraftState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_deployable_state().try_insert(KnowledgeDeployableState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_enemy_state().try_insert(KnowledgeEnemyState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_extract_state().try_insert(KnowledgeExtractState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_item_state().try_insert(KnowledgeItemState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_lore_state().try_insert(KnowledgeLoreState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_npc_state().try_insert(KnowledgeNpcState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_paving_state().try_insert(KnowledgePavingState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_pillar_shaping_state().try_insert(KnowledgePillarShapingState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_resource_placement_state().try_insert(KnowledgeResourcePlacementState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_resource_state().try_insert(KnowledgeResourceState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_ruins_state().try_insert(KnowledgeRuinsState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_secondary_state().try_insert(KnowledgeSecondaryState { entries: Vec::new(), entity_id }).is_err() {}
-    if ctx.db.knowledge_vault_state().try_insert(KnowledgeVaultState { entries: Vec::new(), entity_id }).is_err() {}
+    let _ = ctx.db.knowledge_achievement_state().try_insert(KnowledgeAchievementState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_battle_action_state().try_insert(KnowledgeBattleActionState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_building_state().try_insert(KnowledgeBuildingState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_cargo_state().try_insert(KnowledgeCargoState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_claim_state().try_insert(KnowledgeClaimState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_construction_state().try_insert(KnowledgeConstructionState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_craft_state().try_insert(KnowledgeCraftState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_deployable_state().try_insert(KnowledgeDeployableState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_enemy_state().try_insert(KnowledgeEnemyState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_extract_state().try_insert(KnowledgeExtractState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_item_state().try_insert(KnowledgeItemState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_lore_state().try_insert(KnowledgeLoreState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_npc_state().try_insert(KnowledgeNpcState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_paving_state().try_insert(KnowledgePavingState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_pillar_shaping_state().try_insert(KnowledgePillarShapingState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_resource_placement_state().try_insert(KnowledgeResourcePlacementState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_resource_state().try_insert(KnowledgeResourceState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_ruins_state().try_insert(KnowledgeRuinsState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_secondary_state().try_insert(KnowledgeSecondaryState { entries: Vec::new(), entity_id });
+    let _ = ctx.db.knowledge_vault_state().try_insert(KnowledgeVaultState { entries: Vec::new(), entity_id });
 }
 
 #[allow(dead_code)]

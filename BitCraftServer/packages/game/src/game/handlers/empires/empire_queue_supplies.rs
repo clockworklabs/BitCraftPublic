@@ -11,7 +11,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_queue_supplies(ctx: &ReducerContext, request: EmpireQueueSuppliesRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
@@ -20,22 +20,22 @@ pub fn empire_queue_supplies(ctx: &ReducerContext, request: EmpireQueueSuppliesR
     }
 
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&request.building_entity_id),
+        ctx.db.building_state().entity_id().find(request.building_entity_id),
         "Invalid building"
     );
 
-    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&building.claim_entity_id), "Not claimed");
+    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(building.claim_entity_id), "Not claimed");
     let mut claim_local = claim.local_state(ctx);
 
     let empire = unwrap_or_err!(
         ctx.db
             .empire_state()
             .capital_building_entity_id()
-            .find(&claim.owner_building_entity_id),
+            .find(claim.owner_building_entity_id),
         "The foundry can only be used in the capital city"
     );
 
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     let empire_currency_cost = params.hexite_capsule_shard_cost as u32;
     let supplies_cost = params.hexite_capsule_supply_cost;
     let threshold_hours = match ctx
@@ -75,12 +75,12 @@ pub fn empire_queue_supplies(ctx: &ReducerContext, request: EmpireQueueSuppliesR
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireQueueSuppliesMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         //Refund supplies if remote call fails
-        let mut claim = unwrap_or_return!(ctx.db.claim_local_state().entity_id().find(&request.claim_entity_id), "Not claimed");
+        let mut claim = unwrap_or_return!(ctx.db.claim_local_state().entity_id().find(request.claim_entity_id), "Not claimed");
         claim.supplies += params!(ctx).hexite_capsule_supply_cost;
         ctx.db.claim_local_state().entity_id().update(claim);
 
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     }
 }

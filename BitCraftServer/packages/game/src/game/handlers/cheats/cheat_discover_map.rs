@@ -21,10 +21,10 @@ fn cheat_discover_map(ctx: &ReducerContext, request: CheatDiscoverMapRequest) ->
 
 pub fn reduce(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
     let mut explored_chunks = unwrap_or_err!(
-        ctx.db.exploration_chunks_state_v2().entity_id().find(&entity_id),
+        ctx.db.exploration_chunks_state_v2().entity_id().find(entity_id),
         "Player has no exploration state"
     );
-    let region = ctx.db.world_region_state().id().find(&0).unwrap();
+    let region = ctx.db.world_region_state().id().find(0).unwrap();
 
     //Explore all chunks
     let old_count = explored_chunks.explored_chunks_count;
@@ -34,8 +34,8 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
     for x in 0..world_width {
         for y in 0..world_height {
             let chunk = ChunkCoordinates {
-                x: x as i32,
-                z: y as i32,
+                x,
+                z: y,
                 dimension: dimensions::OVERWORLD,
             };
             if explored_chunks.explore_chunk(ctx, &chunk, Some(world_width)) {
@@ -54,8 +54,8 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
     ctx.db.exploration_chunks_state_v2().entity_id().update(explored_chunks);
 
     //Discover all ruins
-    let ruins = ctx.db.location_cache().version().find(&0).unwrap().all_ruins;
-    let mut knowledge = ctx.db.knowledge_ruins_state().entity_id().find(&entity_id).unwrap();
+    let ruins = ctx.db.location_cache().version().find(0).unwrap().all_ruins;
+    let mut knowledge = ctx.db.knowledge_ruins_state().entity_id().find(entity_id).unwrap();
     let prev_ruin_count = knowledge.entries.len();
     knowledge.entries.clear();
     for ruin in ruins {
@@ -80,7 +80,7 @@ fn cheat_undiscover_map(ctx: &ReducerContext, player_entity_id: u64) -> Result<(
 
     let entity_id = player_entity_id;
     let mut explored_chunks = unwrap_or_err!(
-        ctx.db.exploration_chunks_state_v2().entity_id().find(&entity_id),
+        ctx.db.exploration_chunks_state_v2().entity_id().find(entity_id),
         "Player has no exploration state"
     );
 

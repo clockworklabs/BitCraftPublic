@@ -57,7 +57,7 @@ pub fn set_role_for_identity(ctx: &ReducerContext, identity: String, role: Role)
         Ok(i) => i,
         Err(_) => return Err("Failed to parse identity".into()),
     };
-    if let Some(mut entry) = ctx.db.identity_role().identity().find(&identity) {
+    if let Some(mut entry) = ctx.db.identity_role().identity().find(identity) {
         entry.role = role;
         IdentityRole::update_shared(ctx, entry, crate::inter_module::InterModuleDestination::AllOtherRegions);
     } else {
@@ -78,11 +78,11 @@ pub fn update_role_for_player(ctx: &ReducerContext, player_entity_id: u64, role:
         return Err("Invalid permissions".into());
     }
 
-    let player = unwrap_or_err!(ctx.db.user_state().entity_id().find(&player_entity_id), "Player not found");
+    let player = unwrap_or_err!(ctx.db.user_state().entity_id().find(player_entity_id), "Player not found");
 
     let identity = player.identity;
 
-    if let Some(mut entry) = ctx.db.identity_role().identity().find(&identity) {
+    if let Some(mut entry) = ctx.db.identity_role().identity().find(identity) {
         entry.role = role;
         IdentityRole::update_shared(ctx, entry, crate::inter_module::InterModuleDestination::AllOtherRegions);
     } else {
@@ -108,7 +108,7 @@ pub fn block_identity(ctx: &ReducerContext, identity: String) -> Result<(), Stri
         Err(_) => return Err("Failed to parse identity".into()),
     };
 
-    if ctx.db.blocked_identity().identity().find(&identity).is_some() {
+    if ctx.db.blocked_identity().identity().find(identity).is_some() {
         return Err("Identity is already blocked.".into());
     }
 
@@ -122,7 +122,7 @@ pub fn block_identity(ctx: &ReducerContext, identity: String) -> Result<(), Stri
 }
 
 pub fn is_authenticated(ctx: &ReducerContext, identity: &Identity) -> bool {
-    match ctx.db.config().version().find(&0) {
+    match ctx.db.config().version().find(0) {
         Some(config) => {
             if config.env == "dev" {
                 return true; // dev config allows all operations
@@ -140,7 +140,7 @@ pub fn is_authenticated(ctx: &ReducerContext, identity: &Identity) -> bool {
 }
 
 pub fn has_role(ctx: &ReducerContext, identity: &Identity, role: Role) -> bool {
-    match ctx.db.config().version().find(&0) {
+    match ctx.db.config().version().find(0) {
         Some(config) => {
             if config.env == "dev" {
                 return true; // dev config allows all operations
@@ -148,8 +148,5 @@ pub fn has_role(ctx: &ReducerContext, identity: &Identity, role: Role) -> bool {
         }
         None => return true, // no config yet allows all operation
     }
-    match ctx.db.identity_role().identity().find(identity) {
-        Some(entry) if entry.role as i32 >= role as i32 => true,
-        _ => false,
-    }
+    matches!(ctx.db.identity_role().identity().find(identity), Some(entry) if entry.role as i32 >= role as i32)
 }

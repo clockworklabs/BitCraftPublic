@@ -13,7 +13,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn closed_listing_collect(ctx: &ReducerContext, request: PlayerClosedListingCollectRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 

@@ -15,7 +15,7 @@ use super::player_housing_update::player_housing_update_impl;
 #[shared_table_reducer]
 #[feature_gate]
 pub fn player_housing_enter(ctx: &ReducerContext, request: PlayerHousingEnterRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     // If the owner enters his house, check for upgrades

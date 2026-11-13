@@ -16,13 +16,13 @@ use super::building_state::InventoryState;
 impl PavedTileState {
     pub fn get_at_location(ctx: &ReducerContext, coordinates: &SmallHexTile) -> Option<PavedTileState> {
         LocationState::select_all(ctx, coordinates)
-            .filter_map(|ls| ctx.db.paved_tile_state().entity_id().find(&ls.entity_id))
+            .filter_map(|ls| ctx.db.paved_tile_state().entity_id().find(ls.entity_id))
             .next()
     }
 
     pub fn collect_stats(ctx: &ReducerContext, coordinates: &SmallHexTile, bonuses: &mut HashMap<CharacterStatType, (f32, f32)>) {
         if let Some(paved_tile) = Self::get_at_location(ctx, coordinates) {
-            let paving_info = ctx.db.paving_tile_desc().id().find(&paved_tile.tile_type_id).unwrap();
+            let paving_info = ctx.db.paving_tile_desc().id().find(paved_tile.tile_type_id).unwrap();
             for CsvStatEntry { id, value, is_pct } in &paving_info.stat_effects {
                 let entry = bonuses.entry(*id).or_insert((0.0, 0.0));
                 if *is_pct {
@@ -61,7 +61,7 @@ impl PavedTileState {
             ));
         }
 
-        if consumed_item_stacks.len() > 0 {
+        if !consumed_item_stacks.is_empty() {
             inventory.add_multiple_with_overflow(ctx, &consumed_item_stacks);
         }
     }

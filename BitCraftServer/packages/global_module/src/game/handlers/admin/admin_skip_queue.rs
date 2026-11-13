@@ -17,7 +17,7 @@ fn admin_skip_queue_identity(ctx: &ReducerContext, identity: Identity) -> Result
         return Err("Unauthorized".into());
     }
 
-    return reduce(ctx, identity);
+    reduce(ctx, identity)
 }
 
 #[spacetimedb::reducer]
@@ -27,7 +27,7 @@ fn admin_skip_queue_entity(ctx: &ReducerContext, entity_id: u64) -> Result<(), S
     }
 
     let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(entity_id), "User not found");
-    return reduce(ctx, user.identity);
+    reduce(ctx, user.identity)
 }
 
 #[spacetimedb::reducer]
@@ -44,7 +44,7 @@ fn admin_skip_queue_name(ctx: &ReducerContext, name: String) -> Result<(), Strin
         "User not found"
     );
     let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(name_state.entity_id), "User not found");
-    return reduce(ctx, user.identity);
+    reduce(ctx, user.identity)
 }
 
 fn reduce(ctx: &ReducerContext, identity: Identity) -> Result<(), String> {

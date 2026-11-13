@@ -12,7 +12,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn order_cancel(ctx: &ReducerContext, request: PlayerOrderCancelRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     let building = AuctionListingState::marketplace_for_action(ctx, actor_id, request.building_entity_id, 2)?;

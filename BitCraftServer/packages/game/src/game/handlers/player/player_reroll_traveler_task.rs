@@ -12,7 +12,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_reroll_traveler_task(ctx: &ReducerContext, task_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 

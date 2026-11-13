@@ -15,14 +15,14 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_treasury_deposit(ctx: &ReducerContext, request: PlayerClaimDepositToTreasuryRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     if request.amount == 0 {
         return Err("Cannot deposit nothing.".into());
     }
 
-    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&request.claim_entity_id), "No such claim.");
+    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.claim_entity_id), "No such claim.");
 
     if !claim.has_co_owner_permissions(ctx, actor_id) {
         return Err("Only the owner and co-owners can deposit into the treasury.".into());

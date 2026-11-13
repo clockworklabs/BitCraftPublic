@@ -4,6 +4,7 @@ use crate::game::coordinates::*;
 use crate::game::reducer_helpers::deployable_helpers;
 use crate::game::terrain_chunk::TerrainChunkCache;
 use crate::messages::components::*;
+use crate::messages::generic::world_region_state;
 use crate::messages::static_data::*;
 
 /// The terrain cell raised by a platform centered on `center`.
@@ -23,7 +24,7 @@ fn is_on_cell(tile: SmallHexTile, cell: LargeHexTile) -> bool {
 
 /// Players can only have a limited number of platforms of each type (`FloatingPlatformDesc::max_per_player`, 0 = unlimited).
 pub fn validate_platform_limit(ctx: &ReducerContext, building_desc_id: i32, player_entity_id: u64) -> Result<(), String> {
-    let Some(desc) = ctx.db.floating_platform_desc().building_id().find(&building_desc_id) else {
+    let Some(desc) = ctx.db.floating_platform_desc().building_id().find(building_desc_id) else {
         return Ok(());
     };
     if desc.max_per_player <= 0 {
@@ -40,30 +41,46 @@ pub fn validate_platform_limit(ctx: &ReducerContext, building_desc_id: i32, play
             .db
             .building_desc()
             .id()
-            .find(&building_desc_id)
+            .find(building_desc_id)
             .map_or("platforms".to_string(), |b| format!("{{0}}s|~{}", b.name));
         return Err(format!("You can't have more than {{0}} {{1}} placed at once.|~{}|~{}", desc.max_per_player, name));
     }
     Ok(())
 }
 
+pub fn validate_distance_from_region_edge(ctx: &ReducerContext, center: SmallHexTile) -> Result<(), String> {
+    let margin = ctx.db.parameters_desc().version().find(0).unwrap().floating_platform_region_edge_margin_chunks;
+    let region = ctx.db.world_region_state().id().find(0).unwrap();
+    let chunk = center.chunk_coordinates();
+    let x = chunk.x - region.region_min_chunk_x as i32;
+    let z = chunk.z - region.region_min_chunk_z as i32;
+    let too_close_to_edge = x < margin
+        || z < margin
+        || x >= region.region_width_chunks as i32 - margin
+        || z >= region.region_height_chunks as i32 - margin;
+    if too_close_to_edge {
+        return Err("Floating platforms can't be built this close to the edge of the region.".into());
+    }
+    Ok(())
+}
+
 /// The terrain cell of a completed floating platform building, or None if the building isn't a floating platform.
 pub fn platform_cell_of(ctx: &ReducerContext, building_entity_id: u64) -> Option<LargeHexTile> {
-    let building = ctx.db.building_state().entity_id().find(&building_entity_id)?;
+    let building = ctx.db.building_state().entity_id().find(building_entity_id)?;
     ctx.db
         .floating_platform_desc()
         .building_id()
-        .find(&building.building_description_id)?;
-    let location = ctx.db.location_state().entity_id().find(&building_entity_id)?;
+        .find(building.building_description_id)?;
+    let location = ctx.db.location_state().entity_id().find(building_entity_id)?;
     Some(platform_cell(location.coordinates()))
 }
 
 /// Sets the gameplay terrain elevation relative to water; visual decks stay at water level.
 pub fn raise_terrain_under_platform(ctx: &ReducerContext, building_entity_id: u64, building_desc_id: i32) {
-    let Some(platform) = ctx.db.floating_platform_desc().building_id().find(&building_desc_id) else {
+    let Some(platform) = ctx.db.floating_platform_desc().building_id().find(building_desc_id) else {
         return;
     };
-    let Some(location) = ctx.db.location_state().entity_id().find(&building_entity_id) else {
+    let Some(location) = ctx.db.location_state().entity_id().find(building_entity_id) else {
         log::error!("Floating platform {building_entity_id} has no location");
         return;
     };
@@ -92,7 +109,7 @@ pub fn refresh_platform_elevations(ctx: &ReducerContext) {
 
 /// Restores the seabed (the cell's original elevation) under a floating platform that is being removed.
 pub fn restore_terrain_under_platform(ctx: &ReducerContext, building_desc_id: i32, location: SmallHexTile) {
-    if ctx.db.floating_platform_desc().building_id().find(&building_desc_id).is_none() {
+    if ctx.db.floating_platform_desc().building_id().find(building_desc_id).is_none() {
         return;
     }
     let cell = platform_cell(location);
@@ -153,8 +170,8 @@ pub fn is_platform_occupied(ctx: &ReducerContext, building_entity_id: u64) -> bo
             // Also check the destination so something walking onto the platform counts too
             .filter(|mobile| is_on_cell(mobile.coordinates(), cell) || is_on_cell(mobile.destination(), cell))
             .any(|mobile| {
-                ctx.db.player_state().entity_id().find(&mobile.entity_id).is_none()
-                    && ctx.db.deployable_state_v2().entity_id().find(&mobile.entity_id).is_none()
+                ctx.db.player_state().entity_id().find(mobile.entity_id).is_none()
+                    && ctx.db.deployable_state_v2().entity_id().find(mobile.entity_id).is_none()
             })
     })
 }

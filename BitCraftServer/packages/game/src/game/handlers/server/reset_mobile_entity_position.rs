@@ -18,11 +18,11 @@ pub struct ResetMobileEntityTimer {
 
 #[spacetimedb::reducer]
 pub fn reset_mobile_entity_position(ctx: &ReducerContext, timer: ResetMobileEntityTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     ctx.db.mobile_entity_state().entity_id().update(MobileEntityState::for_location(
         timer.owner_entity_id,
-        timer.position.clone().unwrap(),
+        timer.position.unwrap(),
         ctx.timestamp,
     ));
 

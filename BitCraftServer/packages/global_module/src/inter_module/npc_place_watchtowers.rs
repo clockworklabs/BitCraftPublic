@@ -28,7 +28,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, msg: NpcPlaceWatchto
             upkeep: msg.upkeep,
             location: wt.location,
         };
-        if ctx.db.empire_node_state().entity_id().find(&wt.building_entity_id).is_some() {
+        if ctx.db.empire_node_state().entity_id().find(wt.building_entity_id).is_some() {
             EmpireNodeState::update_shared(ctx, node, crate::inter_module::InterModuleDestination::AllOtherRegions);
         } else {
             EmpireNodeState::insert_shared(ctx, node, crate::inter_module::InterModuleDestination::AllOtherRegions);
@@ -41,7 +41,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, msg: NpcPlaceWatchto
                 empire_entity_id: npc_empire_id,
                 watchtower_entity_id: wt.building_entity_id,
             };
-            if ctx.db.empire_chunk_state().chunk_index().find(&chunk_idx).is_some() {
+            if ctx.db.empire_chunk_state().chunk_index().find(chunk_idx).is_some() {
                 EmpireChunkState::update_shared(ctx, chunk, crate::inter_module::InterModuleDestination::AllOtherRegions);
             } else {
                 EmpireChunkState::insert_shared(ctx, chunk, crate::inter_module::InterModuleDestination::AllOtherRegions);

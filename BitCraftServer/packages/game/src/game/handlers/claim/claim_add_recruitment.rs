@@ -10,11 +10,11 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_add_recruitment(ctx: &ReducerContext, request: PlayerClaimAddRecruitmentRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&request.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(request.claim_entity_id),
         "Recruitment's claim do not exist anymore."
     );
 

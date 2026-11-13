@@ -62,29 +62,29 @@ pub fn insert_placeable_growth_timer(
 }
 
 pub fn delete_resource_growth_timer(ctx: &ReducerContext, entity_id: u64) {
-    ctx.db.resource_growth_timer().entity_id().delete(&entity_id);
+    ctx.db.resource_growth_timer().entity_id().delete(entity_id);
 }
 
 pub fn delete_placeable_growth_timer(ctx: &ReducerContext, entity_id: u64) {
-    ctx.db.placeable_growth_timer().entity_id().delete(&entity_id);
+    ctx.db.placeable_growth_timer().entity_id().delete(entity_id);
 }
 
 #[spacetimedb::reducer]
 fn resource_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Result<(), String> {
     ServerIdentity::validate_server_or_admin(ctx)?;
 
-    let resource = match ctx.db.resource_state().entity_id().find(&timer.entity_id) {
+    let resource = match ctx.db.resource_state().entity_id().find(timer.entity_id) {
         Some(resource) => resource,
         None => return Ok(()),
     };
-    let location = match ctx.db.location_state().entity_id().find(&timer.entity_id) {
+    let location = match ctx.db.location_state().entity_id().find(timer.entity_id) {
         Some(location) => location,
         None => {
             log::error!("Resource growth timer {} is missing location", timer.entity_id);
             return Ok(());
         }
     };
-    let recipe = match ctx.db.resource_growth_recipe_desc().id().find(&timer.growth_recipe_id) {
+    let recipe = match ctx.db.resource_growth_recipe_desc().id().find(timer.growth_recipe_id) {
         Some(recipe) => recipe,
         None => {
             log::error!(
@@ -102,7 +102,7 @@ fn resource_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Result
         .db
         .interior_spawned_resource_state()
         .entity_id()
-        .find(&timer.entity_id);
+        .find(timer.entity_id);
     resource.despawn_growing(ctx);
 
     let should_spawn = if recipe.grown_resource_chance >= 1.0 {
@@ -147,18 +147,18 @@ fn resource_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Result
 fn placeable_growth_scheduled(ctx: &ReducerContext, timer: GrowthTimer) -> Result<(), String> {
     ServerIdentity::validate_server_or_admin(ctx)?;
 
-    let placeable = match ctx.db.placeable_state().entity_id().find(&timer.entity_id) {
+    let placeable = match ctx.db.placeable_state().entity_id().find(timer.entity_id) {
         Some(placeable) => placeable,
         None => return Ok(()),
     };
-    let location = match ctx.db.location_state().entity_id().find(&timer.entity_id) {
+    let location = match ctx.db.location_state().entity_id().find(timer.entity_id) {
         Some(location) => location,
         None => {
             log::error!("Placeable growth timer {} is missing location", timer.entity_id);
             return Ok(());
         }
     };
-    let recipe = match ctx.db.placeable_growth_desc().id().find(&timer.growth_recipe_id) {
+    let recipe = match ctx.db.placeable_growth_desc().id().find(timer.growth_recipe_id) {
         Some(recipe) => recipe,
         None => {
             log::error!(

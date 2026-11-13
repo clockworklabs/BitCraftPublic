@@ -14,14 +14,14 @@ impl ActiveBuff {
         if buff_category.has_only_one_buff() {
             return Self::has_active_buff_of_type(ctx, player_entity_id, buff_category as i32);
         }
-        if let Some(active_buff_state) = ctx.db.active_buff_state().entity_id().find(&player_entity_id) {
+        if let Some(active_buff_state) = ctx.db.active_buff_state().entity_id().find(player_entity_id) {
             return active_buff_state.active_buff_of_category(ctx, buff_category).is_some();
         }
         false
     }
 
     pub fn has_active_buff_of_type(ctx: &ReducerContext, player_entity_id: u64, buff_type: i32) -> bool {
-        if let Some(active_buff_state) = ctx.db.active_buff_state().entity_id().find(&player_entity_id) {
+        if let Some(active_buff_state) = ctx.db.active_buff_state().entity_id().find(player_entity_id) {
             return active_buff_state.active_buff_of_type(ctx, buff_type).is_some();
         }
         false
@@ -32,14 +32,14 @@ impl ActiveBuff {
             return false;
         }
         let buff_end_time = self.buff_start_timestamp.value + self.buff_duration;
-        let now = unix(now) as i32;
+        let now = unix(now);
         now >= buff_end_time
     }
 }
 
 pub fn activate(ctx: &ReducerContext, entity_id: u64, buff_id: i32, duration: Option<i32>, values: Option<Vec<f32>>) -> Result<(), String> {
     let mut active_buff_state = unwrap_or_err!(
-        ctx.db.active_buff_state().entity_id().find(&entity_id),
+        ctx.db.active_buff_state().entity_id().find(entity_id),
         "Entity has no ActiveBuffState."
     );
     active_buff_state.add_active_buff_with_data(ctx, buff_id, duration, values);
@@ -50,7 +50,7 @@ pub fn activate(ctx: &ReducerContext, entity_id: u64, buff_id: i32, duration: Op
 
 pub fn deactivate(ctx: &ReducerContext, entity_id: u64, buff_id: i32) -> Result<(), String> {
     let mut active_buff_state = unwrap_or_err!(
-        ctx.db.active_buff_state().entity_id().find(&entity_id),
+        ctx.db.active_buff_state().entity_id().find(entity_id),
         "Entity has no ActiveBuffState."
     );
     active_buff_state.remove_active_buff(ctx, buff_id);

@@ -10,7 +10,7 @@ pub fn cheat_delete_item(ctx: &ReducerContext, inventory_entity_id: u64, pocket_
         return Err("Unauthorized.".into());
     }
 
-    let mut inv = ctx.db.inventory_state().entity_id().find(&inventory_entity_id).unwrap();
+    let mut inv = ctx.db.inventory_state().entity_id().find(inventory_entity_id).unwrap();
     inv.pockets[pocket_index as usize].contents = None;
     ctx.db.inventory_state().entity_id().update(inv);
     Ok(())

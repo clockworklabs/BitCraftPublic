@@ -13,7 +13,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn order_collect(ctx: &ReducerContext, request: PlayerOrderCollectRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     let building = AuctionListingState::marketplace_for_action(ctx, actor_id, request.building_entity_id, 2)?;
@@ -43,10 +43,10 @@ pub fn order_collect(ctx: &ReducerContext, request: PlayerOrderCollectRequest) -
         true,
     )?;
 
-    if remaining_items.len() == 0 {
+    if remaining_items.is_empty() {
         ctx.db.closed_listing_state().entity_id().delete(order.entity_id);
     } else {
-        order.item_stack = remaining_items.first().unwrap().clone();
+        order.item_stack = *remaining_items.first().unwrap();
         ctx.db.closed_listing_state().entity_id().update(order);
     }
 

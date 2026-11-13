@@ -10,7 +10,7 @@ use super::building_state::InventoryState;
 
 impl RentState {
     pub fn is_renter(&self, player_entity_id: u64) -> bool {
-        *self.white_list.get(0).unwrap_or(&0) == player_entity_id
+        *self.white_list.first().unwrap_or(&0) == player_entity_id
     }
 
     pub fn is_tenant(&self, player_entity_id: u64) -> bool {
@@ -49,8 +49,7 @@ impl RentState {
             return Err(format!(
                 "You need {{0}} hex coins between your inventory and your treasury to evict this tenant.|~{}",
                 initial_amount
-            )
-            .into());
+            ));
         }
         Ok(())
     }

@@ -25,22 +25,22 @@ pub fn admin_respawn_interior_spawn_desc(ctx: &ReducerContext, interior_spawn_de
     }
 
     let spawn = unwrap_or_err!(
-        ctx.db.interior_spawn_desc().id().find(&interior_spawn_desc_id),
+        ctx.db.interior_spawn_desc().id().find(interior_spawn_desc_id),
         "Invalid InteriorSpawnDesc"
     );
     if spawn.spawn_type != InteriorSpawnType::Resource {
         return Err("This recovery reducer currently supports only resource InteriorSpawnDesc records".into());
     }
     let instance = unwrap_or_err!(
-        ctx.db.interior_instance_desc().id().find(&spawn.interior_instance_id),
+        ctx.db.interior_instance_desc().id().find(spawn.interior_instance_id),
         "Invalid interior instance"
     );
     let shape = unwrap_or_err!(
-        ctx.db.interior_shape_desc().id().find(&instance.interior_shape_id),
+        ctx.db.interior_shape_desc().id().find(instance.interior_shape_id),
         "Invalid interior shape"
     );
     let resource_clump = unwrap_or_err!(
-        ctx.db.resource_clump_desc().id().find(&spawn.resource_clump_id),
+        ctx.db.resource_clump_desc().id().find(spawn.resource_clump_id),
         "Invalid resource clump"
     );
     let dimensions: Vec<_> = ctx
@@ -88,7 +88,7 @@ pub fn admin_respawn_interior_spawn_desc(ctx: &ReducerContext, interior_spawn_de
                 ctx.db
                     .resource_state()
                     .entity_id()
-                    .find(&location.entity_id)
+                    .find(location.entity_id)
                     .map(|resource| resource.entity_id)
             })
             .collect();
@@ -96,7 +96,7 @@ pub fn admin_respawn_interior_spawn_desc(ctx: &ReducerContext, interior_spawn_de
             ResourceState::despawn(
                 ctx,
                 entity_id,
-                ctx.db.resource_state().entity_id().find(&entity_id).unwrap().resource_id,
+                ctx.db.resource_state().entity_id().find(entity_id).unwrap().resource_id,
             );
         }
         spawn_interior_resource(

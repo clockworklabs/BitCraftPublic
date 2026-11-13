@@ -10,7 +10,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn trade_swap_pockets(ctx: &ReducerContext, request: PlayerTradeSwapPocketsRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(
@@ -26,7 +26,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, session_entity_id: u64, from
     HealthState::check_incapacitated(ctx, entity_id, true)?;
 
     let mut trade_session = unwrap_or_err!(
-        ctx.db.trade_session_state().entity_id().find(&session_entity_id),
+        ctx.db.trade_session_state().entity_id().find(session_entity_id),
         "No such trade session."
     );
 

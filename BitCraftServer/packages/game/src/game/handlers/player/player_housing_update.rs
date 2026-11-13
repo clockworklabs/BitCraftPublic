@@ -19,11 +19,11 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 fn player_housing_update(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
-    return player_housing_update_impl(ctx, building_entity_id);
+    player_housing_update_impl(ctx, building_entity_id)
 }
 
 pub fn player_housing_update_impl(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
@@ -189,19 +189,19 @@ fn transfer_dimension_contents(
     log::info!("[{start_dimension}] => [{target_dimension}]");
 
     let mut pending_dimensions = vec![start_dimension];
-    while pending_dimensions.len() > 0 {
+    while !pending_dimensions.is_empty() {
         let dimension = pending_dimensions.remove(0);
         let matching_dimension = *dimension_map.get(&dimension).unwrap();
 
         // the idea is that every previous portal has a matching portal in the newer, expended layout
-        for i in 0..previous_portals.len() - 1 {
-            if previous_portals[i].0.dimension == dimension {
-                let mut check_loc = previous_portals[i].0.coordinates();
+        for previous_portal in previous_portals.iter().take(previous_portals.len() - 1) {
+            if previous_portal.0.dimension == dimension {
+                let mut check_loc = previous_portal.0.coordinates();
                 check_loc.dimension = matching_dimension;
                 let mut shortest_distance = i32::MAX;
                 let mut shortest_index = 0;
-                for j in 0..new_portals.len() - 1 {
-                    let distance = new_portals[j].0.coordinates().distance_to(check_loc);
+                for (j, new_portal) in new_portals.iter().enumerate().take(new_portals.len() - 1) {
+                    let distance = new_portal.0.coordinates().distance_to(check_loc);
                     if distance < shortest_distance {
                         shortest_distance = distance;
                         shortest_index = j;
@@ -209,16 +209,16 @@ fn transfer_dimension_contents(
                 }
 
                 let (new_portal_location, dim) = new_portals.remove(shortest_index);
-                log::info!("[{}] => [{dim}]", previous_portals[i].1);
-                if dimension_map.contains_key(&previous_portals[i].1) {
+                log::info!("[{}] => [{dim}]", previous_portal.1);
+                if dimension_map.contains_key(&previous_portal.1) {
                     // this portal leads to an existing dimension, therefore it's an entrance portal for that room
                     entrance_portal_offsets.insert(
-                        previous_portals[i].1,
-                        new_portal_location.coordinates() - previous_portals[i].0.coordinates(),
+                        previous_portal.1,
+                        new_portal_location.coordinates() - previous_portal.0.coordinates(),
                     );
                 }
 
-                dimension_map.insert(previous_portals[i].1, dim); // destination dimension from previous portal matches the one from new portal
+                dimension_map.insert(previous_portal.1, dim); // destination dimension from previous portal matches the one from new portal
                 pending_dimensions.push(dim);
             }
         }
@@ -244,7 +244,7 @@ fn transfer_dimension_contents(
     // Find all portals going to the entrance dimension
     let mut pending_dimension_entrances = vec![start_dimension];
 
-    while pending_dimension_entrances.len() > 0 {
+    while !pending_dimension_entrances.is_empty() {
         // for each dimension, find the portal leading to it and add its dimension to pending dimensions
         let dim = pending_dimension_entrances.remove(0);
         for portal in previous_portals.iter().filter(|p| p.1 == dim) {

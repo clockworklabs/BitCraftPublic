@@ -15,12 +15,12 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn passive_craft_collect_all(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(&building_entity_id), "Invalid building");
+    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(building_entity_id), "Invalid building");
 
     if !PermissionState::can_interact_with_building(ctx, actor_id, &building_state, Permission::Usage) {
         return Err("You don't have the permission to use this building".into());
@@ -41,13 +41,13 @@ pub fn passive_craft_collect_all(ctx: &ReducerContext, building_entity_id: u64) 
     let mut output = Vec::new();
     for passive_craft in collectable_crafts {
         let mut crafting_recipe_desc = unwrap_or_continue!(
-            ctx.db.crafting_recipe_desc().id().find(&passive_craft.recipe_id),
+            ctx.db.crafting_recipe_desc().id().find(passive_craft.recipe_id),
             "Invalid crafting recipe"
         );
 
         output.append(&mut crafting_recipe_desc.crafted_item_stacks);
 
-        ctx.db.passive_craft_state().entity_id().delete(&passive_craft.entity_id);
+        ctx.db.passive_craft_state().entity_id().delete(passive_craft.entity_id);
     }
 
     InventoryState::deposit_to_player_inventory_and_nearby_deployables(

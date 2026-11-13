@@ -18,20 +18,20 @@ pub fn event_delay_recipe_id(ctx: &ReducerContext, request: &PlayerItemConvertRe
         .db
         .item_conversion_recipe_desc()
         .id()
-        .find(&(request.conversion_recipe_id as i32))
+        .find(request.conversion_recipe_id as i32 )
     {
         Some(item_conversion_recipe) => item_conversion_recipe,
         None => return (Duration::ZERO, None),
     };
 
     let time_cost = conversion_recipe.time_cost as f32 * request.count.max(1) as f32;
-    return (Duration::from_secs_f32(time_cost), Some(conversion_recipe.id));
+    (Duration::from_secs_f32(time_cost), Some(conversion_recipe.id))
 }
 
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn item_convert_start(ctx: &ReducerContext, request: PlayerItemConvertRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let (delay, recipe_id) = event_delay_recipe_id(ctx, &request);
@@ -56,7 +56,7 @@ pub fn item_convert_start(ctx: &ReducerContext, request: PlayerItemConvertReques
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn item_convert(ctx: &ReducerContext, request: PlayerItemConvertRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     player_action_helpers::schedule_clear_player_action(
         actor_id,
@@ -83,7 +83,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerItemConvertReques
         ctx.db
             .item_conversion_recipe_desc()
             .id()
-            .find(&(request.conversion_recipe_id as i32)),
+            .find(request.conversion_recipe_id as i32 ),
         "Invalid item conversion recipe!"
     );
 
@@ -95,7 +95,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerItemConvertReques
             _default => ItemConversionLocationContext::None,
         };
 
-        return Err(String::from(format!("Cannot perform item conversion, you must be in {{0}}|~{:?}", location_context)).into());
+        return Err(format!("Cannot perform item conversion, you must be in {{0}}|~{:?}", location_context));
     }
 
     let player_large_tile = game_state_filters::coordinates_any(ctx, actor_id).parent_large_tile();
@@ -103,7 +103,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerItemConvertReques
 
     // If a player isn't in a deployable and is in swim-deep water then they can't do item conversion
     let terrain_source = unwrap_or_err!(terrain_cache.get_terrain_cell(ctx, &player_large_tile), "Invalid location");
-    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(&actor_id).is_none() {
+    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(actor_id).is_none() {
         return Err("Cannot perform item conversion while swimming".into());
     }
 
@@ -115,9 +115,9 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerItemConvertReques
             power: 1,
         };
 
-        let mut _tool: Option<ToolDesc> = match ToolDesc::get_required_tool(ctx, actor_id, &required_tool) {
-            Ok(t) => Some(t),
-            Err(s) => return Err(s.into()),
+        let mut _tool: Option<ToolDesc> = {
+            let t = ToolDesc::get_required_tool(ctx, actor_id, &required_tool)?;
+            Some(t)
         };
     }
 
@@ -136,7 +136,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerItemConvertReques
         .collect::<Option<Vec<_>>>()
         .ok_or("Failed to convert items: required item count is too large.")?;
 
-    if player_inventory.remove(&input_items) == false {
+    if !player_inventory.remove(&input_items) {
         return Err("Failed to convert items: all ingredients were not found in inventory.".into());
     }
 
@@ -144,7 +144,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerItemConvertReques
     let stamina_cost = item_conversion_recipe.stamina_cost as f32 * conversion_count as f32;
 
     let stamina_state = unwrap_or_err!(
-        ctx.db.stamina_state().entity_id().find(&actor_id),
+        ctx.db.stamina_state().entity_id().find(actor_id),
         "Player missing stamina component!"
     );
     if stamina_state.stamina < stamina_cost {

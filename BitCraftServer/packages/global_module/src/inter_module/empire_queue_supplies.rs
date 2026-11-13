@@ -10,14 +10,14 @@ use crate::{
 };
 
 pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireQueueSuppliesMsg) -> Result<(), String> {
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
-    let empire_currency_cost = params.hexite_capsule_currency_cost as u32;
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
+    let empire_currency_cost = params.hexite_capsule_currency_cost;
 
     let mut empire = unwrap_or_err!(
         ctx.db
             .empire_state()
             .capital_building_entity_id()
-            .find(&request.claim_building_entity_id),
+            .find(request.claim_building_entity_id),
         "The foundry can only be used in the capital city"
     );
 
@@ -29,7 +29,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireQueue
     EmpireState::update_shared(ctx, empire, crate::inter_module::InterModuleDestination::AllOtherRegions);
 
     let mut foundry = unwrap_or_err!(
-        ctx.db.empire_foundry_state().entity_id().find(&request.building_entity_id),
+        ctx.db.empire_foundry_state().entity_id().find(request.building_entity_id),
         "This is not an empire foundry"
     );
     foundry.queued += 1;

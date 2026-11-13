@@ -9,6 +9,7 @@ use crate::{
 };
 
 impl AlertState {
+    #[expect(clippy::new_ret_no_self, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn new(ctx: &ReducerContext, alert_type: AlertType, player_entity_id: u64, target_entity_id: u64) -> Result<(), String> {
         let alert_desc = ctx.db.alert_desc().alert_type().find(alert_type as i32).unwrap();
 
@@ -43,7 +44,7 @@ impl AlertState {
 
     pub fn delete(ctx: &ReducerContext, alert_type: AlertType, player_entity_id: u64, target_entity_id: u64) {
         if let Some(alert) = AlertState::get(ctx, alert_type, player_entity_id, target_entity_id) {
-            ctx.db.alert_state().entity_id().delete(&alert.entity_id);
+            ctx.db.alert_state().entity_id().delete(alert.entity_id);
         }
     }
 
@@ -53,7 +54,7 @@ impl AlertState {
         for alert in ctx.db.alert_state().player_entity_id().filter(player_entity_id) {
             let alert_desc = ctx.db.alert_desc().alert_type().find(alert.alert_type as i32).unwrap();
             if alert_desc.duration > 0.0 && alert.end_timestamp < now {
-                ctx.db.alert_state().entity_id().delete(&alert.entity_id);
+                ctx.db.alert_state().entity_id().delete(alert.entity_id);
             }
         }
     }

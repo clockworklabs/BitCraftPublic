@@ -42,20 +42,20 @@ fn deployable_dismount_scheduled(ctx: &ReducerContext, timer: DeployableDismount
 #[feature_gate]
 pub fn deployable_dismount_server(ctx: &ReducerContext, request: PlayerDeployableDismountRequest) -> Result<(), String> {
     // This request can only come from the server (as a result of a deployable being stored)
-    ServerIdentity::validate_server_only(&ctx)?;
+    ServerIdentity::validate_server_only(ctx)?;
     let actor_id = request.player_entity_id;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     // Deployable might be deleted at this point if everyone was expelled from it. If this happens, we have a target location so we will use that.
-    let deployable_coord = if let Some(deployable) = ctx.db.mobile_entity_state().entity_id().find(&request.deployable_entity_id) {
+    let deployable_coord = if let Some(deployable) = ctx.db.mobile_entity_state().entity_id().find(request.deployable_entity_id) {
         deployable.coordinates_float()
     } else {
         request.coordinates.unwrap().into()
     };
 
     let target_coordinates: FloatHexTile = unwrap_or_err!(request.coordinates, "No location to disembark to").into();
-    self::test_coordinates(ctx, target_coordinates.clone(), deployable_coord)?;
+    self::test_coordinates(ctx, target_coordinates, deployable_coord)?;
 
     PlayerState::collect_stats(ctx, actor_id);
     if let Some(deployable_coordinates) = request.deployable_coordinates {
@@ -80,7 +80,7 @@ pub fn deployable_dismount(
     deployable_coordinates: OffsetCoordinatesFloat,
 ) -> Result<(), String> {
     // This request can only come from a player (as a result of a player direct action)
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
@@ -94,7 +94,7 @@ pub fn deployable_dismount(
     .coordinates_float();
 
     let target_coordinates: FloatHexTile = coordinates.into();
-    self::test_coordinates(ctx, target_coordinates.clone(), deployable_coord)?;
+    self::test_coordinates(ctx, target_coordinates, deployable_coord)?;
 
     PlayerState::collect_stats(ctx, actor_id);
     self::test_coordinates(ctx, deployable_coordinates.into(), deployable_coord)?;
@@ -128,12 +128,12 @@ fn test_coordinates(ctx: &ReducerContext, dismount_coord: FloatHexTile, deployab
         None => return Err("Can't find deployable cell".into()),
     };
 
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     if (dismount_terrain_cell.player_surface_elevation() - deployable_terrain_cell.player_surface_elevation()).abs()
         > params.deployable_disembark_max_elevation as i16
     {
         return Err("Can't disembark over a cliff!".into());
     }
 
-    return Ok(());
+    Ok(())
 }

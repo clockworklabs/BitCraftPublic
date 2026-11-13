@@ -8,7 +8,7 @@ use crate::{building_state, enemy_state, health_state};
 impl HealthState {
     pub fn check_incapacitated(ctx: &ReducerContext, entity_id: u64, notify_client: bool) -> Result<(), String> {
         let incapacitated;
-        if let Some(health) = ctx.db.health_state().entity_id().find(&entity_id) {
+        if let Some(health) = ctx.db.health_state().entity_id().find(entity_id) {
             incapacitated = health.health <= 0.0;
         } else {
             incapacitated = false;
@@ -24,12 +24,12 @@ impl HealthState {
     }
 
     pub fn is_incapacitated_self(&self) -> bool {
-        return self.health <= 0.0;
+        self.health <= 0.0
     }
 
     // also returns false if there is no healthstate
     pub fn is_alive(ctx: &ReducerContext, entity_id: u64) -> bool {
-        if let Some(health) = ctx.db.health_state().entity_id().find(&entity_id) {
+        if let Some(health) = ctx.db.health_state().entity_id().find(entity_id) {
             health.health > 0.0
         } else {
             false
@@ -51,11 +51,11 @@ impl HealthState {
         let previous_health = self.health;
         self.health = (self.health + delta).clamp(min, max);
 
-        return self.health != previous_health;
+        self.health != previous_health
     }
 
     pub fn add_player_health(ctx: &ReducerContext, entity_id: u64, delta: f32) -> bool {
-        if let Some(health) = ctx.db.health_state().entity_id().find(&entity_id) {
+        if let Some(health) = ctx.db.health_state().entity_id().find(entity_id) {
             let mut health = health.clone();
             let previous = health.health;
             health.add_health_delta(delta, ctx.timestamp);
@@ -81,7 +81,7 @@ impl HealthState {
     }
 
     pub fn add_building_health(ctx: &ReducerContext, entity_id: u64, delta: f32) -> bool {
-        if let Some(health) = ctx.db.health_state().entity_id().find(&entity_id) {
+        if let Some(health) = ctx.db.health_state().entity_id().find(entity_id) {
             let mut health = health.clone();
             let previous = health.health;
             health.add_health_delta(delta, ctx.timestamp);
@@ -95,7 +95,7 @@ impl HealthState {
     }
 
     pub fn add_enemy_health(ctx: &ReducerContext, entity_id: u64, delta: f32) -> bool {
-        if let Some(health) = ctx.db.health_state().entity_id().find(&entity_id) {
+        if let Some(health) = ctx.db.health_state().entity_id().find(entity_id) {
             let mut health = health.clone();
             let previous = health.health;
             health.add_health_delta(delta, ctx.timestamp);
@@ -124,13 +124,13 @@ impl HealthState {
     }
 
     pub fn max_building_health(ctx: &ReducerContext, entity_id: u64) -> f32 {
-        let building = ctx.db.building_state().entity_id().find(&entity_id).unwrap();
-        let building_desc = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+        let building = ctx.db.building_state().entity_id().find(entity_id).unwrap();
+        let building_desc = ctx.db.building_desc().id().find(building.building_description_id).unwrap();
         building_desc.max_health as f32
     }
 
     pub fn max_enemy_health(ctx: &ReducerContext, entity_id: u64) -> f32 {
-        let enemy = ctx.db.enemy_state().entity_id().find(&entity_id).unwrap();
+        let enemy = ctx.db.enemy_state().entity_id().find(entity_id).unwrap();
         let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy.enemy_type as i32).unwrap();
         enemy_desc.max_health as f32
     }

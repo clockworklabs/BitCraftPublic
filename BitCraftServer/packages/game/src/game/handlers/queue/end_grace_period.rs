@@ -26,6 +26,7 @@ pub enum GracePeriodType {
 }
 
 impl EndGracePeriodTimer {
+    #[expect(clippy::new_ret_no_self, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn new(ctx: &ReducerContext, identity: Identity, grace_period_type: GracePeriodType) {
         let region_sign_in_parameters = unwrap_or_return!(RegionSignInParameters::get(ctx), "Failed to get RegionSignInParameters");
 
@@ -47,13 +48,13 @@ impl EndGracePeriodTimer {
 
 #[spacetimedb::reducer]
 fn end_grace_period(ctx: &ReducerContext, timer: EndGracePeriodTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to end_grace_period");
         return;
     }
 
     let mut user_state = unwrap_or_return!(
-        ctx.db.user_state().identity().find(&timer.identity),
+        ctx.db.user_state().identity().find(timer.identity),
         "Identity {} has no UserState",
         timer.identity
     );

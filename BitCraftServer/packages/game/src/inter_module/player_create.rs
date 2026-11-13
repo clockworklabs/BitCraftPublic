@@ -56,7 +56,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, player_create_reques
 
 fn find_spawn_position(ctx: &ReducerContext, location_cache: &LocationCache) -> Option<SmallHexTileMessage> {
     let valid_spawn = &location_cache.spawn_locations;
-    if valid_spawn.len() == 0 {
+    if valid_spawn.is_empty() {
         log::error!("No spawn points found. Is the world empty?");
         return None;
     }
@@ -117,7 +117,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
     let default_pocket_volume = 6000;
 
     let location_cache = unwrap_or_err!(
-        ctx.db.location_cache().version().find(&0),
+        ctx.db.location_cache().version().find(0),
         "Location Cache not built. Did you generate a world?"
     );
 
@@ -171,7 +171,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
 
     ctx.db.player_action_state().try_insert(PlayerActionState {
         auto_id: 0,
-        entity_id: entity_id,
+        entity_id,
         action_type: PlayerActionType::None,
         layer: PlayerActionLayer::Base,
         target: None,
@@ -189,7 +189,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
 
     ctx.db.player_action_state().try_insert(PlayerActionState {
         auto_id: 0,
-        entity_id: entity_id,
+        entity_id,
         action_type: PlayerActionType::None,
         layer: PlayerActionLayer::UpperBody,
         target: None,
@@ -239,7 +239,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
 
     ctx.db.vault_state().try_insert(vault)?;
 
-    let region = ctx.db.world_region_state().id().find(&0).unwrap();
+    let region = ctx.db.world_region_state().id().find(0).unwrap();
     let world_width = region.world_width_chunks();
     let mut exploration_state = ExplorationChunksStateV2::new(ctx, entity_id, Some(region));
     let explored_chunks_coordinates = ChunkCoordinates::from(spawn_coordinates).surrounding_and_including(ctx);
@@ -354,7 +354,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
             values: Vec::new(),
         })
         .collect();
-    active_buffs.sort_by(|a, b| a.buff_id.cmp(&b.buff_id));
+    active_buffs.sort_by_key(|a| a.buff_id);
 
     ctx.db.equipment_state().try_insert(equipment)?;
 
@@ -377,7 +377,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
         satiation: SatiationState::get_player_max_satiation(ctx, entity_id),
     })?;
 
-    let num_pockets = ctx.db.parameters_desc().version().find(&0).unwrap().default_num_inventory_pockets;
+    let num_pockets = ctx.db.parameters_desc().version().find(0).unwrap().default_num_inventory_pockets;
 
     let num_cargo_pockets = 1;
 
@@ -392,7 +392,7 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
         None,
     ) {
         log::info!("Failed to create player inventory");
-        return Err(format!("Failed to create player inventory"));
+        return Err("Failed to create player inventory".to_string());
     };
 
     // On character creations, hunting and combat actions will be the same (only skills with no requirements)
@@ -479,8 +479,8 @@ fn create_player(ctx: &ReducerContext, entity_id: u64) -> Result<u64, String> {
     })?;
 
     // Innerlight buff
-    let mut active_buff_state = ctx.db.active_buff_state().entity_id().find(&entity_id).unwrap();
-    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(&0).unwrap().new_user_aggro_immunity;
+    let mut active_buff_state = ctx.db.active_buff_state().entity_id().find(entity_id).unwrap();
+    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(0).unwrap().new_user_aggro_immunity;
     active_buff_state.set_innerlight_buff(ctx, innerlight_buff_duration);
     // pause buffs as they will be restarted in sign in
     active_buff_state.pause_all_buffs(ctx);

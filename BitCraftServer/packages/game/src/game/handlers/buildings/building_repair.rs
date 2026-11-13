@@ -17,7 +17,7 @@ use crate::{
 use crate::{parameters_desc, tool_type_desc, CharacterStatType, ToolDesc};
 
 pub fn event_delay(ctx: &ReducerContext, player_entity_id: u64) -> Duration {
-    let delay = ctx.db.parameters_desc().version().find(&0).unwrap().repair_building_duration as f32;
+    let delay = ctx.db.parameters_desc().version().find(0).unwrap().repair_building_duration as f32;
     let building_speed = 1.0 / CharacterStatsState::get_entity_stat(ctx, player_entity_id, CharacterStatType::BuildingSpeed);
     Duration::from_secs_f32(delay * building_speed)
 }
@@ -25,7 +25,7 @@ pub fn event_delay(ctx: &ReducerContext, player_entity_id: u64) -> Duration {
 #[spacetimedb::reducer]
 #[feature_gate("build")]
 pub fn building_repair_start(ctx: &ReducerContext, request: PlayerBuildingRepairRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let target = Some(request.building_entity_id);
@@ -51,7 +51,7 @@ pub fn building_repair_start(ctx: &ReducerContext, request: PlayerBuildingRepair
 #[spacetimedb::reducer]
 #[feature_gate("build")]
 pub fn building_repair(ctx: &ReducerContext, request: PlayerBuildingRepairRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     player_action_helpers::schedule_clear_player_action_on_err(
         actor_id,
@@ -73,7 +73,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingRepai
     let player_coord = game_state_filters::coordinates_any(ctx, actor_id);
 
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "Building does not exist"
     );
     if building.distance_to(ctx, &player_coord) > 2 {
@@ -82,7 +82,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingRepai
 
     let building_max_health = HealthState::max_building_health(ctx, building_entity_id);
     let building_health = unwrap_or_err!(
-        ctx.db.health_state().entity_id().find(&building_entity_id),
+        ctx.db.health_state().entity_id().find(building_entity_id),
         "Unable to querry building health"
     )
     .health;
@@ -93,14 +93,11 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, request: &PlayerBuildingRepai
 
     if !dry_run {
         let tool_requirement = ToolRequirement {
-            tool_type: ctx.db.tool_type_desc().skill_id().find(&0).unwrap().id,
+            tool_type: ctx.db.tool_type_desc().skill_id().find(0).unwrap().id,
             level: 0,
             power: 0,
         };
-        let tool = match ToolDesc::get_required_tool(ctx, actor_id, &tool_requirement) {
-            Ok(tool) => tool,
-            Err(err_str) => return Err(err_str.into()),
-        };
+        let tool = ToolDesc::get_required_tool(ctx, actor_id, &tool_requirement)?;
 
         // From depleting claim shield: repair building only
         if !HealthState::add_building_health(ctx, building_entity_id, tool.power as f32) {

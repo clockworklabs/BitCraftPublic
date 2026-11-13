@@ -14,7 +14,7 @@ impl OffsetCoordinates {
         let x = (hashcode & 0xFFFF) as i32;
         let z = ((hashcode >> 16) & 0xFFFF) as i32;
         let dimension = ((hashcode >> 32) & 0xFFFF) as u32;
-        return Self { x, z, dimension };
+        Self { x, z, dimension }
     }
 
     pub fn hashcode(&self) -> i64 {

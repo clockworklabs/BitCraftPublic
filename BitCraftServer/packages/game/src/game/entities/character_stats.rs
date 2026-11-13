@@ -97,7 +97,7 @@ impl CharacterStatsState {
     }
 
     pub fn get_entity_stat(ctx: &ReducerContext, entity_id: u64, stat: CharacterStatType) -> f32 {
-        if let Some(stats) = ctx.db.character_stats_state().entity_id().find(&entity_id) {
+        if let Some(stats) = ctx.db.character_stats_state().entity_id().find(entity_id) {
             return stats.get(stat);
         }
         0.0

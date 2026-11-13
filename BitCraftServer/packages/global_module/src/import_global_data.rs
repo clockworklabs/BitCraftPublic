@@ -20,7 +20,7 @@ pub fn import_region_connection_info(ctx: &ReducerContext, records: Vec<RegionCo
     }
 
     for id in ctx.db.region_connection_info().iter().map(|item| item.id) {
-        ctx.db.region_connection_info().id().delete(&id);
+        ctx.db.region_connection_info().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type RegionConnectionInfo", len);
@@ -39,7 +39,7 @@ pub fn import_region_sign_in_parameters(ctx: &ReducerContext, records: Vec<Regio
     }
 
     for id in ctx.db.region_sign_in_parameters().iter().map(|item| item.region_id) {
-        ctx.db.region_sign_in_parameters().region_id().delete(&id);
+        ctx.db.region_sign_in_parameters().region_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type RegionSignInParameters", len);
@@ -61,7 +61,7 @@ pub fn import_region_exploration_info(
     }
 
     for id in ctx.db.region_exploration_info().iter().map(|item| item.region_id) {
-        ctx.db.region_exploration_info().region_id().delete(&id);
+        ctx.db.region_exploration_info().region_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type RegionExplorationInfo", len);

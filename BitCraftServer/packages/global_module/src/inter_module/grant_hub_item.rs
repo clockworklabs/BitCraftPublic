@@ -31,11 +31,11 @@ pub fn send_message(
         super::InterModuleDestination::Region(region_id),
     );
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: GrantHubItemMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         match request.item_type {
             HubItemType::HexiteShards => {}
             HubItemType::Collectible => {
@@ -61,7 +61,7 @@ pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: GrantH
                     ctx.db.player_shard_state().entity_id().update(player_shard_state);
 
                     // Send player a notificatoin (sadly this doesn't work from the global module -> todo)
-                    PlayerNotificationEvent::new_event(ctx, player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+                    PlayerNotificationEvent::new_event(ctx, player_entity_id, error, NotificationSeverity::ReducerError);
                 }
             }
         }

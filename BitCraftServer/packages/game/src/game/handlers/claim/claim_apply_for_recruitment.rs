@@ -14,11 +14,11 @@ use super::claim_add_member;
 #[shared_table_reducer]
 #[feature_gate]
 pub fn claim_apply_for_recruitment(ctx: &ReducerContext, request: PlayerClaimApplyForRecruitmentRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut recruitment_order = unwrap_or_err!(
-        ctx.db.claim_recruitment_state().entity_id().find(&request.recruitment_entity_id),
+        ctx.db.claim_recruitment_state().entity_id().find(request.recruitment_entity_id),
         "Recruitment offer no longer exists."
     )
     .clone();
@@ -40,7 +40,7 @@ pub fn claim_apply_for_recruitment(ctx: &ReducerContext, request: PlayerClaimApp
 
     // join claim
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&recruitment_order.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(recruitment_order.claim_entity_id),
         "No such claim."
     );
     claim_add_member::reduce(ctx, claim, recruitment_order.claim_entity_id, actor_id)?;

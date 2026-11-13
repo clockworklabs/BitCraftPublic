@@ -17,5 +17,5 @@ pub fn cheat_pillar_shaping_destroy(ctx: &ReducerContext, request: PlayerPillarS
         PillarShapingState::delete_pillar_shaping(ctx, existing_pillar_shaping.entity_id);
     }
 
-    return Ok(());
+    Ok(())
 }

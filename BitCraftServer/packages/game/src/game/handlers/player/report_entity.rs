@@ -13,11 +13,10 @@ use crate::unwrap_or_err;
 #[shared_table_reducer]
 #[feature_gate]
 pub fn report_entity(ctx: &ReducerContext, request: ReportEntityMessage) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     //find entity name
-    let entity_name;
-    match request.report_type.as_str() {
+    let entity_name = match request.report_type.as_str() {
         "Building Name" => {
             let nickname = ctx
                 .db
@@ -27,7 +26,7 @@ pub fn report_entity(ctx: &ReducerContext, request: ReportEntityMessage) -> Resu
                 .map(|b| b.nickname.clone())
                 .unwrap_or_default();
 
-            entity_name = if nickname.trim().is_empty() {
+            if nickname.trim().is_empty() {
                 let building_desc_id = unwrap_or_err!(ctx.db.building_state().entity_id().find(request.entity_id), "building not found")
                     .building_description_id;
 
@@ -36,28 +35,28 @@ pub fn report_entity(ctx: &ReducerContext, request: ReportEntityMessage) -> Resu
                     .clone()
             } else {
                 nickname
-            };
+            }
         }
         "Sign Text" => {
-            entity_name = unwrap_or_err!(ctx.db.player_note_state().entity_id().find(request.entity_id), "Sign not found").text;
+            unwrap_or_err!(ctx.db.player_note_state().entity_id().find(request.entity_id), "Sign not found").text
         }
         "Empire Name" => {
-            entity_name = unwrap_or_err!(ctx.db.empire_state().entity_id().find(request.entity_id), "Empire not found").name;
+            unwrap_or_err!(ctx.db.empire_state().entity_id().find(request.entity_id), "Empire not found").name
         }
         "Empire Rank Name" => {
-            entity_name = unwrap_or_err!(
+            unwrap_or_err!(
                 ctx.db.empire_rank_state().entity_id().find(request.entity_id),
                 "Empire rank not found"
             )
-            .title;
+            .title
         }
         "Claim Name" => {
-            entity_name = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.entity_id), "Claim not found").name;
+            unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.entity_id), "Claim not found").name
         }
         _ => {
-            entity_name = "Unknown".to_string();
+            "Unknown".to_string()
         }
-    }
+    };
 
     let entity_id = game_state::create_entity(ctx);
     PlayerReportState::insert_shared(

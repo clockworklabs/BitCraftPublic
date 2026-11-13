@@ -23,7 +23,7 @@ pub fn admin_notify_player_by_identity(ctx: &ReducerContext, identity: String, t
     let identity = identity.unwrap();
 
     // If player is signed-in, directly update their vault
-    let user = unwrap_or_err!(ctx.db.user_state().identity().find(&identity), "Player does not exist");
+    let user = unwrap_or_err!(ctx.db.user_state().identity().find(identity), "Player does not exist");
 
     reduce(ctx, user.entity_id, title, message)
 }

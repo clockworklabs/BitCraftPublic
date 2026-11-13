@@ -15,13 +15,13 @@ use crate::{
 };
 
 pub fn event_delay(_actor_id: u64, _request: &PlayerSleepRequest) -> Duration {
-    return Duration::from_secs_f32(1.0); // wait 1 second before start gaining health/stamina - roughly the animation time
+    Duration::from_secs_f32(1.0)// wait 1 second before start gaining health/stamina - roughly the animation time
 }
 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn sleep(ctx: &ReducerContext, request: PlayerSleepRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let result = reduce(ctx, actor_id);
     if result.is_ok() {
@@ -55,7 +55,7 @@ pub fn can_sleep(ctx: &ReducerContext, coordinates: SmallHexTile) -> Result<(), 
     );
 
     let building_description = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Building doesn't exist in the static data"
     );
 

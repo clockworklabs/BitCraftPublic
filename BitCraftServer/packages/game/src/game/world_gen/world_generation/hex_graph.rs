@@ -42,67 +42,66 @@ where
         if index < 0 || index >= self.nodes.len() as i32 {
             return None;
         }
-        return Some(&self.nodes[index as usize]);
+        Some(&self.nodes[index as usize])
     }
 
     pub fn get_mut(&mut self, index: i32) -> Option<&mut T> {
         if index < 0 || index >= self.nodes.len() as i32 {
             return None;
         }
-        return Some(&mut self.nodes[index as usize]);
+        Some(&mut self.nodes[index as usize])
     }
 
     pub fn get_index_from_node(&self, node: &T) -> i32 {
-        return self.get_index_from_hex_coordinates(node.get_coordinates());
+        self.get_index_from_hex_coordinates(node.get_coordinates())
     }
     pub fn get_index_from_hex_coordinates(&self, coordinates: HexCoordinates) -> i32 {
-        return self.get_index_from_offset_coordinates(coordinates.to_offset_coordinates());
+        self.get_index_from_offset_coordinates(coordinates.to_offset_coordinates())
     }
     pub fn get_index_from_offset_coordinates(&self, coordinates: OffsetCoordinates) -> i32 {
-        return self.get_index(coordinates.x, coordinates.z);
+        self.get_index(coordinates.x, coordinates.z)
     }
     pub fn get_index(&self, x: i32, z: i32) -> i32 {
         if x < 0 || x >= self.width as i32 || z < 0 || z >= self.depth as i32 {
             return -1;
         }
-        return z * self.width as i32 + x;
+        z * self.width as i32 + x
     }
 
     pub fn get_neighbor(&self, index: i32, neighbour_index: i32) -> i32 {
-        if neighbour_index < 0 || neighbour_index >= 6 {
+        if !(0..6).contains(&neighbour_index) {
             return -1;
         }
 
         let node = &self.nodes[index as usize];
         let coordinates = &node.get_coordinates();
 
-        let neighbor_coordinates: HexCoordinates;
-        match neighbour_index {
+        let neighbor_coordinates: HexCoordinates = match neighbour_index {
             0 => {
-                neighbor_coordinates = coordinates.neighbor(HexDirection::NE);
+                coordinates.neighbor(HexDirection::NE)
             }
             1 => {
-                neighbor_coordinates = coordinates.neighbor(HexDirection::NW);
+                coordinates.neighbor(HexDirection::NW)
             }
             2 => {
-                neighbor_coordinates = coordinates.neighbor(HexDirection::W);
+                coordinates.neighbor(HexDirection::W)
             }
             3 => {
-                neighbor_coordinates = coordinates.neighbor(HexDirection::SW);
+                coordinates.neighbor(HexDirection::SW)
             }
             4 => {
-                neighbor_coordinates = coordinates.neighbor(HexDirection::SE);
+                coordinates.neighbor(HexDirection::SE)
             }
             5 => {
-                neighbor_coordinates = coordinates.neighbor(HexDirection::E);
+                coordinates.neighbor(HexDirection::E)
             }
             _ => {
                 return -1;
             }
-        }
+        };
 
         let offset = neighbor_coordinates.to_offset_coordinates();
-        return self.get_index(offset.x as i32, offset.z as i32);
+        self.get_index(offset.x, offset.z)
     }
 
     pub fn get_neighbors(&self, index: i32) -> Vec<i32> {
@@ -110,13 +109,13 @@ where
         for i in 0..6 {
             r.push(self.get_neighbor(index, i));
         }
-        return r;
+        r
     }
 
     pub fn flood_fill<V, W>(&mut self, origin: i32, predicate: V, f: W)
     where
         V: Fn(&T) -> bool,
-        W: Fn(&mut T) -> (),
+        W: Fn(&mut T),
     {
         let mut added = HashSet::new();
         let mut pending: Queue<i32> = queue![];
@@ -149,7 +148,7 @@ where
     where
         V: Fn(&T) -> bool,
         W: Fn(&T) -> i32,
-        X: Fn(&mut T, i32) -> (),
+        X: Fn(&mut T, i32),
     {
         let mut pending: Queue<i32> = queue![];
         let mut added: HashSet<i32> = HashSet::new();
@@ -213,7 +212,7 @@ where
     where
         V: Fn(&T) -> bool,
         W: Fn(&T) -> i32,
-        X: Fn(&mut T, i32) -> (),
+        X: Fn(&mut T, i32),
     {
         let nodes_count = self.nodes.len();
         let mut filtered_nodes: HashSet<i32> = HashSet::with_capacity(nodes_count / 2);
@@ -226,7 +225,7 @@ where
 
         let mut contiguous_area: Vec<i32> = Vec::with_capacity(filtered_nodes.len() / 2);
         let mut open: Queue<i32> = Queue::new();
-        while filtered_nodes.len() > 0 {
+        while !filtered_nodes.is_empty() {
             contiguous_area.clear();
 
             let mut index = *filtered_nodes.iter().next().unwrap();
@@ -247,9 +246,8 @@ where
                 }
             }
 
-            let l = contiguous_area.len();
-            for i in 0..l {
-                setter(&mut self.nodes[contiguous_area[i] as usize], min);
+            for &node_index in contiguous_area.iter() {
+                setter(&mut self.nodes[node_index as usize], min);
             }
         }
     }

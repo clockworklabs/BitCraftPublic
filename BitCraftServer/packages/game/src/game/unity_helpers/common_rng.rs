@@ -27,6 +27,7 @@ impl CommonRNG {
         }
     }
 
+    #[expect(clippy::should_implement_trait, reason = "port of the Unity CommonRNG API; an infinite RNG step is not an Iterator")]
     pub fn next(&mut self) -> u64 {
         let mut t = Wrapping(self.x);
         let s = Wrapping(self.y);
@@ -35,7 +36,7 @@ impl CommonRNG {
         t ^= t >> 18;
         t ^= s ^ (s >> 5);
         self.y = t.0;
-        return (t + s).0;
+        (t + s).0
     }
 
     //https://stackoverflow.com/questions/19167844/proper-way-to-generate-a-random-float-given-a-binary-random-number-generator
@@ -43,7 +44,7 @@ impl CommonRNG {
         unsafe {
             let mut val = self.next();
             val = (1023 << 52) | (val & 0xfffffffffffff);
-            return *(&val as *const u64 as *const f64) - 1.0;
+            *(&val as *const u64 as *const f64) - 1.0
         }
     }
 

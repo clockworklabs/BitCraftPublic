@@ -25,7 +25,7 @@ pub fn world_place_resource(ctx: &ReducerContext, request: WorldPlaceResourceReq
     }
 
     //find resource log
-    let resources_log = ctx.db.resources_log().version().find(&0);
+    let resources_log = ctx.db.resources_log().version().find(0);
     if resources_log.is_none() {
         return Err("No resource log found".into());
     }
@@ -85,7 +85,7 @@ pub fn world_place_resource(ctx: &ReducerContext, request: WorldPlaceResourceReq
             ctx,
             &mut terrain_cache,
             &clump_info,
-            &clump_desc,
+            clump_desc,
             hex_coordinates,
             &mut occupied_tiles_hashes,
             &resource_desc,
@@ -101,7 +101,7 @@ pub fn world_place_resource(ctx: &ReducerContext, request: WorldPlaceResourceReq
     let mut placements: Vec<WorldEntityPlacement> = Vec::new();
 
     //from resources_regen
-    if result.len() > 0 {
+    if !result.is_empty() {
         let mut spawned_counts: HashMap<i32, i32> = HashMap::new();
 
         if !request.dry_run {
@@ -115,7 +115,7 @@ pub fn world_place_resource(ctx: &ReducerContext, request: WorldPlaceResourceReq
                     .db
                     .resource_count()
                     .resource_id()
-                    .find(&resource_id)
+                    .find(resource_id)
                     .unwrap_or_else(|| panic!("No ResourceCount for resource_id: {}", resource_id));
                 count.num_in_world -= delete_count as i32;
                 ctx.db.resource_count().resource_id().update(count);

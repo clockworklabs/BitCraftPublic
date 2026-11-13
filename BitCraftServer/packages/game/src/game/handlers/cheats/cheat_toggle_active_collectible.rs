@@ -13,14 +13,14 @@ fn cheat_toggle_active_collectible(ctx: &ReducerContext, request: CheatToggleAct
         return Err("Unauthorized.".into());
     }
 
-    return reduce(ctx, request.owner_entity_id, request.item_deed_id);
+    reduce(ctx, request.owner_entity_id, request.item_deed_id)
 }
 
 pub fn reduce(ctx: &ReducerContext, player_id: u64, collectible_id: i32) -> Result<(), String> {
-    let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(&player_id), "Vault not initialized");
-    let collectible = match ctx.db.collectible_desc().id().find(&collectible_id) {
+    let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(player_id), "Vault not initialized");
+    let collectible = match ctx.db.collectible_desc().id().find(collectible_id) {
         Some(c) => c,
-        None => return Err(format!("Could not find collectible with id {}", collectible_id).into()),
+        None => return Err(format!("Could not find collectible with id {}", collectible_id)),
     };
 
     let mut exists = false;
@@ -45,7 +45,7 @@ pub fn reduce(ctx: &ReducerContext, player_id: u64, collectible_id: i32) -> Resu
     {
         // go through all collectibles and deactivate all others of the this type
         for i in 0..vault.collectibles.len() {
-            let desc = ctx.db.collectible_desc().id().find(&vault.collectibles[i].id).unwrap();
+            let desc = ctx.db.collectible_desc().id().find(vault.collectibles[i].id).unwrap();
             if desc.collectible_type == collectible.collectible_type {
                 vault.collectibles[i].activated = activated && vault.collectibles[i].id == collectible_id;
             }

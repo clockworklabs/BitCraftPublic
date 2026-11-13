@@ -20,7 +20,7 @@ pub fn cheat_set_ai_debug_state(ctx: &ReducerContext, request: CheatSetDebugAiSt
         dp: request.dp,
     };
 
-    if ctx.db.a_i_debug_state().entity_id().find(&request.entity_id).is_none() {
+    if ctx.db.a_i_debug_state().entity_id().find(request.entity_id).is_none() {
         ctx.db.a_i_debug_state().try_insert(debug)?;
     } else {
         ctx.db.a_i_debug_state().entity_id().update(debug);

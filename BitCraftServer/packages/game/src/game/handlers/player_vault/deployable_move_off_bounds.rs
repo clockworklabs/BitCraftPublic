@@ -17,7 +17,7 @@ pub fn deployable_move_off_bounds(ctx: &ReducerContext, deployable_entity_id: u6
     // Note:
     // This code is pretty much identical to the deployable_move_off_claims code, except for ownership check and that it looks for footprints
 
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     move_deployable_off_bounds(ctx, deployable_entity_id, Some(actor_id))
@@ -27,14 +27,14 @@ pub fn deployable_move_off_bounds(ctx: &ReducerContext, deployable_entity_id: u6
 // the same search and state updates as the player-facing recovery reducer.
 pub fn move_deployable_off_bounds(ctx: &ReducerContext, deployable_entity_id: u64, actor_id: Option<u64>) -> Result<(), String> {
     let location = unwrap_or_err!(
-        ctx.db.mobile_entity_state().entity_id().find(&deployable_entity_id),
+        ctx.db.mobile_entity_state().entity_id().find(deployable_entity_id),
         "Deployable does not exist"
     );
 
     let center = location.coordinates();
 
     let mut deployable = unwrap_or_err!(
-        ctx.db.deployable_state_v2().entity_id().find(&deployable_entity_id),
+        ctx.db.deployable_state_v2().entity_id().find(deployable_entity_id),
         "Deployable does not exist"
     );
 
@@ -99,7 +99,7 @@ pub fn move_deployable_off_bounds(ctx: &ReducerContext, deployable_entity_id: u6
         .db
         .deployable_collectible_state()
         .deployable_entity_id()
-        .find(&deployable.entity_id)
+        .find(deployable.entity_id)
         .unwrap();
     deployable_collectible.location = Some(offset);
     ctx.db

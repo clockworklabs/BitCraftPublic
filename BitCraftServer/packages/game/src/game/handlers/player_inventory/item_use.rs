@@ -14,7 +14,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn item_use_start(ctx: &ReducerContext, request: PlayerItemUseRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let delay = event_delay();
     player_action_helpers::start_action(
@@ -32,7 +32,7 @@ pub fn item_use_start(ctx: &ReducerContext, request: PlayerItemUseRequest) -> Re
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn item_use(ctx: &ReducerContext, request: PlayerItemUseRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(ctx, actor_id, request.pocket_index, request.arg_entity_id, false)

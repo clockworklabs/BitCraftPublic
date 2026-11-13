@@ -20,14 +20,14 @@ fn cheat_spawn_loot_chest(ctx: &ReducerContext, request: CheatSpawnLootChestRequ
         return Err("Unauthorized.".into());
     }
 
-    return reduce(ctx, request.coordinates.into(), request.loot_chest_id);
+    reduce(ctx, request.coordinates.into(), request.loot_chest_id)
 }
 
 pub fn reduce(ctx: &ReducerContext, spawn_location: SmallHexTile, loot_chest_desc_id: i32) -> Result<(), String> {
-    let loot_chest_desc = unwrap_or_err!(ctx.db.loot_chest_desc().id().find(&loot_chest_desc_id), "Failed to find loot table");
+    let loot_chest_desc = unwrap_or_err!(ctx.db.loot_chest_desc().id().find(loot_chest_desc_id), "Failed to find loot table");
 
     let chest_rarity_desc = unwrap_or_err!(
-        ctx.db.chest_rarity_desc().id().find(&loot_chest_desc.chest_rarity),
+        ctx.db.chest_rarity_desc().id().find(loot_chest_desc.chest_rarity),
         "Failed to find chest rarity"
     );
 

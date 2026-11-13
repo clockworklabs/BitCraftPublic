@@ -9,9 +9,9 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn set_visibility(ctx: &ReducerContext, visibility: VisibilityType) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
-    let visibility_state = ctx.db.visibility_state().entity_id().find(&actor_id);
+    let visibility_state = ctx.db.visibility_state().entity_id().find(actor_id);
     if let Some(mut visibility_state) = visibility_state {
         visibility_state.visibility = visibility;
 
@@ -22,7 +22,7 @@ pub fn set_visibility(ctx: &ReducerContext, visibility: VisibilityType) -> Resul
 
     ctx.db.visibility_state().insert(VisibilityState {
         entity_id: actor_id,
-        visibility: visibility,
+        visibility,
     });
 
     Ok(())

@@ -31,10 +31,10 @@ pub fn interior_set_collapsed_scheduled(ctx: &ReducerContext, timer: InteriorSet
 
 #[spacetimedb::reducer]
 pub fn interior_set_collapsed(ctx: &ReducerContext, dimension_network_entity_id: u64, is_collapsed: bool) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     let mut dimension_network = unwrap_or_err!(
-        ctx.db.dimension_network_state().entity_id().find(&dimension_network_entity_id),
+        ctx.db.dimension_network_state().entity_id().find(dimension_network_entity_id),
         "Invalid dimension network"
     )
     .clone();
@@ -53,7 +53,7 @@ pub fn interior_set_collapsed(ctx: &ReducerContext, dimension_network_entity_id:
 
     dimension_network.is_collapsed = is_collapsed;
     if is_collapsed {
-        let building = ctx.db.building_state().entity_id().find(&dimension_network.building_id).unwrap();
+        let building = ctx.db.building_state().entity_id().find(dimension_network.building_id).unwrap();
         let interior_descriptor = ctx
             .db
             .interior_network_desc()
@@ -69,7 +69,7 @@ pub fn interior_set_collapsed(ctx: &ReducerContext, dimension_network_entity_id:
             .try_insert(InteriorSetCollapsedTimer {
                 scheduled_id: 0,
                 scheduled_at: now_plus_secs(interior_descriptor.respawn_time as u64, ctx.timestamp),
-                dimension_network_entity_id: dimension_network_entity_id,
+                dimension_network_entity_id,
                 is_collapsed: false,
             })
             .ok()

@@ -8,8 +8,8 @@ pub fn cheat_remove_item_quantity(ctx: &ReducerContext, inventory_entity_id: u64
         return Err("Unauthorized.".into());
     }
 
-    let mut inv = ctx.db.inventory_state().entity_id().find(&inventory_entity_id).unwrap();
-    if let Some(_) = inv.get_pocket_contents(pocket_index as usize) {
+    let mut inv = ctx.db.inventory_state().entity_id().find(inventory_entity_id).unwrap();
+    if inv.get_pocket_contents(pocket_index as usize).is_some() {
         inv.remove_quantity_at(pocket_index as usize, quantity_to_remove);
         ctx.db.inventory_state().entity_id().update(inv);
         Ok(())
@@ -24,8 +24,8 @@ pub fn cheat_remove_item_quantity_all(ctx: &ReducerContext, inventory_entity_id:
         return Err("Unauthorized.".into());
     }
 
-    let mut inv = ctx.db.inventory_state().entity_id().find(&inventory_entity_id).unwrap();
-    if let Some(_) = inv.get_pocket_contents(pocket_index as usize) {
+    let mut inv = ctx.db.inventory_state().entity_id().find(inventory_entity_id).unwrap();
+    if inv.get_pocket_contents(pocket_index as usize).is_some() {
         inv.set_at(pocket_index as usize, None);
         ctx.db.inventory_state().entity_id().update(inv);
         Ok(())

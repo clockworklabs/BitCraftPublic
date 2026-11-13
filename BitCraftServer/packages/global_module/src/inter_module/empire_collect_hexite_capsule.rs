@@ -7,7 +7,7 @@ use crate::{
 
 pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCollectHexiteCapsuleMsg) -> Result<(), String> {
     let mut foundry = unwrap_or_err!(
-        ctx.db.empire_foundry_state().entity_id().find(&request.building_entity_id),
+        ctx.db.empire_foundry_state().entity_id().find(request.building_entity_id),
         "This is not an empire foundry"
     );
 

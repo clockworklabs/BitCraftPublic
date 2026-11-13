@@ -8,18 +8,18 @@ pub fn cheat_clear_buffs_and_debuffs(ctx: &ReducerContext, player_entity_id: u64
         return Err("Unauthorized.".into());
     }
 
-    if ctx.db.player_state().entity_id().find(&player_entity_id).is_none() {
+    if ctx.db.player_state().entity_id().find(player_entity_id).is_none() {
         return Err("Invalid player id".into());
     };
 
     let mut active_buff_state = unwrap_or_err!(
-        ctx.db.active_buff_state().entity_id().find(&player_entity_id),
+        ctx.db.active_buff_state().entity_id().find(player_entity_id),
         "Unable to get ActiveBuffState"
     );
 
     active_buff_state.remove_all_active_buffs(ctx);
     ctx.db.active_buff_state().entity_id().update(active_buff_state);
-    ctx.db.starving_player_state().entity_id().delete(&player_entity_id);
+    ctx.db.starving_player_state().entity_id().delete(player_entity_id);
 
     Ok(())
 }

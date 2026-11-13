@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 #[allow(dead_code)]
-
 pub(crate) trait GroupBy: Iterator {
     fn group_by<K, V, FKey, FVal>(self, f_key: FKey, f_val: FVal) -> HashMap<K, Vec<V>>
     where
@@ -13,7 +12,7 @@ pub(crate) trait GroupBy: Iterator {
     {
         let mut r = HashMap::new();
         let mut col: Vec<Self::Item> = self.collect();
-        if col.len() == 0 {
+        if col.is_empty() {
             return r;
         }
         col.sort_by_key(&f_key);
@@ -30,7 +29,7 @@ pub(crate) trait GroupBy: Iterator {
             cur_vec.push(v);
         }
         r.insert(cur_key, cur_vec);
-        return r;
+        r
     }
 }
 
@@ -46,7 +45,7 @@ pub(crate) trait GroupByAndCount: Iterator {
     {
         let mut r = HashMap::new();
         let mut col: Vec<Self::Item> = self.collect();
-        if col.len() == 0 {
+        if col.is_empty() {
             return r;
         }
         col.sort_by_key(&f_key);
@@ -62,7 +61,7 @@ pub(crate) trait GroupByAndCount: Iterator {
             cur_count += 1;
         }
         r.insert(cur_key, cur_count);
-        return r;
+        r
     }
 }
 

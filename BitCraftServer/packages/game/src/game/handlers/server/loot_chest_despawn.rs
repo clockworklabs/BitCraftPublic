@@ -19,22 +19,22 @@ pub struct LootChestDespawnTimer {
 
 #[spacetimedb::reducer]
 pub fn loot_chest_despawn(ctx: &ReducerContext, timer: LootChestDespawnTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     let loot_chest_entity_id = timer.loot_chest_entity_id;
     unwrap_or_err!(
-        ctx.db.loot_chest_state().entity_id().find(&loot_chest_entity_id),
+        ctx.db.loot_chest_state().entity_id().find(loot_chest_entity_id),
         "Invalid LootChest"
     );
 
     footprint_helpers::delete_footprint(ctx, loot_chest_entity_id);
 
     if timer.should_respawn {
-        let loot_chest = ctx.db.loot_chest_state().entity_id().find(&loot_chest_entity_id).unwrap();
+        let loot_chest = ctx.db.loot_chest_state().entity_id().find(loot_chest_entity_id).unwrap();
         let building_entity_id = loot_chest.building_entity_id;
         let building_spawn_id = loot_chest.building_spawn_id;
 
-        let building_spawn = ctx.db.building_spawn_desc().id().find(&loot_chest.building_spawn_id).unwrap();
+        let building_spawn = ctx.db.building_spawn_desc().id().find(loot_chest.building_spawn_id).unwrap();
         let delay = ctx
             .rng()
             .gen_range(building_spawn.respawn_time_min..building_spawn.respawn_time_max);
@@ -51,9 +51,9 @@ pub fn loot_chest_despawn(ctx: &ReducerContext, timer: LootChestDespawnTimer) ->
             .unwrap();
     }
 
-    ctx.db.location_state().entity_id().delete(&loot_chest_entity_id);
-    ctx.db.inventory_state().entity_id().delete(&loot_chest_entity_id);
-    ctx.db.loot_chest_state().entity_id().delete(&loot_chest_entity_id);
+    ctx.db.location_state().entity_id().delete(loot_chest_entity_id);
+    ctx.db.inventory_state().entity_id().delete(loot_chest_entity_id);
+    ctx.db.loot_chest_state().entity_id().delete(loot_chest_entity_id);
 
     Ok(())
 }

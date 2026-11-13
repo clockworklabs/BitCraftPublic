@@ -26,7 +26,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn trade_sessions_agent_loop(ctx: &ReducerContext, _timer: TradeSessionLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to trade_sessions agent");
         return;
     }
@@ -58,7 +58,7 @@ fn trade_sessions_agent_loop(ctx: &ReducerContext, _timer: TradeSessionLoopTimer
             .db
             .signed_in_player_state()
             .entity_id()
-            .find(&session.initiator_entity_id)
+            .find(session.initiator_entity_id)
             .is_none()
         {
             return Some(session);
@@ -67,12 +67,12 @@ fn trade_sessions_agent_loop(ctx: &ReducerContext, _timer: TradeSessionLoopTimer
             .db
             .signed_in_player_state()
             .entity_id()
-            .find(&session.acceptor_entity_id)
+            .find(session.acceptor_entity_id)
             .is_none()
         {
             return Some(session);
         }
-        return None;
+        None
     });
 
     for mut session in expired_and_resolved_sessions {
@@ -81,7 +81,7 @@ fn trade_sessions_agent_loop(ctx: &ReducerContext, _timer: TradeSessionLoopTimer
             session.cancel_session_and_update(ctx).unwrap();
         } else {
             let session_entity_id = session.entity_id;
-            ctx.db.trade_session_state().entity_id().delete(&session_entity_id);
+            ctx.db.trade_session_state().entity_id().delete(session_entity_id);
         }
     }
 }

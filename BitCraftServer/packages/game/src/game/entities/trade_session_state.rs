@@ -8,7 +8,7 @@ use crate::{
 
 impl TradeSessionState {
     pub fn validate_distance(&self, ctx: &ReducerContext) -> Result<(), String> {
-        let overworld_max = ctx.db.parameters_desc().version().find(&0).unwrap().max_trade_distance_large_tiles;
+        let overworld_max = ctx.db.parameters_desc().version().find(0).unwrap().max_trade_distance_large_tiles;
         let c1 = game_state_filters::coordinates_float(ctx, self.initiator_entity_id).parent_large_tile();
         let c2 = game_state_filters::coordinates_float(ctx, self.acceptor_entity_id).parent_large_tile();
         let max = if c1.dimension == dimensions::OVERWORLD && c2.dimension == dimensions::OVERWORLD {
@@ -21,7 +21,7 @@ impl TradeSessionState {
             spacetimedb::volatile_nonatomic_schedule_immediate!(trade_cancel_server(self.entity_id, "Too far".into()));
             return Err("Other player is too far away to trade".into());
         }
-        return Ok(());
+        Ok(())
     }
 
     pub fn cancel_session_and_update(mut self, ctx: &ReducerContext) -> Result<(), String> {
@@ -53,7 +53,7 @@ impl TradeSessionState {
         }
 
         for inventory_entity_id in inventories_updated {
-            if let Some(mut inventory) = ctx.db.inventory_state().entity_id().find(&inventory_entity_id) {
+            if let Some(mut inventory) = ctx.db.inventory_state().entity_id().find(inventory_entity_id) {
                 inventory.unlock_all_pockets();
                 ctx.db.inventory_state().entity_id().update(inventory);
             }

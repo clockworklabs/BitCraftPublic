@@ -49,7 +49,7 @@ impl ExperienceState {
         let mut roll_over = 0;
 
         if fraction > 0.0 {
-            if let Some(mut exp) = ctx.db.partial_experience_state().entity_id().find(&entity_id) {
+            if let Some(mut exp) = ctx.db.partial_experience_state().entity_id().find(entity_id) {
                 let mut found = false;
                 for stack in &mut exp.experience_stacks {
                     if stack.skill_id == skill_id {
@@ -85,7 +85,7 @@ impl ExperienceState {
     }
 
     fn add_experience_internal(ctx: &ReducerContext, entity_id: u64, skill_id: i32, quantity: i32) {
-        if let Some(mut exp) = ctx.db.experience_state().entity_id().find(&entity_id) {
+        if let Some(mut exp) = ctx.db.experience_state().entity_id().find(entity_id) {
             for stack in &mut exp.experience_stacks {
                 if stack.skill_id == skill_id {
                     let old_level = ExperienceStack::level_for_experience(stack.quantity);

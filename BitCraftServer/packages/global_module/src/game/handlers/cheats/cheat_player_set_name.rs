@@ -10,7 +10,7 @@ pub fn cheat_player_set_name(ctx: &ReducerContext, player_entity_id: u64, name: 
         return Err("Unauthorized.".into());
     }
 
-    if ctx.db.player_state().entity_id().find(&player_entity_id).is_none() {
+    if ctx.db.player_state().entity_id().find(player_entity_id).is_none() {
         return Err("Player doesn't exist.".into());
     }
 

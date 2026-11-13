@@ -42,7 +42,7 @@ fn collect_output_stacks(
     let mut output = Vec::new();
     if damage > 0 {
         for stack in per_progress {
-            let mut stack = stack.clone();
+            let mut stack = *stack;
             stack.quantity *= damage;
             if stack.quantity > 0 {
                 output.push(stack);
@@ -63,14 +63,14 @@ fn format_missing_input_message(ctx: &ReducerContext, required_stack: &ItemStack
             .db
             .item_desc()
             .id()
-            .find(&required_stack.item_id)
+            .find(required_stack.item_id)
             .map(|item| item.name)
             .unwrap_or_else(|| "Unknown item".into()),
         ItemType::Cargo => ctx
             .db
             .cargo_desc()
             .id()
-            .find(&required_stack.item_id)
+            .find(required_stack.item_id)
             .map(|cargo| cargo.name)
             .unwrap_or_else(|| "Unknown cargo".into()),
     };
@@ -83,7 +83,7 @@ fn event_delay_recipe_id(
     request: &PlayerPlaceableInteractRequest,
     stats: &CharacterStatsState,
 ) -> (Duration, Option<i32>) {
-    let recipe = ctx.db.placeable_interaction_desc().id().find(&request.interaction_id);
+    let recipe = ctx.db.placeable_interaction_desc().id().find(request.interaction_id);
     if let Some(recipe) = recipe {
         let skill_speed = match recipe.get_skill_type() {
             Some(skill) => stats.get_skill_speed(skill),
@@ -100,10 +100,10 @@ fn event_delay_recipe_id(
 #[spacetimedb::reducer]
 #[feature_gate("extract")]
 pub fn placeable_interact_start(ctx: &ReducerContext, request: PlayerPlaceableInteractRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     let target = Some(request.target_entity_id);
     let (delay, recipe_id) = event_delay_recipe_id(ctx, &request, &stats);
 
@@ -114,7 +114,7 @@ pub fn placeable_interact_start(ctx: &ReducerContext, request: PlayerPlaceableIn
         target,
         recipe_id,
         delay,
-        reduce(ctx, actor_id, request.clone(), stats, true),
+        reduce(ctx, actor_id, request, stats, true),
         request.timestamp,
     );
     if result.is_ok() {
@@ -128,10 +128,10 @@ pub fn placeable_interact_start(ctx: &ReducerContext, request: PlayerPlaceableIn
 #[spacetimedb::reducer]
 #[feature_gate("extract")]
 pub fn placeable_interact(ctx: &ReducerContext, request: PlayerPlaceableInteractRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     player_action_helpers::schedule_clear_player_action_on_err(
         actor_id,
         PlayerActionType::InteractPlaceable.get_layer(ctx),
@@ -165,7 +165,7 @@ pub fn apply_ability_profession_hit(
             .ok_or_else(|| "Current placeable interaction has no target".to_string())?,
         timestamp,
     };
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     reduce_with_options(ctx, actor_id, request, stats, false, Some(bonus_damage.max(0)))
 }
 
@@ -190,7 +190,7 @@ fn reduce_with_options(
     }
 
     let placeable = unwrap_or_err!(
-        ctx.db.placeable_state().entity_id().find(&request.target_entity_id),
+        ctx.db.placeable_state().entity_id().find(request.target_entity_id),
         "That placeable no longer exists"
     );
     if placeable.owner_entity_id != actor_id {
@@ -198,7 +198,7 @@ fn reduce_with_options(
     }
 
     let recipe = unwrap_or_err!(
-        ctx.db.placeable_interaction_desc().id().find(&request.interaction_id),
+        ctx.db.placeable_interaction_desc().id().find(request.interaction_id),
         "Unknown placeable interaction"
     );
     if placeable.placeable_id != recipe.placeable_id {
@@ -211,12 +211,12 @@ fn reduce_with_options(
         terrain_cache.get_terrain_cell(ctx, &actor_coords.parent_large_tile()),
         "Invalid location"
     );
-    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(&actor_id).is_none() {
+    if terrain_source.player_should_swim() && ctx.db.mounting_state().entity_id().find(actor_id).is_none() {
         return Err("Cannot interact while swimming".into());
     }
 
     let placeable_location = unwrap_or_err!(
-        ctx.db.location_state().entity_id().find(&placeable.entity_id),
+        ctx.db.location_state().entity_id().find(placeable.entity_id),
         "Placeable is missing a location"
     );
     let placeable_coordinates = placeable_location.coordinates();
@@ -230,7 +230,7 @@ fn reduce_with_options(
 
     if profession_hit_bonus_damage.is_none() {
         let stamina_state = unwrap_or_err!(
-            ctx.db.stamina_state().entity_id().find(&actor_id),
+            ctx.db.stamina_state().entity_id().find(actor_id),
             "Player missing stamina component!"
         );
         if stamina_state.stamina < recipe.stamina_requirement {
@@ -266,7 +266,7 @@ fn reduce_with_options(
         true
     } else {
         let experience = unwrap_or_err!(
-            ctx.db.experience_state().entity_id().find(&actor_id),
+            ctx.db.experience_state().entity_id().find(actor_id),
             "Player has no experience state"
         );
         recipe
@@ -329,10 +329,10 @@ fn reduce_with_options(
             let scaled_power = tool_power * recipe.power_multiplier;
             let damage = (scaled_power * crit_multiplier).round().max(1.0) + bonus_damage;
             let mut health = unwrap_or_err!(
-                ctx.db.health_state().entity_id().find(&placeable.entity_id),
+                ctx.db.health_state().entity_id().find(placeable.entity_id),
                 "Placeable is missing health"
             );
-            let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(&placeable.placeable_id), "Unknown placeable");
+            let placeable_desc = unwrap_or_err!(ctx.db.placeable_desc().id().find(placeable.placeable_id), "Unknown placeable");
 
             // Static data may lower max health while this placeable still has its old health.
             // Clamp first so this interaction's damage is applied to the new effective health.
@@ -387,7 +387,7 @@ fn reduce_with_options(
             }
         }
 
-        let mut extract_outcome: ExtractOutcomeStateV2 = ctx.db.extract_outcome_state().entity_id().find(&actor_id).unwrap();
+        let mut extract_outcome: ExtractOutcomeStateV2 = ctx.db.extract_outcome_state().entity_id().find(actor_id).unwrap();
         extract_outcome.target_entity_id = placeable.entity_id;
         extract_outcome.damage = damage_output as i32;
         extract_outcome.last_timestamp = ctx.timestamp;

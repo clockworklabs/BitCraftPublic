@@ -16,7 +16,7 @@ impl TravelerTaskCreditState {
         let last_tick = traveler_task_agent::last_tick(ctx);
         let mut refreshed_traveler_ids = HashSet::new();
 
-        for npc in ctx.db.npc_desc().iter().filter(|x| x.task_skill_check.len() > 0) {
+        for npc in ctx.db.npc_desc().iter().filter(|x| !x.task_skill_check.is_empty()) {
             match ctx
                 .db
                 .traveler_task_credit_state()

@@ -23,7 +23,7 @@ pub fn admin_count_inventory_items(ctx: &ReducerContext, item_id: i32, limit: u3
         let entity_id = player_username_state.entity_id;
 
         // Retrieve inventory for the player
-        if let Some(inventory) = InventoryState::get_player_inventory(&ctx, entity_id) {
+        if let Some(inventory) = InventoryState::get_player_inventory(ctx, entity_id) {
             // Sum up quantities of matching items
             let total_quantity: i32 = inventory
                 .pockets
@@ -45,7 +45,7 @@ pub fn admin_count_inventory_items(ctx: &ReducerContext, item_id: i32, limit: u3
 
     // Convert to a vec and sort by decreasing quantity
     let mut sorted_players: Vec<_> = player_item_counts.into_iter().collect();
-    sorted_players.sort_by(|a, b| b.1.cmp(&a.1)); // sort descending
+    sorted_players.sort_by_key(|b| std::cmp::Reverse(b.1)); // sort descending
 
     // Print up to the specified limit
     let mut output = String::new();

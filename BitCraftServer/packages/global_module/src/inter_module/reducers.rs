@@ -20,7 +20,7 @@ use super::*;
 pub fn process_inter_module_message(ctx: &ReducerContext, sender: u8, message: InterModuleMessageV5) -> Result<(), String> {
     validate_relay_identity(ctx)?;
 
-    if let Some(mut counter) = ctx.db.inter_module_message_counter().module_id().find(&sender) {
+    if let Some(mut counter) = ctx.db.inter_module_message_counter().module_id().find(sender) {
         if counter.last_processed_message_id >= message.id {
             //Message was already processed
             spacetimedb::log::warn!("Inter-module message {} was already processed", message.id);
@@ -92,18 +92,18 @@ pub fn process_inter_module_message(ctx: &ReducerContext, sender: u8, message: I
         spacetimedb::volatile_nonatomic_schedule_immediate!(save_inter_module_message_error(sender, message.id, error));
     }
 
-    return r;
+    r
 }
 
 #[spacetimedb::reducer()]
 fn save_inter_module_message_error(ctx: &ReducerContext, sender: u8, message_id: u64, error: String) {
-    if let Err(_) = ServerIdentity::validate_server_only(ctx) {
+    if ServerIdentity::validate_server_only(ctx).is_err() {
         return;
     }
     ctx.db.inter_module_message_errors().insert(InterModuleMessageErrors {
         sender_module_id: sender,
-        message_id: message_id,
-        error: error,
+        message_id,
+        error,
     });
 }
 
@@ -131,12 +131,12 @@ pub fn on_inter_module_message_processed(ctx: &ReducerContext, id: u64, error: O
     }
 
     ctx.db.inter_module_message_v5().id().delete(id);
-    return Ok(());
+    Ok(())
 }
 
 fn validate_relay_identity(ctx: &ReducerContext) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         return Err("Unauthorized".into());
     }
-    return Ok(());
+    Ok(())
 }

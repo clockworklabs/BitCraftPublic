@@ -33,21 +33,21 @@ pub fn respawn_interior_npcs(ctx: &ReducerContext) {
             .db
             .interior_instance_desc()
             .id()
-            .find(&dimension_description.interior_instance_id)
+            .find(dimension_description.interior_instance_id)
         {
             for spawn in ctx.db.interior_spawn_desc().interior_instance_id().filter(interior.id) {
                 let traveler_type = spawn.traveler_type;
                 if traveler_type != NpcType::None {
                     let dimension = dimension_description.dimension_id;
                     for loc in LocationState::select_all_in_interior_dimension_iter(ctx, dimension) {
-                        if let Some(building) = ctx.db.building_state().entity_id().find(&loc.entity_id) {
-                            if building.building_description_id == spawn.traveler_ruin_entity_id {
-                                if ctx.db.npc_state().building_entity_id().filter(building.entity_id).next().is_none() {
+                        if let Some(building) = ctx.db.building_state().entity_id().find(loc.entity_id) {
+                            if building.building_description_id == spawn.traveler_ruin_entity_id
+                                && ctx.db.npc_state().building_entity_id().filter(building.entity_id).next().is_none() {
                                     let offset_coord = ctx
                                         .db
                                         .location_state()
                                         .entity_id()
-                                        .find(&building.entity_id)
+                                        .find(building.entity_id)
                                         .unwrap()
                                         .offset_coordinates();
                                     NpcState::spawn(
@@ -60,7 +60,6 @@ pub fn respawn_interior_npcs(ctx: &ReducerContext) {
                                     );
                                     log::info!("Respawned {:?} in dimension {} interior", traveler_type, dimension);
                                 }
-                            }
                         }
                     }
                 }

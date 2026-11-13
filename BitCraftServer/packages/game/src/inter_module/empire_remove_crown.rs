@@ -7,5 +7,5 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireRemov
         return Err("Empire doesn't exist".into());
     }
     EmpireState::remove_crown_status(ctx, request.player_entity_id);
-    return Ok(());
+    Ok(())
 }

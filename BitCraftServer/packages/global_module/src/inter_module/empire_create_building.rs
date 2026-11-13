@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreateBuildingMsg) -> Result<(), String> {
-    let building_desc = unwrap_or_err!(ctx.db.building_desc().id().find(&request.building_desc_id), "Invalid building");
+    let building_desc = unwrap_or_err!(ctx.db.building_desc().id().find(request.building_desc_id), "Invalid building");
     let coord = SmallHexTile::from(request.location);
 
     if building_desc.has_category(ctx, BuildingCategory::EmpireFoundry) {
@@ -32,21 +32,16 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireCreat
     }
 
     //Consume shards from empire treasury
-    if request.construction_recipe_id.is_some() && request.player_entity_id > 0 {
-        let construction_recipe = ctx
-            .db
-            .construction_recipe_desc()
-            .id()
-            .find(request.construction_recipe_id.unwrap())
-            .unwrap();
+    if let Some(construction_recipe_id) = request.construction_recipe_id.filter(|_| request.player_entity_id > 0) {
+        let construction_recipe = ctx.db.construction_recipe_desc().id().find(construction_recipe_id).unwrap();
         if construction_recipe.consumed_shards > 0 {
             let player_data = ctx
                 .db
                 .empire_player_data_state()
                 .entity_id()
-                .find(&request.player_entity_id)
+                .find(request.player_entity_id)
                 .unwrap();
-            let mut empire = ctx.db.empire_state().entity_id().find(&player_data.empire_entity_id).unwrap();
+            let mut empire = ctx.db.empire_state().entity_id().find(player_data.empire_entity_id).unwrap();
             if empire.empire_currency_treasury < construction_recipe.consumed_shards as u32 {
                 return Err("Your empire does not have enough hexite energy".into());
             }

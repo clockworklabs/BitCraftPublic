@@ -16,7 +16,7 @@ pub fn cheat_quest_skip(ctx: &ReducerContext, player_entity_id: u64, quest_desc_
     if quest_chain_state_option.is_none(){
         ctx.db.quest_chain_state().try_insert(QuestChainState{
             entity_id: game_state::create_entity(ctx),
-            player_entity_id: player_entity_id,
+            player_entity_id,
             quest_chain_desc_id: quest_desc_id,
             stage_id: 0,
             completed: false,

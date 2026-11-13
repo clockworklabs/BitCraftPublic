@@ -95,11 +95,11 @@ impl Vector2 {
     }
 
     pub fn lerp(a: &Vector2, b: &Vector2, t: f32) -> Vector2 {
-        return *a + (*b - *a) * t.clamp(0.0, 1.0);
+        *a + (*b - *a) * t.clamp(0.0, 1.0)
     }
 
     pub fn normalized(self) -> Vector2 {
         let mag = self.magnitude();
-        return self / mag;
+        self / mag
     }
 }

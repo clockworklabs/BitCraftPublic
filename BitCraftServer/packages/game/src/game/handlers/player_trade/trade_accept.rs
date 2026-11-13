@@ -13,7 +13,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn trade_accept(ctx: &ReducerContext, request: PlayerTradeAcceptRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(ctx, actor_id, request.session_entity_id)
@@ -23,7 +23,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, session_entity_id: u64) -> R
     HealthState::check_incapacitated(ctx, entity_id, true)?;
 
     let mut trade_session = unwrap_or_err!(
-        ctx.db.trade_session_state().entity_id().find(&session_entity_id),
+        ctx.db.trade_session_state().entity_id().find(session_entity_id),
         "No such trade session."
     );
 
@@ -40,9 +40,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, session_entity_id: u64) -> R
     if entity_id == trade_session.initiator_entity_id {
         if trade_session.status == TradeSessionStatus::AcceptorAccepted {
             // If the acceptor accepted and the initiator is accepting finalize the trade.
-            if let Err(error) = finalize(ctx, &mut trade_session) {
-                return Err(error.into());
-            }
+            finalize(ctx, &mut trade_session)?;
         } else if trade_session.status == TradeSessionStatus::SessionAccepted {
             // If no one has accepted then have the initiator accept
             trade_session.status = TradeSessionStatus::InitiatorAccepted;
@@ -54,9 +52,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, session_entity_id: u64) -> R
     } else {
         if trade_session.status == TradeSessionStatus::InitiatorAccepted {
             // Inverse of above
-            if let Err(error) = finalize(ctx, &mut trade_session) {
-                return Err(error.into());
-            }
+            finalize(ctx, &mut trade_session)?;
         } else if trade_session.status == TradeSessionStatus::SessionAccepted {
             // If no one has accepted then have the acceptor accept
             trade_session.status = TradeSessionStatus::AcceptorAccepted;

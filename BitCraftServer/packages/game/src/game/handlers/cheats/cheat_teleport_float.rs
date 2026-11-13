@@ -13,9 +13,9 @@ fn cheat_teleport_float(ctx: &ReducerContext, request: CheatTeleportFloatRequest
         return Err("Unauthorized.".into());
     }
 
-    let location = request.destination.clone().unwrap();
+    let location = request.destination.unwrap();
     let mut mes = unwrap_or_err!(
-        ctx.db.mobile_entity_state().entity_id().find(&request.player_entity_id),
+        ctx.db.mobile_entity_state().entity_id().find(request.player_entity_id),
         "Invalid entity id"
     );
     mes.set_location(location);
@@ -23,7 +23,7 @@ fn cheat_teleport_float(ctx: &ReducerContext, request: CheatTeleportFloatRequest
     mes.dimension = 1;
     ctx.db.mobile_entity_state().entity_id().update(mes.clone());
 
-    if ctx.db.mounting_state().entity_id().find(&request.player_entity_id).is_some() {
+    if ctx.db.mounting_state().entity_id().find(request.player_entity_id).is_some() {
         ctx.db.mobile_entity_state().entity_id().update(mes);
     }
 

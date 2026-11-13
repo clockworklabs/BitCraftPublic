@@ -25,7 +25,7 @@ pub fn admin_respawn_building_spawn_desc(ctx: &ReducerContext, building_spawn_de
     }
 
     let spawn = unwrap_or_err!(
-        ctx.db.building_spawn_desc().id().find(&building_spawn_desc_id),
+        ctx.db.building_spawn_desc().id().find(building_spawn_desc_id),
         "Invalid BuildingSpawnDesc"
     );
     if spawn.spawn_type != BuildingSpawnType::Resource {
@@ -36,7 +36,7 @@ pub fn admin_respawn_building_spawn_desc(ctx: &ReducerContext, building_spawn_de
         .first()
         .ok_or("BuildingSpawnDesc resource spawn has no resource id")?;
     let resource_desc = unwrap_or_err!(
-        ctx.db.resource_desc().id().find(&resource_id),
+        ctx.db.resource_desc().id().find(resource_id),
         "Invalid resource id on BuildingSpawnDesc"
     );
     let building_entity_ids: Vec<u64> = ctx
@@ -58,7 +58,7 @@ pub fn admin_respawn_building_spawn_desc(ctx: &ReducerContext, building_spawn_de
     }
 
     for building_entity_id in building_entity_ids {
-        let building = ctx.db.building_state().entity_id().find(&building_entity_id).unwrap();
+        let building = ctx.db.building_state().entity_id().find(building_entity_id).unwrap();
         let coordinates = spawn.get_spawn_coordinates(&game_state_filters::coordinates(ctx, building_entity_id), building.direction_index);
         let existing_resource_ids: Vec<u64> = ctx
             .db
@@ -69,7 +69,7 @@ pub fn admin_respawn_building_spawn_desc(ctx: &ReducerContext, building_spawn_de
                 ctx.db
                     .resource_state()
                     .entity_id()
-                    .find(&location.entity_id)
+                    .find(location.entity_id)
                     .map(|resource| resource.entity_id)
             })
             .collect();
@@ -77,7 +77,7 @@ pub fn admin_respawn_building_spawn_desc(ctx: &ReducerContext, building_spawn_de
             ResourceState::despawn(
                 ctx,
                 entity_id,
-                ctx.db.resource_state().entity_id().find(&entity_id).unwrap().resource_id,
+                ctx.db.resource_state().entity_id().find(entity_id).unwrap().resource_id,
             );
         }
 

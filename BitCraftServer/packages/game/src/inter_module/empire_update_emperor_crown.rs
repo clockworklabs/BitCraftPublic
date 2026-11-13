@@ -10,5 +10,5 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireUpdat
         spacetimedb::log::warn!("EmpireUpdateEmperorCrown - Empire {} doesn't exist", request.empire_entity_id);
         return Ok(()); //This can happen when an empire is deleted
     }
-    return EmpireState::update_crown_status(ctx, request.empire_entity_id);
+    EmpireState::update_crown_status(ctx, request.empire_entity_id)
 }

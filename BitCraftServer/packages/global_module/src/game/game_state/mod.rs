@@ -15,11 +15,11 @@ use super::coordinates::*;
 pub mod game_state_filters;
 
 pub fn unix(now: Timestamp) -> i32 {
-    return now.duration_since(Timestamp::UNIX_EPOCH).unwrap().as_secs() as i32;
+    now.duration_since(Timestamp::UNIX_EPOCH).unwrap().as_secs() as i32
 }
 
 pub fn unix_ms(now: Timestamp) -> u64 {
-    return now.duration_since(Timestamp::UNIX_EPOCH).unwrap().as_millis() as u64;
+    now.duration_since(Timestamp::UNIX_EPOCH).unwrap().as_millis() as u64
 }
 
 pub fn insert_location(ctx: &ReducerContext, entity_id: u64, offset_coordinates: OffsetCoordinatesSmall) {
@@ -45,7 +45,7 @@ pub fn insert_location_float(ctx: &ReducerContext, entity_id: u64, coordinates: 
 }
 
 pub fn create_entity(ctx: &ReducerContext) -> u64 {
-    let mut globals = ctx.db.globals().version().find(&0).unwrap();
+    let mut globals = ctx.db.globals().version().find(0).unwrap();
     globals.entity_pk_counter += 1;
     let pk = globals.entity_pk_counter;
     ctx.db.globals().version().update(globals);
@@ -54,7 +54,7 @@ pub fn create_entity(ctx: &ReducerContext) -> u64 {
 }
 
 pub fn create_dimension(ctx: &ReducerContext) -> u32 {
-    let mut globals = ctx.db.globals().version().find(&0).unwrap();
+    let mut globals = ctx.db.globals().version().find(0).unwrap();
     globals.dimension_counter += 1;
     let pk = globals.dimension_counter;
     ctx.db.globals().version().update(globals);
@@ -63,7 +63,7 @@ pub fn create_dimension(ctx: &ReducerContext) -> u32 {
 }
 
 pub fn actor_id(ctx: &ReducerContext, must_be_signed_in: bool) -> Result<u64, String> {
-    match ctx.db.user_state().identity().find(&ctx.sender()) {
+    match ctx.db.user_state().identity().find(ctx.sender()) {
         Some(user) => {
             if must_be_signed_in {
                 ensure_signed_in(ctx, user.entity_id)?;
@@ -75,20 +75,20 @@ pub fn actor_id(ctx: &ReducerContext, must_be_signed_in: bool) -> Result<u64, St
 }
 
 pub fn ensure_signed_in(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
-    if ctx.db.signed_in_player_state().entity_id().find(&entity_id).is_none() {
+    if ctx.db.signed_in_player_state().entity_id().find(entity_id).is_none() {
         return Err("Not signed in".into());
     }
     // Only the newest connection may act; None means a non-client caller.
-    if let (Some(connection_id), Some(active)) = (ctx.connection_id(), ctx.db.active_connection_state().entity_id().find(&entity_id)) {
+    if let (Some(connection_id), Some(active)) = (ctx.connection_id(), ctx.db.active_connection_state().entity_id().find(entity_id)) {
         if connection_id != active.connection_id {
             return Err("Stale connection".into());
         }
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn region_index_from_entity_id(entity_id: u64) -> u8 {
-    return (entity_id >> 56) as u8;
+    (entity_id >> 56) as u8
 }
 
 pub fn player_region(ctx: &ReducerContext, entity_id: u64) -> Result<u8, String> {
@@ -99,5 +99,5 @@ pub fn player_region(ctx: &ReducerContext, entity_id: u64) -> Result<u8, String>
         .identity()
         .find(user_state.identity)
         .expect("Player region not found");
-    return Ok(region_state.region_id);
+    Ok(region_state.region_id)
 }

@@ -13,15 +13,15 @@ pub fn cheat_project_site_add_all_materials(ctx: &ReducerContext, project_site_e
     }
 
     let mut project_site = unwrap_or_err!(
-        ctx.db.project_site_state().entity_id().find(&project_site_entity_id),
+        ctx.db.project_site_state().entity_id().find(project_site_entity_id),
         "Invalid project site"
     );
-    let construction_recipe = ctx.db.construction_recipe_desc().id().find(&project_site.construction_recipe_id);
+    let construction_recipe = ctx.db.construction_recipe_desc().id().find(project_site.construction_recipe_id);
     let resource_placement_recipe = ctx
         .db
         .resource_placement_recipe_desc()
         .id()
-        .find(&project_site.resource_placement_recipe_id);
+        .find(project_site.resource_placement_recipe_id);
 
     let consumed_cargo_stacks: Vec<InputItemStack>;
     let consumed_item_stacks: Vec<InputItemStack>;

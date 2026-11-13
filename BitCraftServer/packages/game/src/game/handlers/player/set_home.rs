@@ -18,13 +18,13 @@ use crate::{
 };
 
 pub fn event_delay(_actor_id: u64, _request: &PlayerSetHomeRequest) -> Duration {
-    return Duration::from_secs_f32(1.0); // wait 1 second to do the set home animation
+    Duration::from_secs_f32(1.0)// wait 1 second to do the set home animation
 }
 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn set_home(ctx: &ReducerContext, request: PlayerSetHomeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let result = reduce(ctx, actor_id, request.target_entity_id);
     if result.is_ok() {
@@ -36,7 +36,7 @@ pub fn set_home(ctx: &ReducerContext, request: PlayerSetHomeRequest) -> Result<(
 pub fn reduce(ctx: &ReducerContext, actor_id: u64, target_entity_id: u64) -> Result<(), String> {
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
-    let mut player_state = unwrap_or_err!(ctx.db.player_state().entity_id().find(&actor_id), "Invalid player");
+    let mut player_state = unwrap_or_err!(ctx.db.player_state().entity_id().find(actor_id), "Invalid player");
 
     let building = get_target_home_building(ctx, actor_id, target_entity_id)?;
 
@@ -63,12 +63,12 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, target_entity_id: u64) -> Res
 
 pub fn get_target_home_building(ctx: &ReducerContext, actor_id: u64, target_entity_id: u64) -> Result<BuildingState, String> {
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&target_entity_id),
+        ctx.db.building_state().entity_id().find(target_entity_id),
         "Building doesn't exist"
     );
 
     let building_description = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Building doesn't exist in the static data"
     );
 
@@ -77,14 +77,14 @@ pub fn get_target_home_building(ctx: &ReducerContext, actor_id: u64, target_enti
     let mut target_coords = SmallHexTile::from(coordinates);
 
     // if building has a footprint, find the closest footprint tile
-    let footprint = building_description.get_footprint(&coordinates.into(), building.direction_index);
-    if footprint.len() > 0 {
+    let footprint = building_description.get_footprint(&coordinates, building.direction_index);
+    if !footprint.is_empty() {
         let mut min_dist = actor_coords.distance_to(target_coords.into());
         for (coord, footprint_type) in footprint {
             if footprint_type != FootprintType::Perimeter {
                 let dist = actor_coords.distance_to(coord.into());
                 if dist < min_dist {
-                    target_coords = coord.into();
+                    target_coords = coord;
                     min_dist = dist;
                 }
             }

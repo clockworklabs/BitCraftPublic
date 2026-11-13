@@ -14,6 +14,7 @@ use crate::{
 };
 
 impl PlayerVoteState {
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn new(
         ctx: &ReducerContext,
         vote_type: PlayerVoteType,
@@ -24,7 +25,7 @@ impl PlayerVoteState {
         argument1: u64,
         argument2: u64,
     ) -> Option<PlayerVoteState> {
-        if let Some(player_name_state) = ctx.db.player_username_state().entity_id().find(&initiator_entity_id) {
+        if let Some(player_name_state) = ctx.db.player_username_state().entity_id().find(initiator_entity_id) {
             let initiator_name = player_name_state.username;
             let len = participants_entity_id.len();
             let entity_id = create_entity(ctx);
@@ -51,6 +52,7 @@ impl PlayerVoteState {
         None
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn insert_with_end_timer(
         ctx: &ReducerContext,
         vote_type: PlayerVoteType,

@@ -19,7 +19,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_remove_tile(ctx: &ReducerContext, request: PlayerClaimRemoveTileRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let coord = SmallHexTile::from(request.coordinates);
@@ -34,7 +34,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, tile: SmallHexTile) -> Result<(),
     // Make sure the tile is claimed
     if let Some(claimed_tile) = claim_helper::get_claim_on_tile(ctx, tile) {
         let claim_entity_id = claimed_tile.claim_id;
-        let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&claim_entity_id), "Claim does not exist");
+        let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(claim_entity_id), "Claim does not exist");
         let mut claim_local = claim.local_state(ctx);
 
         // Make sure player has permission
@@ -47,7 +47,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, tile: SmallHexTile) -> Result<(),
             .db
             .building_claim_desc()
             .building_id()
-            .find(&claim_building.building_description_id)
+            .find(claim_building.building_description_id)
             .unwrap()
             .radius;
         let claim_location = game_state_filters::coordinates_any(ctx, claim_building.entity_id);
@@ -70,7 +70,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, tile: SmallHexTile) -> Result<(),
             .claim_tile_state()
             .claim_id()
             .filter(claim_entity_id)
-            .map(|c| ctx.db.location_state().entity_id().find(&c.entity_id).unwrap().coordinates())
+            .map(|c| ctx.db.location_state().entity_id().find(c.entity_id).unwrap().coordinates())
             .collect();
         claim_tiles.remove(&tile);
         let mut open_list: Vec<SmallHexTile> = Vec::with_capacity(claim_tiles.len());

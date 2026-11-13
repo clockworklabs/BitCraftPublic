@@ -11,13 +11,13 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn passive_craft_cancel(ctx: &ReducerContext, passive_craft_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let passive_craft = unwrap_or_err!(
-        ctx.db.passive_craft_state().entity_id().find(&passive_craft_entity_id),
+        ctx.db.passive_craft_state().entity_id().find(passive_craft_entity_id),
         "Project no longer exists"
     );
 
@@ -29,7 +29,7 @@ pub fn passive_craft_cancel(ctx: &ReducerContext, passive_craft_entity_id: u64) 
 
     let building_entity_id = passive_craft.building_entity_id;
     let building_state = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "Building does not exist"
     );
 
@@ -38,7 +38,7 @@ pub fn passive_craft_cancel(ctx: &ReducerContext, passive_craft_entity_id: u64) 
     }
 
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state.building_description_id),
+        ctx.db.building_desc().id().find(building_state.building_description_id),
         "Unknown building type"
     );
 
@@ -52,7 +52,7 @@ pub fn passive_craft_cancel(ctx: &ReducerContext, passive_craft_entity_id: u64) 
     }
 
     //Refund materials
-    if let Some(crafting_recipe) = ctx.db.crafting_recipe_desc().id().find(&passive_craft.recipe_id) {
+    if let Some(crafting_recipe) = ctx.db.crafting_recipe_desc().id().find(passive_craft.recipe_id) {
         if let Some(mut player_inventory) = InventoryState::get_player_inventory(ctx, actor_id) {
             let item_stacks = crafting_recipe
                 .consumed_item_stacks
@@ -65,7 +65,7 @@ pub fn passive_craft_cancel(ctx: &ReducerContext, passive_craft_entity_id: u64) 
         }
     }
 
-    ctx.db.passive_craft_state().entity_id().delete(&passive_craft_entity_id);
+    ctx.db.passive_craft_state().entity_id().delete(passive_craft_entity_id);
 
     // Try starting the craft right away in the same slot (other slots will have filled automatically)
     if let Some(slot) = slot {

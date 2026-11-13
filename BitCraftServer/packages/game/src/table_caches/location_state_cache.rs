@@ -10,6 +10,12 @@ pub struct LocationStateCache {
     empty_vec: Vec<u64>,
 }
 
+impl Default for LocationStateCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LocationStateCache {
     pub fn new() -> Self {
         Self {
@@ -27,10 +33,10 @@ impl LocationStateCache {
         }
 
         let r = self.entities_by_coord.get(&coord.hashcode());
-        return match r {
+        match r {
             Some(v) => v,
             None => &self.empty_vec,
-        };
+        }
     }
 
     pub fn add_location_entity(&mut self, entity_id: u64, coord: &SmallHexTile) {

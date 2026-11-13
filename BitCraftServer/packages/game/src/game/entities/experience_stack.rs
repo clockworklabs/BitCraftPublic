@@ -16,11 +16,11 @@ impl ExperienceStack {
 
         let growth_rate = 2.0_f32.powf(0.158f32);
 
-        return f32::floor(
+        f32::floor(
             Self::LEVEL_ONE_EXPERIENCE as f32
                 * ((growth_rate.powf(level as f32) - growth_rate) / (growth_rate * growth_rate - growth_rate)),
         ) as i32
-            * Self::MULTIPLIER;
+            * Self::MULTIPLIER
     }
 
     pub fn experience_until_next_level(level: i32) -> i32 {
@@ -28,7 +28,7 @@ impl ExperienceStack {
             return -1;
         }
 
-        return Self::experience_for_level(level + 1) - Self::experience_for_level(level);
+        Self::experience_for_level(level + 1) - Self::experience_for_level(level)
     }
 
     pub fn level_for_experience(experience: i32) -> i32 {
@@ -39,6 +39,6 @@ impl ExperienceStack {
             }
             level += 1;
         }
-        return level;
+        level
     }
 }

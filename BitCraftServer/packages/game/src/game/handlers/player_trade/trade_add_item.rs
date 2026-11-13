@@ -14,7 +14,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn trade_add_item(ctx: &ReducerContext, request: PlayerTradeAddItemRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(
@@ -38,7 +38,7 @@ pub fn reduce(
     HealthState::check_incapacitated(ctx, entity_id, true)?;
 
     let mut trade_session = unwrap_or_err!(
-        ctx.db.trade_session_state().entity_id().find(&session_entity_id),
+        ctx.db.trade_session_state().entity_id().find(session_entity_id),
         "No such trade session."
     );
 
@@ -111,9 +111,9 @@ pub fn reduce(
         }
 
         trade_session.initiator_offer[trade_pocket_index] = TradePocket {
-            inventory_index: inventory_index,
-            inventory_pocket_index: inventory_pocket_index,
-            contents: contents,
+            inventory_index,
+            inventory_pocket_index,
+            contents,
         };
     } else {
         if trade_session.acceptor_offer[trade_pocket_index].inventory_pocket_index >= 0 {
@@ -121,9 +121,9 @@ pub fn reduce(
         }
 
         trade_session.acceptor_offer[trade_pocket_index] = TradePocket {
-            inventory_index: inventory_index,
-            inventory_pocket_index: inventory_pocket_index,
-            contents: contents,
+            inventory_index,
+            inventory_pocket_index,
+            contents,
         };
     }
 

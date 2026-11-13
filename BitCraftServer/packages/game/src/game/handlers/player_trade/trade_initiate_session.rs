@@ -16,7 +16,7 @@ use crate::{i18n, parameters_desc, player_state};
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn trade_initiate_session(ctx: &ReducerContext, request: PlayerTradeInitiateSessionRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(ctx, actor_id, request.acceptor_entity_id)
@@ -25,7 +25,7 @@ pub fn trade_initiate_session(ctx: &ReducerContext, request: PlayerTradeInitiate
 pub fn reduce(ctx: &ReducerContext, entity_id: u64, acceptor_entity_id: u64) -> Result<(), String> {
     HealthState::check_incapacitated(ctx, entity_id, true)?;
 
-    let acceptor = unwrap_or_err!(ctx.db.player_state().entity_id().find(&acceptor_entity_id), "No such player.");
+    let acceptor = unwrap_or_err!(ctx.db.player_state().entity_id().find(acceptor_entity_id), "No such player.");
     if !acceptor.signed_in {
         return Err("Cannot trade with this player.".into());
     }
@@ -41,7 +41,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, acceptor_entity_id: u64) -> 
         }
 
         if session.initiator_entity_id == acceptor_entity_id || session.acceptor_entity_id == acceptor_entity_id {
-            return Err(String::from(format!("{{0}} is currently trading|~{}", i18n::dont_localize(acceptor_username))).into());
+            return Err(format!("{{0}} is currently trading|~{}", i18n::dont_localize(acceptor_username)));
         }
     }
 
@@ -50,11 +50,11 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, acceptor_entity_id: u64) -> 
     }
 
     if ThreatState::in_combat(ctx, acceptor_entity_id) {
-        let error_string = String::from(format!("{{0}} cannot trade right now.|~{}", i18n::dont_localize(acceptor_username)));
-        return Err(error_string.into());
+        let error_string = format!("{{0}} cannot trade right now.|~{}", i18n::dont_localize(acceptor_username));
+        return Err(error_string);
     }
 
-    let max_traded_items = ctx.db.parameters_desc().version().find(&0).unwrap().max_traded_items as usize;
+    let max_traded_items = ctx.db.parameters_desc().version().find(0).unwrap().max_traded_items as usize;
     let trade_session_entity_id = game_state::create_entity(ctx);
     let trade_session = TradeSessionState {
         entity_id: trade_session_entity_id,

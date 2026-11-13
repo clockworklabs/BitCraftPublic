@@ -77,7 +77,7 @@ pub fn admin_replace_identity(ctx: &ReducerContext, old_identity: String, new_id
         v.identity = new_identity;
         ctx.db.user_region_state().insert(v);
     }
-    if let Some(mut v) = ctx.db.granted_hub_item_state().iter().filter(|v| v.identity == old_identity).next() {
+    if let Some(mut v) = ctx.db.granted_hub_item_state().iter().find(|v| v.identity == old_identity) {
         ctx.db.granted_hub_item_state().entity_id().delete(v.entity_id);
         v.identity = new_identity;
         ctx.db.granted_hub_item_state().insert(v);
@@ -92,7 +92,7 @@ pub fn admin_replace_identity(ctx: &ReducerContext, old_identity: String, new_id
         v.identity = new_identity;
         ctx.db.user_creation_timestamp_state().insert(v);
     }
-    if let Some(mut v) = ctx.db.premium_purchase_state().iter().filter(|v| v.identity == old_identity).next() {
+    if let Some(mut v) = ctx.db.premium_purchase_state().iter().find(|v| v.identity == old_identity) {
         ctx.db.premium_purchase_state().entity_id().delete(v.entity_id);
         v.identity = new_identity;
         ctx.db.premium_purchase_state().insert(v);

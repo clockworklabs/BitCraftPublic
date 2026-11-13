@@ -103,7 +103,9 @@ pub struct OnlineTimestamp {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
 #[repr(i32)]
+#[derive(Default)]
 pub enum DimensionType {
+    #[default]
     Unknown,
     Overworld,
     AncientRuin,
@@ -111,11 +113,6 @@ pub enum DimensionType {
     Dungeon,
 }
 
-impl Default for DimensionType {
-    fn default() -> Self {
-        DimensionType::Unknown
-    }
-}
 
 #[derive(SpacetimeType, Clone, Debug, PartialEq)]
 pub struct PocketKey {

@@ -16,6 +16,7 @@ use crate::{
 
 use crate::messages::components::MobileEntityState;
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn validate_move(
     ctx: &ReducerContext,
     prev_state: &MobileEntityState,
@@ -50,7 +51,7 @@ pub fn validate_move(
         .db
         .dimension_description_state()
         .dimension_id()
-        .find(&target_coordinates.dimension)
+        .find(target_coordinates.dimension)
         .unwrap();
     if (target_coordinates_chunk.x < dimension_desc.dimension_position_large_x as i32)
         | (target_coordinates_chunk.z < dimension_desc.dimension_position_large_z as i32)
@@ -193,7 +194,7 @@ pub fn validate_move(
 
 pub fn travel_time(source_coordinates: &FloatHexTile, target_coordinates: &FloatHexTile, speed: f32) -> f32 {
     let distance = (source_coordinates.to_world_position() - target_coordinates.to_world_position()).magnitude();
-    return distance / speed;
+    distance / speed
 }
 
 pub fn validate_move_origin(
@@ -235,7 +236,7 @@ pub fn validate_move_basic(
     const MAX_DISTANCE: f32 = 7.0; //Realistically should never exceed 3
     const MAX_DISTANCE_FROM_PREV_STATE: f32 = 7.0;
     const MAX_SPEED: f32 = 100.0;
-    if duration > MAX_DURATION || duration < 0.0 {
+    if !(0.0..=MAX_DURATION).contains(&duration) {
         return Err("Invalid duration.".into());
     }
     if source_coordinates.dimension != target_coordinates.dimension {
@@ -428,7 +429,7 @@ pub fn raycast<F: FnMut(SmallHexTile, SmallHexTile) -> bool>(
         _i += 1;
     }
 
-    return true;
+    true
 }
 
 pub fn move_validation_strike(
@@ -473,7 +474,7 @@ pub fn fail_validation(
         })
         .ok()
         .unwrap();
-    return Err(error);
+    Err(error)
 }
 
 pub fn validation_strike(
@@ -482,8 +483,8 @@ pub fn validation_strike(
     identifier: String,
     action: String,
 ) -> Result<(), MoveValidationStrikeCounterState> {
-    let params = ctx.db.private_parameters_desc().version().find(&0).unwrap();
-    let mut strike_counter = ctx.db.move_validation_strike_counter_state().entity_id().find(&actor_id).unwrap();
+    let params = ctx.db.private_parameters_desc().version().find(0).unwrap();
+    let mut strike_counter = ctx.db.move_validation_strike_counter_state().entity_id().find(actor_id).unwrap();
 
     let oldest_timestamp = Timestamp::from_micros_since_unix_epoch(
         ctx.timestamp.to_time_duration_since_unix_epoch().to_micros()

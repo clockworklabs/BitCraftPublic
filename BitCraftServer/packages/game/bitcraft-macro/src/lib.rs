@@ -154,7 +154,7 @@ pub fn shared_table(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut gen_tokens = TokenStream::from(gen);
     gen_tokens.extend(input);
-    return gen_tokens;
+    gen_tokens
 }
 
 //Create a table update accumulator before any reducer code runs
@@ -240,7 +240,7 @@ pub fn feature_gate(args: TokenStream, input: TokenStream) -> TokenStream {
     proc_macro::TokenStream::from(ast.into_token_stream())
 }
 
-fn camel_to_snake(str: &String) -> String {
+fn camel_to_snake(str: &str) -> String {
     let mut output = String::new();
     for c in str.chars() {
         if c.is_uppercase() {
@@ -253,7 +253,7 @@ fn camel_to_snake(str: &String) -> String {
             output.push_str(c.to_string().as_str());
         }
     }
-    return output;
+    output
 }
 
 //Create a timer table for client events
@@ -270,7 +270,7 @@ pub fn event_table(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut table_name = String::new();
     if let syn::Expr::Path(left) = *args_parsed.left {
         if let syn::Expr::Path(right) = *args_parsed.right {
-            if left.path.segments.len() == 1 && left.path.segments[0].ident.to_string() == "name" && right.path.segments.len() == 1 {
+            if left.path.segments.len() == 1 && left.path.segments[0].ident == "name" && right.path.segments.len() == 1 {
                 is_valid = true;
                 table_name = right.path.segments[0].ident.to_string();
             }
@@ -396,7 +396,7 @@ pub fn event_table(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 fn compile_error(err: &str) -> TokenStream {
-    return proc_macro::TokenStream::from(syn::Error::new(proc_macro2::Span::from(Span::call_site()), err.to_string()).to_compile_error());
+    proc_macro::TokenStream::from(syn::Error::new(proc_macro2::Span::from(Span::call_site()), err.to_string()).to_compile_error())
 }
 
 fn parse_feature_gate_args(args: TokenStream) -> Result<Option<syn::LitStr>, TokenStream> {
@@ -436,7 +436,7 @@ fn type_is_reducer_context(ty: &syn::Type) -> bool {
             .path
             .segments
             .last()
-            .map_or(false, |segment| segment.ident == "ReducerContext"),
+            .is_some_and(|segment| segment.ident == "ReducerContext"),
         _ => false,
     }
 }
@@ -480,7 +480,7 @@ fn type_is_string(ty: &syn::Type) -> bool {
             .path
             .segments
             .last()
-            .map_or(false, |segment| segment.ident == "String"),
+            .is_some_and(|segment| segment.ident == "String"),
         _ => false,
     }
 }

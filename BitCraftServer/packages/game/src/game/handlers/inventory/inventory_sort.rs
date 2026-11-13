@@ -11,17 +11,17 @@ use super::inventory_helper;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn inventory_sort(ctx: &ReducerContext, target_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     let mut target_inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&target_entity_id),
+        ctx.db.inventory_state().entity_id().find(target_entity_id),
         "Invalid target inventory"
     );
 
-    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Player has no location").coordinates();
+    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Player has no location").coordinates();
 
     inventory_helper::validate_interact(
         ctx,
@@ -50,10 +50,10 @@ pub fn inventory_sort(ctx: &ReducerContext, target_entity_id: u64) -> Result<(),
         let item_id = stack.item_id;
 
         let item_volume = if is_cargo {
-            let cargo_def = ctx.db.cargo_desc().id().find(&item_id).unwrap();
+            let cargo_def = ctx.db.cargo_desc().id().find(item_id).unwrap();
             cargo_def.volume
         } else {
-            let item_def = ctx.db.item_desc().id().find(&item_id).unwrap();
+            let item_def = ctx.db.item_desc().id().find(item_id).unwrap();
             item_def.volume
         };
 
@@ -65,8 +65,7 @@ pub fn inventory_sort(ctx: &ReducerContext, target_entity_id: u64) -> Result<(),
 
         let mut pocket_copy = pocket.clone();
 
-        for j in i + 1..length {
-            let other_pocket = &pockets_copy[j];
+        for (j, other_pocket) in pockets_copy.iter_mut().enumerate().skip(i + 1) {
             if other_pocket.locked {
                 return Err("This inventory contains locked pockets and can't be sorted.".into());
             }
@@ -86,7 +85,7 @@ pub fn inventory_sort(ctx: &ReducerContext, target_entity_id: u64) -> Result<(),
             let moving_quantity = other_pocket_copy.remove_quantity(available_space);
             pocket_copy.add_quantity(moving_quantity);
 
-            pockets_copy[j] = other_pocket_copy;
+            *other_pocket = other_pocket_copy;
 
             available_space -= moving_quantity;
             if available_space <= 0 {
@@ -110,16 +109,16 @@ pub fn inventory_sort(ctx: &ReducerContext, target_entity_id: u64) -> Result<(),
         let a_stack = a.contents.unwrap();
         let b_stack = b.contents.unwrap();
 
-        let a_def = ctx.db.item_desc().id().find(&a_stack.item_id).unwrap();
-        let b_def = ctx.db.item_desc().id().find(&b_stack.item_id).unwrap();
+        let a_def = ctx.db.item_desc().id().find(a_stack.item_id).unwrap();
+        let b_def = ctx.db.item_desc().id().find(b_stack.item_id).unwrap();
 
-        return a_def
+        a_def
             .tag
             .cmp(&b_def.tag)
             .then_with(|| b_def.tier.cmp(&a_def.tier))
             .then_with(|| b_def.rarity.cmp(&a_def.rarity))
             .then_with(|| a_def.id.cmp(&b_def.id))
-            .then_with(|| b_stack.quantity.cmp(&a_stack.quantity));
+            .then_with(|| b_stack.quantity.cmp(&a_stack.quantity))
     });
 
     pockets_copy[cargo_index..length].sort_by(|a, b| -> Ordering {
@@ -133,16 +132,16 @@ pub fn inventory_sort(ctx: &ReducerContext, target_entity_id: u64) -> Result<(),
         let a_stack = a.contents.unwrap();
         let b_stack = b.contents.unwrap();
 
-        let a_def = ctx.db.cargo_desc().id().find(&a_stack.item_id).unwrap();
-        let b_def = ctx.db.cargo_desc().id().find(&b_stack.item_id).unwrap();
+        let a_def = ctx.db.cargo_desc().id().find(a_stack.item_id).unwrap();
+        let b_def = ctx.db.cargo_desc().id().find(b_stack.item_id).unwrap();
 
-        return a_def
+        a_def
             .tag
             .cmp(&b_def.tag)
             .then_with(|| b_def.tier.cmp(&a_def.tier))
             .then_with(|| b_def.rarity.cmp(&a_def.rarity))
             .then_with(|| a_def.id.cmp(&b_def.id))
-            .then_with(|| b_stack.quantity.cmp(&a_stack.quantity));
+            .then_with(|| b_stack.quantity.cmp(&a_stack.quantity))
     });
 
     target_inventory.pockets = pockets_copy;

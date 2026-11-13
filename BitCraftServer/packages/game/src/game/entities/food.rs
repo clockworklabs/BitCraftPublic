@@ -14,7 +14,7 @@ pub fn consume(ctx: &ReducerContext, actor_id: u64, food: &FoodDesc, quantity: i
         return Ok(());
     }
 
-    let character_stats_state = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player has no stats");
+    let character_stats_state = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player has no stats");
 
     for _ in 0..quantity {
         if food.hp != 0f32 {
@@ -49,7 +49,7 @@ pub fn consume(ctx: &ReducerContext, actor_id: u64, food: &FoodDesc, quantity: i
 
         if !output.is_empty() {
             let player_location = unwrap_or_err!(
-                ctx.db.mobile_entity_state().entity_id().find(&actor_id),
+                ctx.db.mobile_entity_state().entity_id().find(actor_id),
                 "Unknown player location"
             )
             .coordinates();
@@ -71,7 +71,7 @@ pub fn consume(ctx: &ReducerContext, actor_id: u64, food: &FoodDesc, quantity: i
 }
 
 fn apply_health(ctx: &ReducerContext, actor_id: u64, food: &FoodDesc, character_stats_state: &CharacterStatsState) -> Result<(), String> {
-    let mut health_state = unwrap_or_err!(ctx.db.health_state().entity_id().find(&actor_id), "Player has no health state");
+    let mut health_state = unwrap_or_err!(ctx.db.health_state().entity_id().find(actor_id), "Player has no health state");
 
     if food.up_to_hp == 0f32 {
         if health_state.add_health_delta_clamped(
@@ -99,7 +99,7 @@ fn apply_health(ctx: &ReducerContext, actor_id: u64, food: &FoodDesc, character_
 }
 
 fn apply_stamina(ctx: &ReducerContext, actor_id: u64, food: &FoodDesc, character_stats_state: &CharacterStatsState) -> Result<(), String> {
-    let mut stamina_state = unwrap_or_err!(ctx.db.stamina_state().entity_id().find(&actor_id), "Player has no stamina state");
+    let mut stamina_state = unwrap_or_err!(ctx.db.stamina_state().entity_id().find(actor_id), "Player has no stamina state");
 
     if food.up_to_stamina == 0f32 {
         if stamina_state.add_stamina_delta_clamped(

@@ -17,7 +17,7 @@ pub struct DuelDespawnTimer {
 
 #[spacetimedb::reducer]
 pub fn duel_despawn(ctx: &ReducerContext, timer: DuelDespawnTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to duel_despawn");
         return;
     }

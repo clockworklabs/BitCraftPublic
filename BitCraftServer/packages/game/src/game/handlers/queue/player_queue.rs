@@ -24,7 +24,7 @@ pub fn player_queue_join(ctx: &ReducerContext) -> Result<(), String> {
 
     let region_sign_in_parameters = unwrap_or_err!(RegionSignInParameters::get(ctx), "Failed to get RegionSignInParameters");
     if region_sign_in_parameters.is_signing_in_blocked && !has_role(ctx, &ctx.sender(), Role::Gm) {
-        return Err(format!("Server is unavailable at this time, please try again later."));
+        return Err("Server is unavailable at this time, please try again later.".to_string());
     }
 
     if user_state.can_sign_in {
@@ -66,7 +66,7 @@ pub fn player_queue_join(ctx: &ReducerContext) -> Result<(), String> {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_queue_leave(ctx: &ReducerContext) -> Result<(), String> {
-    if let Some(user_state) = ctx.db.user_state().identity().find(&ctx.sender()) {
+    if let Some(user_state) = ctx.db.user_state().identity().find(ctx.sender()) {
         dequeue(ctx, user_state.entity_id);
     }
 
@@ -98,7 +98,7 @@ pub fn allow_sign_in(ctx: &ReducerContext, mut user_state: UserState) {
     user_state.can_sign_in = true;
     ctx.db.user_state().entity_id().update(user_state);
 
-    ctx.db.user_previous_region_state().identity().delete(&identity);
+    ctx.db.user_previous_region_state().identity().delete(identity);
 }
 
 pub fn process_queue(ctx: &ReducerContext) {
@@ -112,15 +112,12 @@ pub fn process_queue(ctx: &ReducerContext) {
         return;
     }
 
-    let mut dequeued_player_count = 0;
     let mut queued_players: Vec<PlayerQueueState> = ctx.db.player_queue_state().iter().collect();
     queued_players.sort_by_key(|x| x.index);
 
-    for queued_player in queued_players {
-        if dequeued_player_count >= free_slot_count {
-            break;
-        }
-
+    // usize is 32 bits on wasm32, so saturate rather than truncate a very large slot count.
+    let free_slot_count = usize::try_from(free_slot_count).unwrap_or(usize::MAX);
+    for queued_player in queued_players.into_iter().take(free_slot_count) {
         if let Some(user_state) = ctx.db.user_state().entity_id().find(queued_player.entity_id) {
             //Ensure the QueueJoin grace period is deleted before inserting a SignIn grace period
             ctx.db.end_grace_period_timer().identity().delete(user_state.identity);
@@ -128,7 +125,6 @@ pub fn process_queue(ctx: &ReducerContext) {
         }
 
         ctx.db.player_queue_state().index().delete(queued_player.index);
-        dequeued_player_count += 1;
     }
 }
 

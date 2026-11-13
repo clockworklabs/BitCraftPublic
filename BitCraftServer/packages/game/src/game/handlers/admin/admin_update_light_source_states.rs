@@ -12,18 +12,18 @@ pub fn admin_update_light_source_states(ctx: &ReducerContext) -> Result<(), Stri
 
     for building in ctx.db.building_state().iter() {
         let building_desc = unwrap_or_err!(
-            ctx.db.building_desc().id().find(&building.building_description_id),
+            ctx.db.building_desc().id().find(building.building_description_id),
             "Unknown BuildingDesc with id {}",
             building.building_description_id
         );
 
         // If already exist, update or delete.
-        if let Some(mut light) = ctx.db.light_source_state().entity_id().find(&building.entity_id) {
+        if let Some(mut light) = ctx.db.light_source_state().entity_id().find(building.entity_id) {
             let light_entity_id = light.entity_id;
 
             // Delete light
             if building_desc.light_radius == 0 {
-                ctx.db.light_source_state().entity_id().delete(&light_entity_id);
+                ctx.db.light_source_state().entity_id().delete(light_entity_id);
                 log::info!("[{}] Deleting light source state", building_desc.name);
             } else {
                 let light_radius = building_desc.light_radius as f32;

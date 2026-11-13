@@ -34,12 +34,12 @@ pub fn reduce(
 ) -> Result<(), String> {
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your chat privileges have been suspended")?;
 
-    if text.len() <= 0 {
-        return Err(format!("Can't send empty chat message"));
+    if text.is_empty() {
+        return Err("Can't send empty chat message".to_string());
     }
 
     let sanitized_user_input = sanitize_user_inputs(&text);
-    if let Err(_) = is_user_text_input_valid(&sanitized_user_input, 250, false) {
+    if is_user_text_input_valid(&sanitized_user_input, 250, false).is_err() {
         return Err("Failed to send chat messages".into());
     }
 
@@ -56,17 +56,14 @@ pub fn reduce(
 
     i18n::validate_chat_language_code(&language_code)?;
 
-    let player_state = unwrap_or_err!(ctx.db.player_state().entity_id().find(&actor_id), "Invalid player");
+    let player_state = unwrap_or_err!(ctx.db.player_state().entity_id().find(actor_id), "Invalid player");
 
-    let vault = unwrap_or_err!(
-        ctx.db.vault_state().entity_id().find(&actor_id),
-        "Player is missing some components"
-    );
+    let vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(actor_id), "Player is missing some components");
     let title_id = vault
         .collectibles
         .iter()
         .filter(|c| c.activated)
-        .filter_map(|c| match ctx.db.collectible_desc().id().find(&c.id) {
+        .filter_map(|c| match ctx.db.collectible_desc().id().find(c.id) {
             Some(cd) => {
                 if cd.collectible_type == CollectibleType::Title {
                     Some(cd.id)
@@ -136,7 +133,7 @@ pub fn reduce(
             text: sanitized_user_input,
             timestamp: unix(ctx.timestamp),
             owner_entity_id: actor_id,
-            target_id: target_id,
+            target_id,
             channel_id: channel_id as i32,
             //language_code: Some(language_code) //I18N
             username: i18n::dont_reformat(format!("{}/{}", language_code, player_state.username(ctx))), //I18N

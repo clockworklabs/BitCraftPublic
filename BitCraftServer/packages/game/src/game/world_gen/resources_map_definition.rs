@@ -17,6 +17,6 @@ impl ResourcesMapDefinition {
         }
 
         let index = index.clamp(0, self.count() - 1);
-        return Some(&self.resources[index as usize]);
+        Some(&self.resources[index as usize])
     }
 }

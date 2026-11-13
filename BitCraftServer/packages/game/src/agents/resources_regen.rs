@@ -31,7 +31,7 @@ pub struct ResourcesRegenLoopTimer {
 }
 
 pub fn update_timer(ctx: &ReducerContext) {
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     let mut count = 0;
     for mut timer in ctx.db.resources_regen_loop_timer().iter() {
         count += 1;
@@ -45,7 +45,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 }
 
 pub fn init(ctx: &ReducerContext) {
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     ctx.db
         .resources_regen_loop_timer()
         .try_insert(ResourcesRegenLoopTimer {
@@ -59,7 +59,7 @@ pub fn init(ctx: &ReducerContext) {
 #[spacetimedb::reducer]
 /// Whenever a resource gets depleted, respawn it.
 fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Result<(), String> {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         return Err("Unauthorized access to resources_regen".into());
     }
 
@@ -67,9 +67,9 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
         return Ok(());
     }
 
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
 
-    let resources_log = ctx.db.resources_log().version().find(&0);
+    let resources_log = ctx.db.resources_log().version().find(0);
 
     if resources_log.is_none() {
         return Ok(());
@@ -114,7 +114,7 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
         if let Some(ResourceCount {
             num_in_world: resource_count,
             ..
-        }) = ctx.db.resource_count().resource_id().find(&resource.resource_id)
+        }) = ctx.db.resource_count().resource_id().find(resource.resource_id)
         {
             if let Some(resource_desc) = resource_desc.get(&resource.resource_id) {
                 if !resource_desc.not_respawning {
@@ -138,7 +138,7 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
     }
 
     let mut resources_to_delete: Vec<(u64 /* entity id */, i32 /* resource id */)> = Vec::with_capacity(512);
-    if missing_resources.len() != 0 {
+    if !missing_resources.is_empty() {
         // DAB Note: this could be cached in a table when we load static data
         let mut req_resources_in_clumps: HashMap<
             i32, /* clump id */
@@ -167,11 +167,11 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
         // TODO: Determine whether it would be faster to use a `LazyMemoOccupiedTiles` here.
         let mut occupied_tiles_hashes = PrecomputeOccupiedTiles::new(ctx);
 
-        while req_resources_in_clumps.len() > 0 {
+        while !req_resources_in_clumps.is_empty() {
             if attempts_left == 0 {
                 break;
             }
-            attempts_left = attempts_left - 1;
+            attempts_left -= 1;
 
             // attempt to place each clump into the map in worldgen order until no more resource exists.
             for req in &req_resources_in_clumps {
@@ -192,14 +192,14 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
                 let resource_spawn_iterations = 1 + possible_spawns / 10; // attempt spawning 10% of the missing resources
 
                 for _ in 0..resource_spawn_iterations {
-                    let tile_index = ctx.rng().gen_range(0..total_count - 1) as usize;
+                    let tile_index = ctx.rng().gen_range(0..total_count - 1);
                     let offset_coordinates = get_coordinates(tile_index);
                     let hex_coordinates = SmallHexTile::from(offset_coordinates);
                     if try_spawn_resource(
                         ctx,
                         &mut terrain_cache,
                         clump_info,
-                        &clump_desc,
+                        clump_desc,
                         hex_coordinates,
                         &mut occupied_tiles_hashes,
                         //false,
@@ -209,7 +209,7 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
                     ) {
                         //log::info!("---- Regen success");
                         for (res_id, count) in req_resources {
-                            let entry = missing_resources.get_mut(&res_id).unwrap();
+                            let entry = missing_resources.get_mut(res_id).unwrap();
                             *entry -= *count;
                         }
                     }
@@ -217,13 +217,13 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
             }
             // remove clumps id gathered from clumps lacking resources
             for clump_id in &removed_clump_ids {
-                req_resources_in_clumps.remove(&clump_id);
+                req_resources_in_clumps.remove(clump_id);
             }
             removed_clump_ids.clear();
         }
     }
 
-    if result.len() > 0 {
+    if !result.is_empty() {
         let resources_to_delete_count = resources_to_delete.iter().group_by_and_count(|r| r.1);
         for (entity_id, resource_id) in resources_to_delete {
             ResourceState::despawn(ctx, entity_id, resource_id);
@@ -234,7 +234,7 @@ fn resources_regen(ctx: &ReducerContext, _timer: ResourcesRegenLoopTimer) -> Res
                 .db
                 .resource_count()
                 .resource_id()
-                .find(&resource_id)
+                .find(resource_id)
                 .unwrap_or_else(|| panic!("No ResourceCount for resource_id: {}", resource_id));
             count.num_in_world -= delete_count as i32;
             ctx.db.resource_count().resource_id().update(count);
@@ -396,15 +396,14 @@ pub fn try_spawn_resource_multiple_attempts(
     clump_info: &ResourceClumpInfo,
     hex_coordinates: Vec<SmallHexTile>,
 ) -> (Vec<(i32, SmallHexTileMessage, i32)>, Vec<u64>, usize) {
-    let clump_desc = ctx.db.resource_clump_desc().id().find(&clump_info.clump_id).unwrap();
+    let clump_desc = ctx.db.resource_clump_desc().id().find(clump_info.clump_id).unwrap();
     let resource_desc: HashMap<i32, ResourceDesc> = ctx.db.resource_desc().iter().map(|r| (r.id, r)).collect();
     let clump_desc_extended = ResourceClumpDescExtended::new(clump_desc, &resource_desc);
 
     let mut resources_to_delete = Vec::new();
     let mut added_resources = Vec::new();
 
-    for i in 0..hex_coordinates.len() {
-        let coord = hex_coordinates[i];
+    for (i, &coord) in hex_coordinates.iter().enumerate() {
         if try_spawn_resource(
             ctx,
             terrain_cache,
@@ -426,6 +425,7 @@ pub fn try_spawn_resource_multiple_attempts(
     )
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn try_spawn_resource(
     ctx: &ReducerContext,
     terrain_cache: &mut TerrainChunkCache,
@@ -457,6 +457,7 @@ pub fn try_spawn_resource(
     )
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn try_spawn_resource_options(
     ctx: &ReducerContext,
     terrain_cache: &mut TerrainChunkCache,
@@ -503,6 +504,7 @@ pub fn try_spawn_resource_options(
     )
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn try_spawn_resource_no_clump_info(
     ctx: &ReducerContext,
     terrain_cache: &mut TerrainChunkCache,
@@ -536,6 +538,7 @@ pub fn try_spawn_resource_no_clump_info(
     )
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn try_spawn_resource_no_node_validation(
     ctx: &ReducerContext,
     terrain_cache: &mut TerrainChunkCache,
@@ -571,7 +574,7 @@ pub fn try_spawn_resource_no_node_validation(
         );
     } else {
         // Attempt to place the resource by picking a random starting direction and looking at the footprints
-        facing_direction = HexDirection::FLAT[ctx.rng().gen_range(0..HexDirection::FLAT.len()) as usize];
+        facing_direction = HexDirection::FLAT[ctx.rng().gen_range(0..HexDirection::FLAT.len())];
         for _ in 0..HexDirection::FLAT.len() {
             if is_valid_resource_footprint(
                 ctx,
@@ -611,7 +614,7 @@ pub fn try_spawn_resource_no_node_validation(
         let resource_desc = clump_desc.resource_desc[i];
 
         let mut res_footprint = &resource_desc.footprint;
-        if res_footprint.len() == 0 {
+        if res_footprint.is_empty() {
             // default: single-tile hitbox resource
             res_footprint = &default_footprint
         }
@@ -628,7 +631,7 @@ pub fn try_spawn_resource_no_node_validation(
             }
             .rotate_around(&hex_coordinates, rotate_steps);
             let direction = if resource_dir == -1 {
-                HexDirection::FLAT[ctx.rng().gen_range(0..HexDirection::FLAT.len()) as usize] as i32
+                HexDirection::FLAT[ctx.rng().gen_range(0..HexDirection::FLAT.len())] as i32
             } else {
                 ((rotate_steps + resource_dir) % 6) * 2
             };
@@ -640,10 +643,10 @@ pub fn try_spawn_resource_no_node_validation(
 
             let footprints = FootprintTileState::get_at_location(ctx, &taken_coordinates);
             for footprint in footprints {
-                if ctx.db.building_state().entity_id().find(&footprint.owner_entity_id).is_some() {
+                if ctx.db.building_state().entity_id().find(footprint.owner_entity_id).is_some() {
                     return false;
                 }
-                if let Some(resource) = ctx.db.resource_state().entity_id().find(&footprint.owner_entity_id) {
+                if let Some(resource) = ctx.db.resource_state().entity_id().find(footprint.owner_entity_id) {
                     resources_to_delete.push((footprint.owner_entity_id, resource.resource_id));
                 }
             }
@@ -790,6 +793,7 @@ pub fn is_valid_single_resource_spawn(
     )
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn is_valid_land_or_water(
     spawns_on_land: bool,
     land_elevation_min: i16,
@@ -813,6 +817,7 @@ fn is_valid_land_or_water(
     false
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn is_valid_resource_footprint(
     ctx: &ReducerContext,
     terrain_cache: &mut TerrainChunkCache,
@@ -871,7 +876,7 @@ fn is_valid_resource_footprint(
         }
     }
 
-    return true;
+    true
 }
 
 fn is_valid_single_resource_footprint(
@@ -901,11 +906,11 @@ fn is_valid_single_resource_footprint(
         for loc in LocationState::select_all(ctx, &footprint_coordinates) {
             let entity_id = loc.entity_id;
 
-            if let Some(fp) = ctx.db.footprint_tile_state().entity_id().find(&entity_id) {
+            if let Some(fp) = ctx.db.footprint_tile_state().entity_id().find(entity_id) {
                 if ((fp.footprint_type == FootprintType::Hitbox)
                     | (fp.footprint_type == FootprintType::Walkable)
                     | (fp.footprint_type == FootprintType::Platform))
-                    && ctx.db.building_state().entity_id().find(&fp.owner_entity_id).is_some()
+                    && ctx.db.building_state().entity_id().find(fp.owner_entity_id).is_some()
                 {
                     return false;
                 }
@@ -914,7 +919,7 @@ fn is_valid_single_resource_footprint(
                 }
             }
 
-            if ctx.db.paved_tile_state().entity_id().find(&entity_id).is_some() {
+            if ctx.db.paved_tile_state().entity_id().find(entity_id).is_some() {
                 return false;
             }
         }
@@ -959,11 +964,11 @@ fn is_valid_cell(
         let entity_id = loc.entity_id;
 
         // footprint must not be overlapping a building or higher priority resource
-        if let Some(fp) = ctx.db.footprint_tile_state().entity_id().find(&entity_id) {
+        if let Some(fp) = ctx.db.footprint_tile_state().entity_id().find(entity_id) {
             if ((fp.footprint_type == FootprintType::Hitbox)
                 | (fp.footprint_type == FootprintType::Walkable)
                 | (fp.footprint_type == FootprintType::Platform))
-                && ctx.db.building_state().entity_id().find(&fp.owner_entity_id).is_some()
+                && ctx.db.building_state().entity_id().find(fp.owner_entity_id).is_some()
             {
                 return false;
             }
@@ -977,7 +982,7 @@ fn is_valid_cell(
         }
 
         // Don't spawn over paving
-        if ctx.db.paved_tile_state().entity_id().find(&entity_id).is_some() {
+        if ctx.db.paved_tile_state().entity_id().find(entity_id).is_some() {
             return false;
         }
     }
@@ -1005,7 +1010,7 @@ impl<'a> ResourceClumpDescExtended<'a> {
             let x = clump.x[i];
             let z = clump.z[i];
             let resource_desc = resource_desc[i];
-            if resource_desc.footprint.len() == 0 {
+            if resource_desc.footprint.is_empty() {
                 // default: (0,0)
                 footprints_no_perimiter.push(FootprintTile {
                     x,
@@ -1021,7 +1026,7 @@ impl<'a> ResourceClumpDescExtended<'a> {
                 }
             }
         }
-        let is_single_tile = footprints_no_perimiter.len() == 0
+        let is_single_tile = footprints_no_perimiter.is_empty()
             || (footprints_no_perimiter.len() == 1 && footprints_no_perimiter[0].x == 0 && footprints_no_perimiter[0].z == 0);
         footprints_no_perimiter.retain(|f| f.footprint_type != FootprintType::Perimeter);
 

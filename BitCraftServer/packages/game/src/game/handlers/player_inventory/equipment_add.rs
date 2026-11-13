@@ -14,13 +14,13 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let from_pocket = unwrap_or_err!(&request.from_pocket, "Invalid origin pocket");
     let mut inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&from_pocket.inventory_entity_id),
+        ctx.db.inventory_state().entity_id().find(from_pocket.inventory_entity_id),
         "Invalid inventory"
     );
 
@@ -44,7 +44,7 @@ pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -
     // Only remove ONE item if the source is a stack since we can only equip one item per slot
     inventory.remove_quantity_at(pocket_index, 1);
 
-    let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(&item_id), "Item is not equipable");
+    let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(item_id), "Item is not equipable");
 
     let preset_index = if EquipmentSlot::equipment_preset_slots().contains(&equipment_info.slots[0]) {
         request.preset_index
@@ -58,11 +58,11 @@ pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -
 
     if let Some(level_req) = &equipment_info.level_requirement {
         if !PlayerState::meets_level_requirement(ctx, actor_id, level_req) {
-            let mut skill_name = ctx.db.skill_desc().id().find(&level_req.skill_id).unwrap().name;
+            let mut skill_name = ctx.db.skill_desc().id().find(level_req.skill_id).unwrap().name;
             if skill_name == "ANY" {
                 skill_name = "in any skill".into();
             }
-            return Err(format!("You need to be level {{0}} {{1}}|~{0}|~{1}", level_req.level, skill_name).into());
+            return Err(format!("You need to be level {{0}} {{1}}|~{0}|~{1}", level_req.level, skill_name));
         }
     }
 
@@ -76,7 +76,7 @@ pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -
         }
     }
 
-    let mut equipment = ctx.db.equipment_state().entity_id().find(&actor_id).unwrap();
+    let mut equipment = ctx.db.equipment_state().entity_id().find(actor_id).unwrap();
     let mut equipment_preset = None;
     let mut equipment_slots = &mut equipment.equipment_slots;
 
@@ -115,7 +115,7 @@ pub fn equipment_add(ctx: &ReducerContext, request: PlayerEquipmentAddRequest) -
         }
     }
 
-    if to_remove.len() > 0 {
+    if !to_remove.is_empty() {
         for slot in equipment_slots.iter_mut() {
             if to_remove.contains(&slot.item_id()) && slot.item_id() != item_id {
                 slot.item = None;

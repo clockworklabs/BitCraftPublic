@@ -19,18 +19,18 @@ impl<'a> ClaimTileStateCache<'a> {
     }
 
     pub fn location_cache(&mut self) -> &mut LocationStateCache {
-        return &mut self.location_cache;
+        self.location_cache
     }
 
     pub fn get_claim_on_tile(&mut self, ctx: &ReducerContext, coord: SmallHexTile) -> Option<u64> {
-        return *self.claim_by_coord.entry(coord.hashcode()).or_insert_with(|| {
+        *self.claim_by_coord.entry(coord.hashcode()).or_insert_with(|| {
             self.location_cache
                 .select_all(ctx, &coord)
                 .iter()
                 .filter_map(|c| ctx.db.claim_tile_state().entity_id().find(c))
                 .map(|c| c.claim_id)
                 .next()
-        });
+        })
     }
 
     pub fn add_claim_on_tile(&mut self, entity_id: u64, claim_entity_id: u64, coord: &SmallHexTile) {
@@ -77,10 +77,10 @@ impl<'a> ClaimTileStateCache<'a> {
             panic!("get_num_adjacent_tiles should only be called in overworld");
         }
 
-        return SmallHexTile::coordinates_in_radius(coord, 1)
+        SmallHexTile::coordinates_in_radius(coord, 1)
             .iter()
             .filter_map(|t| self.get_claim_on_tile(ctx, *t))
-            .count();
+            .count()
     }
 
     /*

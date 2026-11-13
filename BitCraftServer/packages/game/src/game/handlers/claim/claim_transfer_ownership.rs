@@ -10,10 +10,10 @@ use spacetimedb::ReducerContext;
 #[shared_table_reducer]
 #[feature_gate]
 pub fn claim_transfer_ownership(ctx: &ReducerContext, request: PlayerClaimTransferOwnershipRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let mut claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&request.claim_entity_id), "No such claim.");
+    let mut claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.claim_entity_id), "No such claim.");
 
     if !claim.has_owner_permissions(actor_id) {
         return Err("Only the owner can transfer claim ownership.".into());

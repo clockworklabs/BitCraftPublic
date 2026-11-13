@@ -22,11 +22,11 @@ use super::passive_craft_process::passive_craft_timer;
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn passive_craft_queue(ctx: &ReducerContext, request: PlayerPassiveCraftQueueRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(&request.recipe_id), "Invalid recipe");
+    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(request.recipe_id), "Invalid recipe");
 
     let is_passive = recipe.is_passive && recipe.building_requirement.is_some();
     if !is_passive {
@@ -34,7 +34,7 @@ pub fn passive_craft_queue(ctx: &ReducerContext, request: PlayerPassiveCraftQueu
     }
 
     let building_state = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&request.building_entity_id),
+        ctx.db.building_state().entity_id().find(request.building_entity_id),
         "Invalid building"
     );
 
@@ -43,7 +43,7 @@ pub fn passive_craft_queue(ctx: &ReducerContext, request: PlayerPassiveCraftQueu
     }
 
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state.building_description_id),
+        ctx.db.building_desc().id().find(building_state.building_description_id),
         "Unknown building type"
     );
 
@@ -129,7 +129,7 @@ pub fn passive_craft_queue(ctx: &ReducerContext, request: PlayerPassiveCraftQueu
                         ctx.db
                             .crafting_recipe_desc()
                             .id()
-                            .find(&new_craft.recipe_id)
+                            .find(new_craft.recipe_id)
                             .unwrap()
                             .time_requirement,
                         ctx.timestamp,

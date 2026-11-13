@@ -22,7 +22,7 @@ pub struct EnemyDespawnTimer {
 
 #[spacetimedb::reducer]
 pub fn enemy_spawn_loot(ctx: &ReducerContext, request: EnemySpawnLootRequest) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     let enemy_desc = ctx.db.enemy_desc().enemy_type().find(request.enemy_type).unwrap();
     let mut output = Vec::new();
@@ -36,7 +36,7 @@ pub fn enemy_spawn_loot(ctx: &ReducerContext, request: EnemySpawnLootRequest) ->
         output.append(&mut drops);
     }
 
-    if output.len() > 0 {
+    if !output.is_empty() {
         InventoryState::deposit_to_player_inventory_and_nearby_deployables(
             ctx,
             request.player_entity_id,
@@ -55,21 +55,21 @@ pub fn enemy_spawn_loot(ctx: &ReducerContext, request: EnemySpawnLootRequest) ->
 
 #[spacetimedb::reducer]
 pub fn enemy_despawn(ctx: &ReducerContext, timer: EnemyDespawnTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     reduce(ctx, timer.entity_id, true);
     Ok(())
 }
 
 #[spacetimedb::reducer]
 pub fn enemy_despawn_from_mob_monitor(ctx: &ReducerContext, enemy_entity_id: u64) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     reduce(ctx, enemy_entity_id, false);
     Ok(())
 }
 
 #[spacetimedb::reducer]
 pub fn enemy_despawn_from_mob_monitor_batch(ctx: &ReducerContext, enemy_entity_ids: Vec<u64>) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     for enemy_entity_id in enemy_entity_ids {
         reduce(ctx, enemy_entity_id, false);
     }
@@ -80,11 +80,11 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, emit_despawn_event: bool) {
     // The enemy can be despawned twice if it is killed just as it is unspawned because of the time of day.
     // (one call from the server and one call from the mob monitor)
     // In this case, just despawn it once, with whatever happens first.
-    if let Some(enemy) = ctx.db.enemy_state().entity_id().find(&entity_id) {
+    if let Some(enemy) = ctx.db.enemy_state().entity_id().find(entity_id) {
         // Clear all combat sessions involving the dead entity
         ThreatState::clear_all(ctx, entity_id);
 
-        if let Some(mut herd) = ctx.db.herd_state().entity_id().find(&enemy.herd_entity_id) {
+        if let Some(mut herd) = ctx.db.herd_state().entity_id().find(enemy.herd_entity_id) {
             herd.current_population -= 1;
             ctx.db.herd_state().entity_id().update(herd);
         }
@@ -111,7 +111,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, emit_despawn_event: bool) {
         }
 
         if emit_despawn_event {
-            if let Some(mobile_entity) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+            if let Some(mobile_entity) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
                 ctx.db.enemy_despawn_event().insert(EnemyDespawnEvent {
                     entity_id,
                     enemy_type: enemy.enemy_type,

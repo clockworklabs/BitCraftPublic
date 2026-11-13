@@ -18,7 +18,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, false)?;
+    let actor_id = game_state::actor_id(ctx, false)?;
 
     let _ = ctx
         .db
@@ -26,19 +26,19 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
         .try_insert(SignedInPlayerState { entity_id: actor_id });
 
     // Update last viewed empire messages
-    if let Some(mut player_log) = ctx.db.empire_player_log_state().entity_id().find(&actor_id) {
-        if let Some(empire_log) = ctx.db.empire_log_state().entity_id().find(&player_log.empire_entity_id) {
+    if let Some(mut player_log) = ctx.db.empire_player_log_state().entity_id().find(actor_id) {
+        if let Some(empire_log) = ctx.db.empire_log_state().entity_id().find(player_log.empire_entity_id) {
             player_log.last_viewed = empire_log.last_posted;
             ctx.db.empire_player_log_state().entity_id().update(player_log);
         }
     }
 
     // Claim pending shards
-    if let Some(unclaimed_shards) = ctx.db.unclaimed_shards_state().identity().find(&ctx.sender()) {
-        let mut vault = ctx.db.player_shard_state().entity_id().find(&actor_id).unwrap();
+    if let Some(unclaimed_shards) = ctx.db.unclaimed_shards_state().identity().find(ctx.sender()) {
+        let mut vault = ctx.db.player_shard_state().entity_id().find(actor_id).unwrap();
         vault.shards += unclaimed_shards.shards;
         ctx.db.player_shard_state().entity_id().update(vault);
-        ctx.db.unclaimed_shards_state().identity().delete(&ctx.sender());
+        ctx.db.unclaimed_shards_state().identity().delete(ctx.sender());
     }
 
     Ok(())
@@ -50,7 +50,7 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
 pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
     // Newest connection wins. Updated on every connect so a stale connection's
     // disconnect can be told apart from the active one's.
-    if let (Some(user), Some(connection_id)) = (ctx.db.user_state().identity().find(&ctx.sender()), ctx.connection_id()) {
+    if let (Some(user), Some(connection_id)) = (ctx.db.user_state().identity().find(ctx.sender()), ctx.connection_id()) {
         let active = ActiveConnectionState {
             entity_id: user.entity_id,
             connection_id,
@@ -85,7 +85,7 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
 
 #[spacetimedb::reducer(client_disconnected)]
 pub fn identity_disconnected(ctx: &ReducerContext) {
-    if let Some(user) = ctx.db.user_state().identity().find(&ctx.sender()) {
+    if let Some(user) = ctx.db.user_state().identity().find(ctx.sender()) {
         if let Some(active) = ctx.db.active_connection_state().entity_id().find(user.entity_id) {
             // Stale: the identity already opened a newer connection, i.e. the player
             // reconnected before this disconnect was processed. Signing out now would

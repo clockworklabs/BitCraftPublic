@@ -23,16 +23,16 @@ pub fn log_empire_leaderboard(ctx: &ReducerContext) -> Result<(), String> {
 
     // Collect counts into a vector and sort by frequency (descending)
     let mut territory_counts: Vec<(u64, usize)> = territory_counts.into_iter().collect();
-    territory_counts.sort_by(|a, b| b.1.cmp(&a.1));
+    territory_counts.sort_by_key(|b| std::cmp::Reverse(b.1));
 
     log::info!("Empire Ranking");
     log::info!("|        Empire Name        |  Territory Count  |");
     for (empire_entity_id, count) in territory_counts {
-        if let Some(state) = ctx.db.empire_state().entity_id().find(&empire_entity_id) {
+        if let Some(state) = ctx.db.empire_state().entity_id().find(empire_entity_id) {
             if state.name.len() >= 26 {
                 log::info!("| {}|{:18} |", &state.name[0..26], count);
             } else {
-                log::info!("| {:26}|{:18} |", &state.name, count);
+                log::info!("| {:26}|{:18} |", state.name, count);
             }
         }
     }

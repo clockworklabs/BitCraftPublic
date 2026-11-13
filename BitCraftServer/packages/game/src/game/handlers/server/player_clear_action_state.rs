@@ -13,7 +13,7 @@ pub fn player_clear_action_state(
     layer: PlayerActionLayer,
     last_action_result: PlayerActionResult,
 ) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     reduce(ctx, actor_id, current_action, layer, last_action_result)
 }

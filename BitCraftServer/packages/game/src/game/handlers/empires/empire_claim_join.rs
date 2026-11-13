@@ -11,16 +11,16 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_claim_join(ctx: &ReducerContext, building_entity_id: u64, empire_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
-    if ctx.db.empire_state().entity_id().find(&empire_entity_id).is_none() {
+    if ctx.db.empire_state().entity_id().find(empire_entity_id).is_none() {
         return Err("Empire does not exist".into());
     }
 
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().owner_building_entity_id().find(&building_entity_id),
+        ctx.db.claim_state().owner_building_entity_id().find(building_entity_id),
         "Claim is not valid"
     );
 
@@ -29,7 +29,7 @@ pub fn empire_claim_join(ctx: &ReducerContext, building_entity_id: u64, empire_e
     }
 
     let settlement = unwrap_or_err!(
-        ctx.db.empire_settlement_state().building_entity_id().find(&building_entity_id),
+        ctx.db.empire_settlement_state().building_entity_id().find(building_entity_id),
         "This claim does not have the tech to join an empire"
     );
 
@@ -56,7 +56,7 @@ pub fn empire_claim_join(ctx: &ReducerContext, building_entity_id: u64, empire_e
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireClaimJoinMsg, error: Option<String>) {
-    if error.is_some() {
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+    if let Some(error) = error {
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     }
 }

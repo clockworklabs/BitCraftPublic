@@ -26,17 +26,17 @@ impl EmpirePlayerDataState {
 impl EmpireState {
     pub fn get_building_empire_entity_id(ctx: &ReducerContext, building_entity_id: u64) -> u64 {
         // This will take care of aligned claims and watchtowers
-        if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(&building_entity_id) {
+        if let Some(empire_node) = ctx.db.empire_node_state().entity_id().find(building_entity_id) {
             return empire_node.empire_entity_id;
         }
-        if let Some(building) = ctx.db.building_state().entity_id().find(&building_entity_id) {
-            if let Some(claim) = ctx.db.claim_state().entity_id().find(&building.claim_entity_id) {
-                if let Some(empire_settlement_state) = ctx.db.empire_settlement_state().claim_entity_id().find(&claim.entity_id) {
+        if let Some(building) = ctx.db.building_state().entity_id().find(building_entity_id) {
+            if let Some(claim) = ctx.db.claim_state().entity_id().find(building.claim_entity_id) {
+                if let Some(empire_settlement_state) = ctx.db.empire_settlement_state().claim_entity_id().find(claim.entity_id) {
                     return empire_settlement_state.empire_entity_id;
                 }
             }
         }
-        return 0;
+        0
     }
 }
 
@@ -46,7 +46,7 @@ impl EmpireRankState {
     }
 
     pub fn get_player_rank(ctx: &ReducerContext, player_entity_id: u64) -> Option<EmpireRankState> {
-        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(&player_entity_id) {
+        if let Some(rank) = ctx.db.empire_player_data_state().entity_id().find(player_entity_id) {
             return Self::get_rank(ctx, rank.empire_entity_id, rank.rank);
         }
         None
@@ -55,8 +55,8 @@ impl EmpireRankState {
 
 impl EmpireNodeSiegeState {
     pub fn get(ctx: &ReducerContext, building_entity_id: u64, empire_entity_id: u64) -> Option<EmpireNodeSiegeState> {
-        let sieges_on_node = ctx.db.empire_node_siege_state().building_entity_id().filter(building_entity_id);
-        sieges_on_node.filter(|n| n.empire_entity_id == empire_entity_id).next()
+        let mut sieges_on_node = ctx.db.empire_node_siege_state().building_entity_id().filter(building_entity_id);
+        sieges_on_node.find(|n| n.empire_entity_id == empire_entity_id)
     }
 
     pub fn has_active_siege(ctx: &ReducerContext, building_entity_id: u64) -> bool {
@@ -68,10 +68,10 @@ impl EmpireNodeSiegeState {
     }
 
     pub fn validate_action(ctx: &ReducerContext, actor_id: u64, building_entity_id: u64) -> Result<(), String> {
-        if ctx.db.empire_node_state().entity_id().find(&building_entity_id).is_none() {
+        if ctx.db.empire_node_state().entity_id().find(building_entity_id).is_none() {
             return Err("This building cannot be sieged".into());
         }
-        if ctx.db.empire_player_data_state().entity_id().find(&actor_id).is_none() {
+        if ctx.db.empire_player_data_state().entity_id().find(actor_id).is_none() {
             return Err("You are not a member of an empire".into());
         }
         Ok(())
@@ -88,7 +88,7 @@ impl EmpireNodeSiegeState {
             return Err("Cannot add siege supplies when there is no siege".into());
         }
 
-        let rank = ctx.db.empire_player_data_state().entity_id().find(&player_entity_id).unwrap();
+        let rank = ctx.db.empire_player_data_state().entity_id().find(player_entity_id).unwrap();
         let mut siege = EmpireNodeSiegeState::get(ctx, building_entity_id, rank.empire_entity_id);
 
         let participating = match siege.as_ref() {
@@ -114,7 +114,7 @@ impl EmpireNodeSiegeState {
 
 impl EmpireSettlementState {
     pub fn from_claim(ctx: &ReducerContext, claim_entity_id: u64) -> Option<EmpireSettlementState> {
-        ctx.db.empire_settlement_state().claim_entity_id().find(&claim_entity_id)
+        ctx.db.empire_settlement_state().claim_entity_id().find(claim_entity_id)
     }
 }
 
@@ -144,13 +144,13 @@ pub fn empire_resupply_node_validate(ctx: &ReducerContext, actor_id: u64, buildi
 
     // Find the player's empire affiliation
     let player_rank = unwrap_or_err!(
-        ctx.db.empire_player_data_state().entity_id().find(&actor_id),
+        ctx.db.empire_player_data_state().entity_id().find(actor_id),
         "You need to be part of an empire to deposit a hexite capsule"
     );
 
     // Find the building empire affiliation
     let empire_node = unwrap_or_err!(
-        ctx.db.empire_node_state().entity_id().find(&building_entity_id),
+        ctx.db.empire_node_state().entity_id().find(building_entity_id),
         "The building needs to be part of an empire to receive a hexite capsule"
     );
 
@@ -158,7 +158,7 @@ pub fn empire_resupply_node_validate(ctx: &ReducerContext, actor_id: u64, buildi
         return Err("You need to be part of the empire to supply this empire node.".into());
     }
 
-    if let Some(empire_chunk) = ctx.db.empire_chunk_state().chunk_index().find(&empire_node.chunk_index) {
+    if let Some(empire_chunk) = ctx.db.empire_chunk_state().chunk_index().find(empire_node.chunk_index) {
         if empire_chunk.empire_entity_id != 0 && empire_chunk.empire_entity_id != empire_node.empire_entity_id {
             return Err("Cannot resupply watchtower when not under your empire control".into());
         }
@@ -180,7 +180,7 @@ pub fn validate_siege_distance(
 ) -> Result<(), String> {
     let watchtower_location = game_state_filters::coordinates(ctx, building_entity_id);
     let distance = watchtower_location.distance_to(coord);
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     let min = params.empire_min_siege_distance - padding;
     let max = params.empire_max_siege_distance + padding;
     if distance < min || distance > max {

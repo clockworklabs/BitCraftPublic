@@ -12,23 +12,23 @@ use crate::{deployable_desc, unwrap_or_err, MovementType};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_mount(ctx: &ReducerContext, request: PlayerDeployableMountRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let deployable_entity_id = request.deployable_entity_id;
 
-    if ctx.db.mounting_state().entity_id().find(&actor_id).is_some() {
+    if ctx.db.mounting_state().entity_id().find(actor_id).is_some() {
         return Err("Already mounting a deployable".into());
     }
 
     let deployable = unwrap_or_err!(
-        ctx.db.deployable_state_v2().entity_id().find(&deployable_entity_id),
+        ctx.db.deployable_state_v2().entity_id().find(deployable_entity_id),
         "Deployable not found!"
     );
     let deployable_desc = unwrap_or_err!(
-        ctx.db.deployable_desc().id().find(&deployable.deployable_description_id),
+        ctx.db.deployable_desc().id().find(deployable.deployable_description_id),
         "Invalid deployable type"
     );
 
@@ -78,8 +78,8 @@ pub fn deployable_mount(ctx: &ReducerContext, request: PlayerDeployableMountRequ
     PlayerState::move_player_and_explore(
         ctx,
         actor_id,
-        &player_coordinates.into(),
-        &deployable_coordinates.into(),
+        &player_coordinates,
+        &deployable_coordinates,
         0.0,
         false,
         None,

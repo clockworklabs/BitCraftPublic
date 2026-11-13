@@ -8,40 +8,40 @@ use crate::{
 
 impl ExplorationChunksStateV2 {
     pub fn new(ctx: &ReducerContext, entity_id: u64, region: Option<WorldRegionState>) -> Self {
-        let region = region.unwrap_or_else(|| ctx.db.world_region_state().id().find(&0).unwrap());
+        let region = region.unwrap_or_else(|| ctx.db.world_region_state().id().find(0).unwrap());
         let bifield_size = (region.world_chunk_count() + 63) / 64;
-        return ExplorationChunksStateV2 {
+        ExplorationChunksStateV2 {
             entity_id,
             bitmap: vec![0; bifield_size as usize],
             explored_chunks_count: 0,
             achievement_explored_chunks_count: 0,
-        };
+        }
     }
 
     pub fn explore_chunk(&mut self, ctx: &ReducerContext, chunk: &ChunkCoordinates, world_width: Option<i32>) -> bool {
         if chunk.dimension != dimensions::OVERWORLD {
             panic!("Only overworld chunks can be explored");
         }
-        let region = ctx.db.world_region_state().id().find(&0).unwrap();
-        let world_width = world_width.unwrap_or_else(|| ctx.db.world_region_state().id().find(&0).unwrap().world_width_chunks());
+        let region = ctx.db.world_region_state().id().find(0).unwrap();
+        let world_width = world_width.unwrap_or_else(|| ctx.db.world_region_state().id().find(0).unwrap().world_width_chunks());
         let index = Self::index_for_chunk(chunk, world_width);
         let counts_toward_achievements = RegionExplorationInfo::counts_toward_achievements(ctx, region.region_index);
-        return self.explore_chunk_internal(index, counts_toward_achievements);
+        self.explore_chunk_internal(index, counts_toward_achievements)
     }
 
     pub fn explore_chunk_and_surroundings(&mut self, ctx: &ReducerContext, chunk: &ChunkCoordinates, world_width: Option<i32>) -> bool {
         if chunk.dimension != dimensions::OVERWORLD {
             panic!("Only overworld chunks can be explored");
         }
-        let region = ctx.db.world_region_state().id().find(&0).unwrap();
-        let world_width = world_width.unwrap_or_else(|| ctx.db.world_region_state().id().find(&0).unwrap().world_width_chunks());
+        let region = ctx.db.world_region_state().id().find(0).unwrap();
+        let world_width = world_width.unwrap_or_else(|| ctx.db.world_region_state().id().find(0).unwrap().world_width_chunks());
         let counts_toward_achievements = RegionExplorationInfo::counts_toward_achievements(ctx, region.region_index);
         let mut r = false;
         for c in chunk.surrounding_and_including(ctx) {
             let index = Self::index_for_chunk(&c, world_width);
             r |= self.explore_chunk_internal(index, counts_toward_achievements);
         }
-        return r;
+        r
     }
 
     pub fn achievement_explored_chunks_count(&self) -> i32 {
@@ -59,13 +59,13 @@ impl ExplorationChunksStateV2 {
             }
             return true;
         }
-        return false;
+        false
     }
 
     fn index_for_chunk(chunk: &ChunkCoordinates, world_width: i32) -> (usize, u64) {
         let global_index = chunk.z * world_width + chunk.x;
         let vec_index = (global_index / 64) as usize;
         let bitmask = 1u64 << (global_index % 64);
-        return (vec_index, bitmask);
+        (vec_index, bitmask)
     }
 }

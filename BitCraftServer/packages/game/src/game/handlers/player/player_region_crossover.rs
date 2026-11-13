@@ -15,7 +15,7 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_region_crossover(ctx: &ReducerContext) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
@@ -28,7 +28,7 @@ pub fn player_region_crossover(ctx: &ReducerContext) -> Result<(), String> {
     let min_coord = vec2 * region_size * chunk_size;
     let max_coord = min_coord + region_size * chunk_size;
 
-    let mobile_entity = ctx.db.mobile_entity_state().entity_id().find(&actor_id).unwrap();
+    let mobile_entity = ctx.db.mobile_entity_state().entity_id().find(actor_id).unwrap();
     if mobile_entity.dimension != dimensions::OVERWORLD {
         return Err("Transfering regions is only possible in Overworld".into());
     }
@@ -79,7 +79,7 @@ pub fn player_region_crossover(ctx: &ReducerContext) -> Result<(), String> {
     };
 
     let teleport_location = FloatHexTile::from(LargeHexTile::from(HexCoordinates::from(target_coord)).center_small_tile());
-    crate::inter_module::transfer_player::send_message(ctx, actor_id, teleport_location.into(), true, 0.0)?;
+    crate::inter_module::transfer_player::send_message(ctx, actor_id, teleport_location, true, 0.0)?;
 
     Ok(())
 }

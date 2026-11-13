@@ -23,15 +23,15 @@ use crate::{
 #[shared_table_reducer]
 #[feature_gate]
 pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, false)?;
+    let actor_id = game_state::actor_id(ctx, false)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let now_ms = ctx.timestamp;
 
-    log::info!("[{:?}] Signin {}, {:?}", now_ms, actor_id, &ctx.sender().to_hex());
+    log::info!("[{:?}] Signin {}, {:?}", now_ms, actor_id, ctx.sender().to_hex());
 
     let region_sign_in_parameters = unwrap_or_err!(RegionSignInParameters::get(ctx), "Failed to get RegionSignInParameters");
     if region_sign_in_parameters.is_signing_in_blocked && !has_role(ctx, &ctx.sender(), Role::Gm) {
-        return Err(format!("Server is unavailable at this time, please try again later."));
+        return Err("Server is unavailable at this time, please try again later.".to_string());
     }
 
     let region_id = region_sign_in_parameters.region_id;
@@ -56,9 +56,9 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
         return Ok(());
     }
 
-    let user = unwrap_or_err!(ctx.db.user_state().identity().find(&ctx.sender()), "No user found");
+    let user = unwrap_or_err!(ctx.db.user_state().identity().find(ctx.sender()), "No user found");
     if !user.can_sign_in {
-        return Err(format!("You must join the queue first."));
+        return Err("You must join the queue first.".to_string());
     }
 
     let mut player = unwrap_or_err!(ctx.db.player_state().entity_id().find(actor_id), "Invalid player id");
@@ -88,14 +88,13 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
 
     for moderation in moderations {
         if moderation.user_moderation_policy == UserModerationPolicy::PermanentBlockLogin {
-            return Err(format!("Your account is blocked from logging in."));
+            return Err("Your account is blocked from logging in.".to_string());
         }
 
-        if moderation.user_moderation_policy == UserModerationPolicy::TemporaryBlockLogin {
-            if moderation.expiration_time > ctx.timestamp {
-                return Err(format!("Your account is blocked from logging in."));
+        if moderation.user_moderation_policy == UserModerationPolicy::TemporaryBlockLogin
+            && moderation.expiration_time > ctx.timestamp {
+                return Err("Your account is blocked from logging in.".to_string());
             }
-        }
     }
 
     //Cancel all scheduled grace periods
@@ -114,7 +113,7 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
 
     // restart timestamps
     let active_buff_state = unwrap_or_err!(
-        ctx.db.active_buff_state().entity_id().find(&actor_id),
+        ctx.db.active_buff_state().entity_id().find(actor_id),
         "Player has no active buff state."
     );
 
@@ -124,7 +123,7 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
     active_buff_state.restart_all_buffs(ctx);
 
     // Refresh Innerlight buff with a short login immunity
-    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(&0).unwrap().sign_in_aggro_immunity;
+    let innerlight_buff_duration = ctx.db.parameters_desc().version().find(0).unwrap().sign_in_aggro_immunity;
     active_buff_state.set_innerlight_buff(ctx, innerlight_buff_duration);
 
     PlayerState::collect_stats_with_uncommited_buffs(ctx, &active_buff_state);
@@ -146,7 +145,7 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
         .signed_in_player_state()
         .try_insert(SignedInPlayerState { entity_id: actor_id })?;
 
-    let mut mobile = ctx.db.mobile_entity_state().entity_id().find(&actor_id).unwrap();
+    let mut mobile = ctx.db.mobile_entity_state().entity_id().find(actor_id).unwrap();
     mobile.destination_x = mobile.location_x;
     mobile.destination_z = mobile.location_z;
     mobile.is_walking = false;
@@ -155,13 +154,13 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
     ctx.db.mobile_entity_state().entity_id().update(mobile);
 
     // Claim pending collectibles
-    if let Some(unclaimed_collectibles) = ctx.db.unclaimed_collectibles_state().identity().find(&user.identity) {
-        let mut vault = ctx.db.vault_state().entity_id().find(&actor_id).unwrap();
+    if let Some(unclaimed_collectibles) = ctx.db.unclaimed_collectibles_state().identity().find(user.identity) {
+        let mut vault = ctx.db.vault_state().entity_id().find(actor_id).unwrap();
         for collectible_id in unclaimed_collectibles.collectibles {
             let _ = vault.add_collectible(ctx, collectible_id, false);
         }
         ctx.db.vault_state().entity_id().update(vault);
-        ctx.db.unclaimed_collectibles_state().identity().delete(&user.identity);
+        ctx.db.unclaimed_collectibles_state().identity().delete(user.identity);
     }
 
     // Display hidden deployables
@@ -174,11 +173,11 @@ pub fn sign_in(ctx: &ReducerContext, _request: PlayerSignInRequest) -> Result<()
         .collect();
     for (entity_id, hidden) in deployable_ids {
         //delete timer that sets deployable hidden
-        ctx.db.hide_deployable_timer().entity_id().delete(&entity_id);
+        ctx.db.hide_deployable_timer().entity_id().delete(entity_id);
 
         //set hidden deployable visible
         if hidden {
-            let mut deployable = ctx.db.deployable_state_v2().entity_id().find(&entity_id).unwrap();
+            let mut deployable = ctx.db.deployable_state_v2().entity_id().find(entity_id).unwrap();
             deployable.hidden = false;
             ctx.db.deployable_state_v2().entity_id().update(deployable);
         }

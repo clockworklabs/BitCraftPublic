@@ -16,41 +16,41 @@ use std::ops::{Add, Sub};
 
 impl From<SmallHexTile> for HexCoordinates {
     fn from(coordinates: SmallHexTile) -> Self {
-        return HexCoordinates {
+        HexCoordinates {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
 impl From<&SmallHexTile> for HexCoordinates {
     fn from(coordinates: &SmallHexTile) -> Self {
-        return HexCoordinates {
+        HexCoordinates {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
 impl From<HexCoordinates> for SmallHexTile {
     fn from(coordinates: HexCoordinates) -> Self {
-        return SmallHexTile {
+        SmallHexTile {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
 impl From<&HexCoordinates> for SmallHexTile {
     fn from(coordinates: &HexCoordinates) -> Self {
-        return SmallHexTile {
+        SmallHexTile {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
@@ -58,7 +58,7 @@ impl From<SmallHexTile> for LargeHexTile {
     fn from(coordinates: SmallHexTile) -> Self {
         let mut hc = HexCoordinates::from(coordinates);
         hc = hc.scale(1. / 3.);
-        return LargeHexTile::from(hc);
+        LargeHexTile::from(hc)
     }
 }
 
@@ -66,7 +66,7 @@ impl From<&SmallHexTile> for LargeHexTile {
     fn from(coordinates: &SmallHexTile) -> Self {
         let mut hc = HexCoordinates::from(coordinates);
         hc = hc.scale(1. / 3.);
-        return LargeHexTile::from(hc);
+        LargeHexTile::from(hc)
     }
 }
 
@@ -74,7 +74,7 @@ impl From<LargeHexTile> for SmallHexTile {
     fn from(coordinates: LargeHexTile) -> Self {
         let mut hc = HexCoordinates::from(coordinates);
         hc = hc.scale(3.);
-        return SmallHexTile::from(hc);
+        SmallHexTile::from(hc)
     }
 }
 
@@ -82,43 +82,43 @@ impl From<&LargeHexTile> for SmallHexTile {
     fn from(coordinates: &LargeHexTile) -> Self {
         let mut hc = HexCoordinates::from(coordinates);
         hc = hc.scale(3.);
-        return SmallHexTile::from(hc);
+        SmallHexTile::from(hc)
     }
 }
 
 impl From<SmallHexTile> for FloatHexTile {
     fn from(coordinates: SmallHexTile) -> Self {
-        return FloatHexTile::from(HexCoordinates::from(coordinates));
+        FloatHexTile::from(HexCoordinates::from(coordinates))
     }
 }
 
 impl From<&SmallHexTile> for FloatHexTile {
     fn from(coordinates: &SmallHexTile) -> Self {
-        return FloatHexTile::from(HexCoordinates::from(coordinates));
+        FloatHexTile::from(HexCoordinates::from(coordinates))
     }
 }
 
 impl From<FloatHexTile> for SmallHexTile {
     fn from(coordinates: FloatHexTile) -> Self {
-        return SmallHexTile::from(HexCoordinates::from(coordinates));
+        SmallHexTile::from(HexCoordinates::from(coordinates))
     }
 }
 
 impl From<&FloatHexTile> for SmallHexTile {
     fn from(coordinates: &FloatHexTile) -> Self {
-        return SmallHexTile::from(HexCoordinates::from(coordinates));
+        SmallHexTile::from(HexCoordinates::from(coordinates))
     }
 }
 
 impl From<SmallHexTile> for ChunkCoordinates {
     fn from(coordinates: SmallHexTile) -> Self {
-        return ChunkCoordinates::from(HexCoordinates::from(coordinates));
+        ChunkCoordinates::from(HexCoordinates::from(coordinates))
     }
 }
 
 impl From<&SmallHexTile> for ChunkCoordinates {
     fn from(coordinates: &SmallHexTile) -> Self {
-        return ChunkCoordinates::from(HexCoordinates::from(coordinates));
+        ChunkCoordinates::from(HexCoordinates::from(coordinates))
     }
 }
 
@@ -209,15 +209,15 @@ impl Display for SmallHexTile {
 
 impl SmallHexTile {
     pub fn parent_large_tile(&self) -> LargeHexTile {
-        return LargeHexTile::from(self);
+        LargeHexTile::from(self)
     }
 
     pub fn chunk_coordinates(&self) -> ChunkCoordinates {
-        return ChunkCoordinates::from(self);
+        ChunkCoordinates::from(self)
     }
 
     pub fn to_offset_coordinates(&self) -> OffsetCoordinatesSmall {
-        return self.into();
+        self.into()
     }
 
     pub fn from_hashcode(hashcode: i64) -> Self {
@@ -226,40 +226,40 @@ impl SmallHexTile {
     }
 
     pub fn hashcode(&self) -> i64 {
-        return OffsetCoordinatesSmall::from(self).hashcode();
+        OffsetCoordinatesSmall::from(self).hashcode()
     }
 
     pub fn hashcode_long(&self) -> i128 {
-        return OffsetCoordinatesSmall::from(self).hashcode_long();
+        OffsetCoordinatesSmall::from(self).hashcode_long()
     }
 
     pub fn neighbor_n(&self, direction: HexDirection, n: i32) -> SmallHexTile {
-        return HexCoordinates::from(self).neighbor_n(direction, n).into();
+        HexCoordinates::from(self).neighbor_n(direction, n).into()
     }
 
     pub fn neighbor(&self, direction: HexDirection) -> SmallHexTile {
-        return HexCoordinates::from(self).neighbor(direction).into();
+        HexCoordinates::from(self).neighbor(direction).into()
     }
 
     pub fn neighbors_direct(&self) -> impl Iterator<Item = SmallHexTile> + '_ {
-        return HexDirection::FLAT.iter().map(|d| self.neighbor(*d));
+        HexDirection::FLAT.iter().map(|d| self.neighbor(*d))
     }
 
     pub fn direction(&self, neighbor: SmallHexTile) -> Option<HexDirection> {
-        return HexCoordinates::from(self).direction(neighbor.into());
+        HexCoordinates::from(self).direction(neighbor.into())
     }
 
     pub fn rotate_around(&self, center: &SmallHexTile, steps: i32) -> SmallHexTile {
-        return HexCoordinates::from(self)
+        HexCoordinates::from(self)
             .rotate_around(&HexCoordinates::from(center), steps)
-            .into();
+            .into()
     }
 
     pub fn distance_to(&self, other: SmallHexTile) -> i32 {
         if other.dimension != self.dimension {
             return i32::MAX;
         }
-        return HexCoordinates::from(self).distance_to(other.into());
+        HexCoordinates::from(self).distance_to(other.into())
     }
 
     pub fn distance_to_footprint(&self, footprint: Vec<(SmallHexTile, FootprintType)>) -> i32 {
@@ -273,39 +273,39 @@ impl SmallHexTile {
     }
 
     pub fn is_corner(&self) -> bool {
-        return HexCoordinates::from(self).is_corner();
+        HexCoordinates::from(self).is_corner()
     }
 
     pub fn approximate_direction(&self, coordinates: SmallHexTile) -> HexDirection {
-        return HexCoordinates::from(self).approximate_direction(coordinates.into());
+        HexCoordinates::from(self).approximate_direction(coordinates.into())
     }
 
     pub fn angle(&self, coordinates: SmallHexTile) -> f64 {
-        return HexCoordinates::from(self).angle(coordinates.into());
+        HexCoordinates::from(self).angle(coordinates.into())
     }
 
     pub fn coordinates_in_radius(center: SmallHexTile, radius: i32) -> Vec<SmallHexTile> {
         //Doesn't include center
-        return HexCoordinates::coordinates_in_radius(center.into(), radius)
+        HexCoordinates::coordinates_in_radius(center.into(), radius)
             .iter()
-            .map(|a| SmallHexTile::from(a))
-            .collect();
+            .map(SmallHexTile::from)
+            .collect()
     }
 
     pub fn coordinates_in_radius_with_center_iter(center: SmallHexTile, radius: i32) -> impl Iterator<Item = SmallHexTile> {
         //DOES include center
-        return HexCoordinates::coordinates_in_radius_with_center_iter(center.into(), radius).map(|a| SmallHexTile::from(a));
+        HexCoordinates::coordinates_in_radius_with_center_iter(center.into(), radius).map(SmallHexTile::from)
     }
 
     pub fn ring(center: SmallHexTile, radius: i32) -> Vec<SmallHexTile> {
-        return HexCoordinates::ring(center.into(), radius)
+        HexCoordinates::ring(center.into(), radius)
             .iter()
-            .map(|a| SmallHexTile::from(a))
-            .collect();
+            .map(SmallHexTile::from)
+            .collect()
     }
 
     pub fn ring_iter(center: SmallHexTile, radius: i32) -> impl Iterator<Item = SmallHexTile> {
-        return HexCoordinates::ring_iter(center.into(), radius).map(|a| SmallHexTile::from(a));
+        HexCoordinates::ring_iter(center.into(), radius).map(SmallHexTile::from)
     }
 
     pub fn shuffled_coordinates_between_radius(
@@ -329,29 +329,29 @@ impl SmallHexTile {
         candidate_tiles
     }
 
-    pub fn closest(&self, locations: &Vec<SmallHexTile>) -> Option<SmallHexTile> {
-        let locations = locations.iter().map(|a| HexCoordinates::from(a)).collect();
-        match HexCoordinates::from(self).closest(&locations) {
-            Some(a) => return Some(SmallHexTile::from(a)),
-            None => return None,
+    pub fn closest(&self, locations: &[SmallHexTile]) -> Option<SmallHexTile> {
+        let locations = locations.iter().map(HexCoordinates::from).collect();
+        {
+            let a = HexCoordinates::from(self).closest(&locations)?;
+            Some(SmallHexTile::from(a))
         }
     }
 
     pub fn is_center(&self) -> bool {
-        return HexCoordinates::from(self).is_center();
+        HexCoordinates::from(self).is_center()
     }
 
     pub fn to_center_position_xz(&self) -> Vector2 {
-        return HexCoordinates::from(self).to_center_position_xz(false);
+        HexCoordinates::from(self).to_center_position_xz(false)
     }
 
     pub fn from_position(position: Vector2, dimension: u32) -> SmallHexTile {
-        return SmallHexTile::from(HexCoordinates::from_position(position, false, dimension));
+        SmallHexTile::from(HexCoordinates::from_position(position, false, dimension))
     }
 
     pub fn get_terrain_coordinates(&self) -> [LargeHexTile; 3] {
         let r = HexCoordinates::from(self).get_terrain_coordinates();
-        return [r[0].into(), r[1].into(), r[2].into()];
+        [r[0].into(), r[1].into(), r[2].into()]
     }
 
     //Fast, but not very precise
@@ -368,7 +368,7 @@ impl SmallHexTile {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     pub fn tile_count_in_radius(radius: i32) -> u64 {

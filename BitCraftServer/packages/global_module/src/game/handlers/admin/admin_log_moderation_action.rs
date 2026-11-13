@@ -5,6 +5,7 @@ use crate::messages::components::{moderation_action_log_entry, ModerationActionL
 use crate::{game::handlers::authentication::has_role, messages::authentication::Role};
 
 #[spacetimedb::reducer]
+#[expect(clippy::too_many_arguments, reason = "reducer arguments are part of the client API")]
 pub fn admin_log_moderation_action(
     ctx: &ReducerContext,
     report_entity_id: u64,

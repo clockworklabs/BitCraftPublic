@@ -59,10 +59,7 @@ impl PermissionGroup {
 
 impl BuffCategory {
     pub fn has_only_one_buff(self) -> bool {
-        match self {
-            BuffCategory::None | BuffCategory::Generic => false,
-            _ => true,
-        }
+        !matches!(self, BuffCategory::None | BuffCategory::Generic)
     }
     pub fn to_enum(value: i32) -> BuffCategory {
         unsafe { std::mem::transmute(value) }
@@ -109,13 +106,13 @@ impl BuildingCategory {
 
 impl Biome {
     pub fn to_enum(value: u8) -> Biome {
-        unsafe { std::mem::transmute(value as u8) }
+        unsafe { std::mem::transmute(value) }
     }
 }
 
 impl SkillType {
     pub fn to_enum(value: i32) -> Self {
-        unsafe { std::mem::transmute(value as i32) }
+        unsafe { std::mem::transmute(value) }
     }
 }
 
@@ -128,7 +125,7 @@ impl ExtractionRecipeDesc {
         if skill_id > SkillType::ANY as i32 {
             return Some(SkillType::to_enum(skill_id));
         }
-        return None;
+        None
     }
 }
 
@@ -141,7 +138,7 @@ impl CraftingRecipeDesc {
         if skill_id > SkillType::ANY as i32 {
             return Some(SkillType::to_enum(skill_id));
         }
-        return None;
+        None
     }
 }
 
@@ -154,7 +151,7 @@ impl ConstructionRecipeDesc {
         if skill_id > SkillType::ANY as i32 {
             return Some(SkillType::to_enum(skill_id));
         }
-        return None;
+        None
     }
 }
 
@@ -167,7 +164,7 @@ impl DeconstructionRecipeDesc {
         if skill_id > SkillType::ANY as i32 {
             return Some(SkillType::to_enum(skill_id));
         }
-        return None;
+        None
     }
 }
 
@@ -180,7 +177,7 @@ impl ResourcePlacementRecipeDesc {
         if skill_id > SkillType::ANY as i32 {
             return Some(SkillType::to_enum(skill_id));
         }
-        return None;
+        None
     }
 }
 
@@ -193,7 +190,7 @@ impl PlaceableInteractionDesc {
         if skill_id > SkillType::ANY as i32 {
             return Some(SkillType::to_enum(skill_id));
         }
-        return None;
+        None
     }
 }
 
@@ -240,7 +237,7 @@ impl RegionExplorationInfo {
     }
 
     pub fn world_achievement_chunk_count(ctx: &ReducerContext) -> i32 {
-        let region = ctx.db.world_region_state().id().find(&0).unwrap();
+        let region = ctx.db.world_region_state().id().find(0).unwrap();
         let chunks_per_region = region.region_width_chunks as i32 * region.region_height_chunks as i32;
         let excluded_region_count = ctx
             .db

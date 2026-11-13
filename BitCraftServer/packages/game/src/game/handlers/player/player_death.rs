@@ -24,11 +24,11 @@ pub struct PlayerDeathTimer {
 #[spacetimedb::reducer]
 #[feature_gate]
 fn player_death_start(ctx: &ReducerContext, timer: PlayerDeathTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     let player_entity_id = timer.player_entity_id;
 
-    let respawn_seconds = ctx.db.parameters_desc().version().find(&0).unwrap().respawn_seconds;
+    let respawn_seconds = ctx.db.parameters_desc().version().find(0).unwrap().respawn_seconds;
     let delay = Duration::from_secs(respawn_seconds as u64);
 
     deployable_helpers::dismount_deployable(ctx, player_entity_id, false);

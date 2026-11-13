@@ -26,7 +26,7 @@ const PLAYER_RADIUS: f32 = 0.5;
 #[feature_gate("combat")]
 pub fn attack_start(ctx: &ReducerContext, request: EntityAttackRequest) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
-        if request.attacker_entity_id != game_state::actor_id(&ctx, false)? {
+        if request.attacker_entity_id != game_state::actor_id(ctx, false)? {
             return Err("Unauthorized".into());
         }
         game_state::ensure_signed_in(ctx, request.attacker_entity_id)?;
@@ -35,7 +35,7 @@ pub fn attack_start(ctx: &ReducerContext, request: EntityAttackRequest) -> Resul
     let delay = event_delay(ctx, request.combat_action_id);
 
     if request.attacker_type == EntityType::Enemy {
-        if ctx.db.enemy_state().entity_id().find(&request.attacker_entity_id).is_none() {
+        if ctx.db.enemy_state().entity_id().find(request.attacker_entity_id).is_none() {
             // Enemy must have been despawned before this attack got processed
             return Err("Attacker is enemy but is missing EnemyState".into());
         }
@@ -54,7 +54,7 @@ pub fn attack_start(ctx: &ReducerContext, request: EntityAttackRequest) -> Resul
         {
             // We need to update enemy CombatState to animate their attacks on the client.
             let mut combat = unwrap_or_err!(
-                ctx.db.combat_state().entity_id().find(&request.attacker_entity_id),
+                ctx.db.combat_state().entity_id().find(request.attacker_entity_id),
                 "Unable to find attacker's combat state"
             );
             combat.last_attacked_timestamp = game_state::unix_ms(ctx.timestamp);
@@ -185,7 +185,7 @@ fn targetable_entities_in_radius(
 
     // Gather players and enemies around attacker
     let attacker_targeting_matrix = if attacker_type == EntityType::Enemy {
-        TargetingMatrixDesc::from_enemy_entity_id(ctx, attacker_entity_id).ok().unwrap()
+        TargetingMatrixDesc::from_enemy_entity_id(ctx, attacker_entity_id).unwrap()
     } else {
         TargetingMatrixDesc::player(ctx)
     };
@@ -196,9 +196,9 @@ fn targetable_entities_in_radius(
             if mes.entity_id != attacker_entity_id {
                 let dist = mes.coordinates_float().distance_to(coord);
                 if dist <= scan_radius {
-                    match ctx.db.enemy_state().entity_id().find(&mes.entity_id) {
+                    match ctx.db.enemy_state().entity_id().find(mes.entity_id) {
                         Some(enemy) => {
-                            let defender_targeting_matrix = TargetingMatrixDesc::from_enemy_entity_id(ctx, enemy.entity_id).ok().unwrap();
+                            let defender_targeting_matrix = TargetingMatrixDesc::from_enemy_entity_id(ctx, enemy.entity_id).unwrap();
                             let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy.enemy_type as i32).unwrap();
                             if !attacker_targeting_matrix.can_attack(&defender_targeting_matrix)
                                 || enemy_desc.defense_level > enemy_desc.attack_level
@@ -217,7 +217,7 @@ fn targetable_entities_in_radius(
                             }
                         }
                         None => {
-                            if ctx.db.signed_in_player_state().entity_id().find(&mes.entity_id).is_some() {
+                            if ctx.db.signed_in_player_state().entity_id().find(mes.entity_id).is_some() {
                                 let defender_targeting_matrix = TargetingMatrixDesc::player(ctx);
                                 if !attacker_targeting_matrix.can_attack(&defender_targeting_matrix)
                                     || dist > radius + attacker_radius + PLAYER_RADIUS
@@ -267,7 +267,7 @@ fn targetable_entities_in_radius(
 #[feature_gate("combat")]
 pub fn attack(ctx: &ReducerContext, request: EntityAttackRequest) -> Result<(), String> {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
-        if request.attacker_entity_id != game_state::actor_id(&ctx, false)? {
+        if request.attacker_entity_id != game_state::actor_id(ctx, false)? {
             return Err("Unauthorized".into());
         }
         game_state::ensure_signed_in(ctx, request.attacker_entity_id)?;
@@ -275,7 +275,7 @@ pub fn attack(ctx: &ReducerContext, request: EntityAttackRequest) -> Result<(), 
     }
 
     let combat_action = unwrap_or_err!(
-        ctx.db.combat_action_desc().id().find(&request.combat_action_id),
+        ctx.db.combat_action_desc().id().find(request.combat_action_id),
         "Combat action doesn't exist"
     );
 
@@ -408,7 +408,7 @@ pub struct AttackImpactTimerMigrated {
 #[spacetimedb::reducer]
 #[feature_gate("combat")]
 pub fn attack_impact(ctx: &ReducerContext, _timer: AttackImpactTimer) -> Result<(), String> {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         return Err("Invalid identity".into());
     }
 
@@ -418,7 +418,7 @@ pub fn attack_impact(ctx: &ReducerContext, _timer: AttackImpactTimer) -> Result<
 #[spacetimedb::reducer]
 #[feature_gate("combat")]
 pub fn attack_impact_migrated(ctx: &ReducerContext, timer: AttackImpactTimerMigrated) -> Result<(), String> {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         return Err("Invalid identity".into());
     }
 
@@ -438,7 +438,7 @@ pub fn attack_impact_migrated(ctx: &ReducerContext, timer: AttackImpactTimerMigr
 }
 
 fn event_delay(ctx: &ReducerContext, combat_action_id: i32) -> f32 {
-    match ctx.db.combat_action_desc().id().find(&combat_action_id) {
+    match ctx.db.combat_action_desc().id().find(combat_action_id) {
         Some(action) => action.lead_in_time,
         None => 0.0,
     }
@@ -464,14 +464,14 @@ fn attack_reduce(
     )?;
 
     let attacker_health = unwrap_or_err!(
-        ctx.db.health_state().entity_id().find(&attacker_entity_id),
+        ctx.db.health_state().entity_id().find(attacker_entity_id),
         "Attacker no longer exists"
     );
     if attacker_health.health == 0.0 {
         return Err("Attacker is dead.".into());
     }
     let combat_action = unwrap_or_err!(
-        ctx.db.combat_action_desc().id().find(&combat_action_id),
+        ctx.db.combat_action_desc().id().find(combat_action_id),
         "Combat action doesn't exist"
     );
 
@@ -482,9 +482,7 @@ fn attack_reduce(
         ctx.db
             .ability_state()
             .owner_entity_id()
-            .filter(attacker_entity_id)
-            .filter(|a| a.ability == AbilityType::CombatAction(combat_action_id))
-            .next(),
+            .filter(attacker_entity_id).find(|a| a.ability == AbilityType::CombatAction(combat_action_id)),
         "This ability is not known by the attacker"
     );
 
@@ -494,7 +492,7 @@ fn attack_reduce(
     let mut weapon_cooldown_multiplier = 1.0;
 
     if attacker_type == EntityType::Enemy {
-        if ctx.db.enemy_state().entity_id().find(&attacker_entity_id).is_some() {
+        if ctx.db.enemy_state().entity_id().find(attacker_entity_id).is_some() {
             let collected_stats = ActiveBuffState::collect_enemy_stats(ctx, attacker_entity_id);
             cooldown_multiplier = ActiveBuffState::get_enemy_stat(&collected_stats, CharacterStatType::CooldownMultiplier, 1);
         }
@@ -529,7 +527,7 @@ fn attack_reduce(
 
         // Update attacker's combat state when the attack hits
         let mut combat = unwrap_or_err!(
-            ctx.db.combat_state().entity_id().find(&attacker_entity_id),
+            ctx.db.combat_state().entity_id().find(attacker_entity_id),
             "Unable to find attacker's combat state"
         );
 
@@ -548,7 +546,7 @@ fn attack_reduce(
         ctx.db.combat_state().entity_id().update(combat);
 
         // remove innerlight from attacker
-        if ctx.db.active_buff_state().entity_id().find(&attacker_entity_id).is_some() {
+        if ctx.db.active_buff_state().entity_id().find(attacker_entity_id).is_some() {
             let inner_light = BuffDesc::find_by_buff_category_single(ctx, BuffCategory::InnerLight).unwrap().id;
             buff::deactivate(ctx, attacker_entity_id, inner_light).unwrap();
         }
@@ -557,7 +555,7 @@ fn attack_reduce(
     }
 
     // produce attack buffs and debuffs
-    if main_attack && combat_action.self_buffs.len() > 0 {
+    if main_attack && !combat_action.self_buffs.is_empty() {
         let mut active_buff_state = unwrap_or_err!(
             ctx.db.active_buff_state().entity_id().find(attacker_entity_id),
             "Entity has no ActiveBuffState."
@@ -581,11 +579,11 @@ fn attack_impact_reduce(
     main_attack: bool,
 ) -> Result<AttackEvent, String> {
     let combat_action = unwrap_or_err!(
-        ctx.db.combat_action_desc().id().find(&combat_action_id),
+        ctx.db.combat_action_desc().id().find(combat_action_id),
         "Combat action doesn't exist"
     );
     let mut defender_health = unwrap_or_err!(
-        ctx.db.health_state().entity_id().find(&defender_entity_id),
+        ctx.db.health_state().entity_id().find(defender_entity_id),
         "Unable to find attacked entity health"
     );
     if defender_health.health == 0.0 {
@@ -609,11 +607,11 @@ fn attack_impact_reduce(
         combat_action_id,
         main_attack,
     );
-    let mut attack_outcome = ctx.db.attack_outcome_state().entity_id().find(&defender_entity_id).unwrap();
+    let mut attack_outcome = ctx.db.attack_outcome_state().entity_id().find(defender_entity_id).unwrap();
     attack_outcome.set(damage, critical, dodged, ctx.timestamp);
     ctx.db.attack_outcome_state().entity_id().update(attack_outcome);
     if !dodged {
-        if combat_action.target_buffs.len() > 0 {
+        if !combat_action.target_buffs.is_empty() {
             let mut active_buff_state = unwrap_or_err!(
                 ctx.db.active_buff_state().entity_id().find(defender_entity_id),
                 "Entity has no ActiveBuffState."
@@ -699,8 +697,8 @@ fn attack_impact_reduce(
                 }
 
                 if !ignore_damage {
-                    if attacker_type == EntityType::Player && defender_type == EntityType::Enemy {
-                        if ContributionState::applies(ctx, defender_entity_id) {
+                    if attacker_type == EntityType::Player && defender_type == EntityType::Enemy
+                        && ContributionState::applies(ctx, defender_entity_id) {
                             ContributionState::add_damage(
                                 ctx,
                                 attacker_entity_id,
@@ -708,7 +706,6 @@ fn attack_impact_reduce(
                                 (exp_contribution_multiplier * ((damage as f32).min(defender_health.health))).ceil() as i32,
                             );
                         }
-                    }
                     defender_health.add_health_delta(-scaled_damage as f32, ctx.timestamp);
                 }
                 // Apply any death event for slain entity.
@@ -815,7 +812,7 @@ fn base_checks(
     // WE WILL NEED TO PASS THE ATTACKER'S IDENTITY AS A SCHEDULED SUBSCRIBER
 
     let attacker_health = unwrap_or_err!(
-        ctx.db.health_state().entity_id().find(&attacker_entity_id),
+        ctx.db.health_state().entity_id().find(attacker_entity_id),
         "Attacker no longer exists"
     );
     if attacker_health.health == 0.0 {
@@ -823,15 +820,15 @@ fn base_checks(
     }
 
     let combat_action = unwrap_or_err!(
-        ctx.db.combat_action_desc().id().find(&combat_action_id),
+        ctx.db.combat_action_desc().id().find(combat_action_id),
         "Combat action doesn't exist"
     );
 
     let attacker_targeting_matrix = match attacker_type {
         EntityType::Player => TargetingMatrixDesc::player(ctx),
         EntityType::Enemy => match TargetingMatrixDesc::from_enemy_entity_id(ctx, attacker_entity_id) {
-            Ok(tm) => tm,
-            Err(()) => return Err("The attacking entity no longer exists".into()),
+            Some(tm) => tm,
+            None => return Err("The attacking entity no longer exists".into()),
         },
         _ => return Err("This entity type cannot attack".into()),
     };
@@ -839,21 +836,20 @@ fn base_checks(
     let defender_targeting_matrix = match defender_type {
         EntityType::Player => TargetingMatrixDesc::player(ctx),
         EntityType::Enemy => match TargetingMatrixDesc::from_enemy_entity_id(ctx, defender_entity_id) {
-            Ok(tm) => tm,
-            Err(()) => return Err("~The defending entity no longer exists".into()),
+            Some(tm) => tm,
+            None => return Err("~The defending entity no longer exists".into()),
         },
         EntityType::Building => TargetingMatrixDesc::building(ctx),
         _ => return Err("This entity type cannot be attacked".into()),
     };
 
-    if attacker_entity_id != defender_entity_id && !attacker_targeting_matrix.can_attack(&defender_targeting_matrix) {
-        if !DuelState::are_players_dueling(ctx, attacker_entity_id, defender_entity_id) {
+    if attacker_entity_id != defender_entity_id && !attacker_targeting_matrix.can_attack(&defender_targeting_matrix)
+        && !DuelState::are_players_dueling(ctx, attacker_entity_id, defender_entity_id) {
             return Err("Unable to target that entity".into());
         }
-    }
 
     let defender_health = unwrap_or_err!(
-        ctx.db.health_state().entity_id().find(&defender_entity_id),
+        ctx.db.health_state().entity_id().find(defender_entity_id),
         "Unable to find attacked entity health"
     );
 
@@ -882,8 +878,7 @@ fn base_checks(
             return Err(format!(
                 "You have to wait {{0}} {{1}} before attacking this enemy|~{delta}|~{}",
                 if delta > 1 { "seconds" } else { "second" }
-            )
-            .into());
+            ));
         }
     }
 
@@ -891,9 +886,7 @@ fn base_checks(
         .db
         .ability_state()
         .owner_entity_id()
-        .filter(attacker_entity_id)
-        .filter(|a| a.ability == AbilityType::CombatAction(combat_action_id))
-        .next()
+        .filter(attacker_entity_id).find(|a| a.ability == AbilityType::CombatAction(combat_action_id))
     {
         Some(a) => a,
         None => {
@@ -919,7 +912,7 @@ fn base_checks(
     };
 
     // Range check:
-    let action_desc = ctx.db.combat_action_desc().id().find(&combat_action.id).unwrap();
+    let action_desc = ctx.db.combat_action_desc().id().find(combat_action.id).unwrap();
     if !range_check(
         ctx,
         &action_desc,
@@ -948,7 +941,7 @@ fn base_checks(
         }
 
         let stamina_state = unwrap_or_err!(
-            ctx.db.stamina_state().entity_id().find(&attacker_entity_id),
+            ctx.db.stamina_state().entity_id().find(attacker_entity_id),
             "Player has no stamina component"
         );
 
@@ -956,14 +949,14 @@ fn base_checks(
             return Err("Not enough stamina.".into());
         }
 
-        if let Some(enemy) = ctx.db.enemy_state().entity_id().find(&defender_entity_id) {
+        if let Some(enemy) = ctx.db.enemy_state().entity_id().find(defender_entity_id) {
             let weapon_tier;
             let enemy_type = enemy.enemy_type as i32;
             let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy_type).unwrap();
 
             if enemy_desc.huntable {
                 if let Some(weapon) = PlayerState::get_hunting_weapon(ctx, attacker_entity_id) {
-                    let weapon_desc = ctx.db.weapon_desc().item_id().find(&weapon.item_id).unwrap();
+                    let weapon_desc = ctx.db.weapon_desc().item_id().find(weapon.item_id).unwrap();
                     if !action_desc.weapon_type_requirements.contains(&weapon_desc.weapon_type) {
                         return Err("You cannot use this action with your currently equipped hunting weapon".into());
                     }
@@ -973,7 +966,7 @@ fn base_checks(
                 }
             } else {
                 if let Some(weapon) = PlayerState::get_combat_weapon(ctx, attacker_entity_id) {
-                    let weapon_desc = ctx.db.weapon_desc().item_id().find(&weapon.item_id).unwrap();
+                    let weapon_desc = ctx.db.weapon_desc().item_id().find(weapon.item_id).unwrap();
                     if !action_desc.weapon_type_requirements.contains(&weapon_desc.weapon_type) {
                         return Err("You cannot use this action with your currently equipped weapon".into());
                     }
@@ -989,7 +982,7 @@ fn base_checks(
 
         // Validate move + attack, the client should've stopped the player's movement beforehand.
         if !action_desc.can_move_during_lead_in {
-            if let Some(mes) = ctx.db.mobile_entity_state().entity_id().find(&attacker_entity_id) {
+            if let Some(mes) = ctx.db.mobile_entity_state().entity_id().find(attacker_entity_id) {
                 if mes.destination_float() != mes.coordinates_float() {
                     // Cannot move and attack - silent error.
                     return Err(String::new());
@@ -1022,7 +1015,7 @@ fn calculate_hit_outcome(
 
     match defender_type {
         EntityType::Enemy => {
-            if let Some(e) = ctx.db.enemy_state().entity_id().find(&defender_entity_id) {
+            if let Some(e) = ctx.db.enemy_state().entity_id().find(defender_entity_id) {
                 let enemy_type = e.enemy_type as i32;
                 let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy_type).unwrap();
 
@@ -1048,7 +1041,7 @@ fn calculate_hit_outcome(
             }
         }
         EntityType::Building => {
-            if ctx.db.building_state().entity_id().find(&defender_entity_id).is_some() {
+            if ctx.db.building_state().entity_id().find(defender_entity_id).is_some() {
                 armor = 0.0;
                 evasion = 0.0;
                 strength_stat = Some(CharacterStatType::Strength);
@@ -1057,7 +1050,7 @@ fn calculate_hit_outcome(
             }
         }
         _ => {
-            if let Some(s) = ctx.db.character_stats_state().entity_id().find(&defender_entity_id) {
+            if let Some(s) = ctx.db.character_stats_state().entity_id().find(defender_entity_id) {
                 armor = s.get(CharacterStatType::Armor).max(0.0);
                 evasion = s.get(CharacterStatType::Evasion).max(0.0);
                 strength_stat = None;
@@ -1075,7 +1068,7 @@ fn calculate_hit_outcome(
     let strength_stat = strength_stat.unwrap_or(CharacterStatType::Strength);
 
     if attacker_type == EntityType::Enemy {
-        if let Some(e) = ctx.db.enemy_state().entity_id().find(&attacker_entity_id) {
+        if let Some(e) = ctx.db.enemy_state().entity_id().find(attacker_entity_id) {
             let enemy_type = e.enemy_type as i32;
             let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy_type).unwrap();
 
@@ -1102,7 +1095,7 @@ fn calculate_hit_outcome(
             return (0, 0, true, false); // Attack is "evaded" since the attacker no longer exists
         }
     } else {
-        if let Some(s) = ctx.db.character_stats_state().entity_id().find(&attacker_entity_id) {
+        if let Some(s) = ctx.db.character_stats_state().entity_id().find(attacker_entity_id) {
             accuracy = s.get(CharacterStatType::Accuracy);
             strength = s.get(strength_stat);
 
@@ -1188,7 +1181,7 @@ fn get_radius(ctx: &ReducerContext, entity_type: EntityType, entity_id: u64) -> 
     if entity_type == EntityType::Player {
         return 0.5f32;
     } else if entity_type == EntityType::Enemy {
-        if let Some(enemy) = ctx.db.enemy_state().entity_id().find(&entity_id) {
+        if let Some(enemy) = ctx.db.enemy_state().entity_id().find(entity_id) {
             let enemy_type = enemy.enemy_type as i32;
             let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy_type).unwrap();
             return enemy_desc.radius;

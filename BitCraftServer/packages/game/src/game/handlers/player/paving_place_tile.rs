@@ -21,7 +21,7 @@ use std::time::Duration;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn paving_place_tile_start(ctx: &ReducerContext, request: PlayerPavingPlaceTileRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let target = Some(request.tile_type_id as u64);
@@ -48,7 +48,7 @@ pub fn paving_place_tile_start(ctx: &ReducerContext, request: PlayerPavingPlaceT
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn paving_place_tile(ctx: &ReducerContext, request: PlayerPavingPlaceTileRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let mut terrain_cache = TerrainChunkCache::empty();
     player_action_helpers::schedule_clear_player_action(
@@ -59,13 +59,13 @@ pub fn paving_place_tile(ctx: &ReducerContext, request: PlayerPavingPlaceTileReq
 }
 
 fn event_delay(ctx: &ReducerContext, request: &PlayerPavingPlaceTileRequest) -> Duration {
-    let recipe = ctx.db.paving_tile_desc().id().find(&request.tile_type_id);
+    let recipe = ctx.db.paving_tile_desc().id().find(request.tile_type_id);
     if recipe.is_none() {
         return Duration::ZERO;
     }
 
     let recipe = recipe.unwrap();
-    return Duration::from_secs_f32(recipe.paving_duration);
+    Duration::from_secs_f32(recipe.paving_duration)
 }
 
 fn reduce(
@@ -83,7 +83,7 @@ fn reduce(
     }
 
     // Verify distance to paving target
-    let player_mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Invalid player");
+    let player_mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Invalid player");
     let player_coord = player_mobile.coordinates();
     if player_coord.dimension != dimensions::OVERWORLD {
         return Err("Cannot pave in interiors".into());
@@ -103,7 +103,7 @@ fn reduce(
         return Err("You can't pave on this claim.".into());
     }
 
-    if game_state::game_state_filters::floating_platform_at_coordinates(ctx, target_coord).is_some() {
+    if game_state::game_state_filters::floating_platforms_at_coordinates(ctx, target_coord).next().is_some() {
         return Err("Can't pave on a floating platform".into());
     }
 
@@ -159,7 +159,7 @@ fn reduce(
     let mut item_inventory = unwrap_or_err!(InventoryState::get_player_inventory(ctx, actor_id), "Player has no inventory");
 
     let tile_description = unwrap_or_err!(
-        ctx.db.paving_tile_desc().id().find(&request.tile_type_id),
+        ctx.db.paving_tile_desc().id().find(request.tile_type_id),
         "Invalid paving tile type"
     );
     let consumed_item_stacks: Vec<ItemStack> = tile_description
@@ -168,7 +168,7 @@ fn reduce(
         .map(|i| ItemStack::new(ctx, i.item_id, i.item_type, i.quantity))
         .collect();
 
-    let remove_items = consumed_item_stacks.len() > 0;
+    let remove_items = !consumed_item_stacks.is_empty();
 
     if !item_inventory.has(&consumed_item_stacks) {
         return Err("You don't have the required items.".into());
@@ -231,7 +231,7 @@ fn reduce(
     discovery.commit(ctx);
 
     // Grant experience
-    if let Some(experience_per_progress) = tile_description.experience_per_progress.get(0) {
+    if let Some(experience_per_progress) = tile_description.experience_per_progress.first() {
         ExperienceState::add_experience(
             ctx,
             actor_id,

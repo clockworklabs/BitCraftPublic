@@ -11,7 +11,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireResup
 
     // Find the building empire affiliation
     let mut empire_node = unwrap_or_err!(
-        ctx.db.empire_node_state().entity_id().find(&request.building_entity_id),
+        ctx.db.empire_node_state().entity_id().find(request.building_entity_id),
         "The building needs to be part of an empire to receive a hexite capsule"
     );
     let empire_entity_id = empire_node.empire_entity_id;

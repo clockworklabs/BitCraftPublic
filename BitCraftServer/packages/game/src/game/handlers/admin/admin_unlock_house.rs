@@ -14,7 +14,7 @@ pub fn admin_unlock_house(ctx: &ReducerContext, player_entity_id: u64) {
     }
 
     let mut housing_state = unwrap_or_return!(
-        ctx.db.player_housing_state().entity_id().find(&player_entity_id),
+        ctx.db.player_housing_state().entity_id().find(player_entity_id),
         "Player does not have a house"
     );
 

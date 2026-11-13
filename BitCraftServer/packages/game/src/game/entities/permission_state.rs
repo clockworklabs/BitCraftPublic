@@ -43,16 +43,16 @@ impl PermissionState {
             PermissionGroup::Player => Ok(()), //As we can add players on another region, we cannot validate this
             PermissionGroup::Claim => {
                 if ctx.db.claim_state().entity_id().find(allowed_entity_id).is_some() {
-                    return Ok(());
+                    Ok(())
                 } else {
-                    return Err("Unknown Claim".into());
+                    Err("Unknown Claim".into())
                 }
             }
             PermissionGroup::Empire => {
                 if ctx.db.empire_state().entity_id().find(allowed_entity_id).is_some() {
-                    return Ok(());
+                    Ok(())
                 } else {
-                    return Err("Unknown Empire".into());
+                    Err("Unknown Empire".into())
                 }
             }
             PermissionGroup::Everyone => Ok(()),
@@ -67,17 +67,13 @@ impl PermissionState {
             .next()
     }
 
-    fn found_permission(ctx: &ReducerContext, target_entity_id: u64, available_entities: &Vec<u64>) -> Option<i32> {
+    fn found_permission(ctx: &ReducerContext, target_entity_id: u64, available_entities: &[u64]) -> Option<i32> {
         let mut permissions: Vec<PermissionState> = ctx.db.permission_state().ordained_entity_id().filter(target_entity_id).collect();
-        permissions.sort_by(|p1, p2| p1.group.cmp(&p2.group));
+        permissions.sort_by_key(|p1| p1.group);
         let p = permissions
             .iter()
             .find(|p| p.group == PermissionGroup::Everyone as i32 || available_entities.contains(&p.allowed_entity_id));
-        if let Some(permission) = p {
-            Some(permission.rank)
-        } else {
-            None
-        }
+        p.map(|permission| permission.rank)
     }
 
     pub fn can_interact_with_building(

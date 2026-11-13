@@ -20,9 +20,9 @@ pub fn event_delay(ctx: &ReducerContext, request: &DeployableStoreRequest) -> Du
         .db
         .deployable_collectible_state()
         .deployable_entity_id()
-        .find(&request.deployable_entity_id)
+        .find(request.deployable_entity_id)
     {
-        let deployable_description = ctx.db.deployable_desc().id().find(&deployable.deployable_desc_id).unwrap();
+        let deployable_description = ctx.db.deployable_desc().id().find(deployable.deployable_desc_id).unwrap();
         let duration = match request.remotely {
             true => 30f32,
             false => deployable_description.deploy_time,
@@ -36,7 +36,7 @@ pub fn event_delay(ctx: &ReducerContext, request: &DeployableStoreRequest) -> Du
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_store_start(ctx: &ReducerContext, request: DeployableStoreRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
@@ -64,7 +64,7 @@ pub fn deployable_store_start(ctx: &ReducerContext, request: DeployableStoreRequ
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_store(ctx: &ReducerContext, request: DeployableStoreRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     player_action_helpers::schedule_clear_player_action(
@@ -87,7 +87,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &DeployableStoreRequest,
     }
 
     let deployable_state = unwrap_or_err!(
-        ctx.db.deployable_state_v2().entity_id().find(&request.deployable_entity_id),
+        ctx.db.deployable_state_v2().entity_id().find(request.deployable_entity_id),
         "Deployable does not exist."
     );
 
@@ -107,7 +107,7 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &DeployableStoreRequest,
     let player_coordinates =
         unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Unknown Player Location").coordinates();
     let deployable_coordinates = unwrap_or_err!(
-        ctx.db.mobile_entity_state().entity_id().find(&request.deployable_entity_id),
+        ctx.db.mobile_entity_state().entity_id().find(request.deployable_entity_id),
         "Unknown Deployable Location"
     )
     .coordinates();
@@ -116,11 +116,11 @@ fn reduce(ctx: &ReducerContext, actor_id: u64, request: &DeployableStoreRequest,
         return Err("Too far away".into());
     }
 
-    return store_deployable(ctx, actor_id, request.deployable_entity_id, dry_run);
+    store_deployable(ctx, actor_id, request.deployable_entity_id, dry_run)
 }
 
 fn reduce_recover(ctx: &ReducerContext, actor_id: u64, request: &DeployableStoreRequest, dry_run: bool) -> Result<(), String> {
-    if let Some(deployable_state) = ctx.db.deployable_state_v2().entity_id().find(&request.deployable_entity_id) {
+    if let Some(deployable_state) = ctx.db.deployable_state_v2().entity_id().find(request.deployable_entity_id) {
         // Deployable is on this region
         // make sure the actor is the deployable owner
         if deployable_state.owner_id != actor_id {

@@ -12,7 +12,7 @@ use crate::{
 
 impl VaultState {
     pub fn add_collectibles(ctx: &ReducerContext, actor_id: u64, collectible_ids: Vec<i32>) {
-        let mut vault = ctx.db.vault_state().entity_id().find(&actor_id).unwrap();
+        let mut vault = ctx.db.vault_state().entity_id().find(actor_id).unwrap();
         let mut updated = false;
         for collectible_id in collectible_ids {
             match vault.add_collectible(ctx, collectible_id, false) {
@@ -26,7 +26,7 @@ impl VaultState {
     }
 
     pub fn has_collectible(&self, id: i32) -> bool {
-        return self.collectibles.iter().any(|c| c.id == id);
+        self.collectibles.iter().any(|c| c.id == id)
     }
 
     pub fn remove_collectible_quantity(&mut self, collectible_id: i32, quantity: u32) -> u32 {
@@ -51,7 +51,7 @@ impl VaultState {
     }
 
     pub fn add_collectible(&mut self, ctx: &ReducerContext, collectible_id: i32, add_if_locked: bool) -> Result<(), String> {
-        if let Some(collectible_desc) = ctx.db.collectible_desc().id().find(&collectible_id) {
+        if let Some(collectible_desc) = ctx.db.collectible_desc().id().find(collectible_id) {
             let mut exists = false;
             for i in 0..self.collectibles.len() {
                 if self.collectibles[i].id == collectible_id {
@@ -73,7 +73,7 @@ impl VaultState {
                 });
 
                 if collectible_desc.collectible_type == CollectibleType::Deployable {
-                    let mut prefs = ctx.db.player_prefs_state().entity_id().find(&self.entity_id).unwrap();
+                    let mut prefs = ctx.db.player_prefs_state().entity_id().find(self.entity_id).unwrap();
                     if prefs.default_deployable_collectible_id == 0 {
                         prefs.default_deployable_collectible_id = collectible_desc.id;
                         ctx.db.player_prefs_state().entity_id().update(prefs);
@@ -84,7 +84,7 @@ impl VaultState {
                         .db
                         .deployable_desc()
                         .deploy_from_collectible_id()
-                        .find(&collectible_desc.id)
+                        .find(collectible_desc.id)
                         .unwrap();
                     let username = PlayerState::username_by_id(ctx, self.entity_id).unwrap();
                     let deployable = ctx

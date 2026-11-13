@@ -21,7 +21,7 @@ use super::empires_shared::validate_siege_distance;
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_siege_depleted_watchtower(ctx: &ReducerContext, request: EmpireStartSiegeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     let player_location = game_state_filters::coordinates_any(ctx, actor_id);
@@ -31,7 +31,7 @@ pub fn empire_siege_depleted_watchtower(ctx: &ReducerContext, request: EmpireSta
     }
 
     let defending_node = unwrap_or_err!(
-        ctx.db.empire_node_state().entity_id().find(&request.building_entity_id),
+        ctx.db.empire_node_state().entity_id().find(request.building_entity_id),
         "This building cannot be sieged"
     );
     if defending_node.energy > 0 {
@@ -47,12 +47,12 @@ pub fn empire_siege_depleted_watchtower(ctx: &ReducerContext, request: EmpireSta
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_deploy_siege_engine_start(ctx: &ReducerContext, request: EmpireStartSiegeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     let deployable_id = 1000; // Siege Engine
-    let deployable_description = ctx.db.deployable_desc().id().find(&deployable_id).unwrap();
+    let deployable_description = ctx.db.deployable_desc().id().find(deployable_id).unwrap();
     let delay = Duration::from_secs_f32(deployable_description.deploy_time);
 
     player_action_helpers::start_action(
@@ -70,7 +70,7 @@ pub fn empire_deploy_siege_engine_start(ctx: &ReducerContext, request: EmpireSta
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_deploy_siege_engine(ctx: &ReducerContext, request: EmpireStartSiegeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
@@ -165,7 +165,7 @@ pub fn send_message(
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireStartSiegeMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         //Add supply cargo if remote call fails
         let mut player_inventory = unwrap_or_return!(
             InventoryState::get_player_inventory(ctx, request.player_entity_id),
@@ -176,10 +176,10 @@ pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: Empire
         ctx.db.inventory_state().entity_id().update(player_inventory);
 
         if request.deployable_entity_id > 0 {
-            ctx.db.mobile_entity_state().entity_id().delete(&request.deployable_entity_id);
-            ctx.db.deployable_state_v2().entity_id().delete(&request.deployable_entity_id);
+            ctx.db.mobile_entity_state().entity_id().delete(request.deployable_entity_id);
+            ctx.db.deployable_state_v2().entity_id().delete(request.deployable_entity_id);
         }
 
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     }
 }

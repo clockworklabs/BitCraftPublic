@@ -25,7 +25,7 @@ pub struct TeleportPlayerTimer {
 #[shared_table_reducer]
 #[spacetimedb::reducer]
 pub fn server_teleport_player(ctx: &ReducerContext, timer: TeleportPlayerTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     reduce(ctx, timer.player_entity_id, timer.location)?;
     ctx.db.player_teleport_event().insert(PlayerTeleportEvent {
         actor_id: timer.player_entity_id,
@@ -45,15 +45,15 @@ pub fn reduce(ctx: &ReducerContext, player_entity_id: u64, new_coord: OffsetCoor
     game_state_filters::untarget(ctx, player_entity_id);
 
     // remove deployable when teleporting (from death or teleport command)
-    if ctx.db.mounting_state().entity_id().find(&player_entity_id).is_some() {
-        ctx.db.mounting_state().entity_id().delete(&player_entity_id);
+    if ctx.db.mounting_state().entity_id().find(player_entity_id).is_some() {
+        ctx.db.mounting_state().entity_id().delete(player_entity_id);
     }
 
     let previous_location = ctx
         .db
         .mobile_entity_state()
         .entity_id()
-        .find(&player_entity_id)
+        .find(player_entity_id)
         .unwrap()
         .coordinates_float();
 

@@ -29,7 +29,7 @@ pub fn init(ctx: &ReducerContext) {
 #[spacetimedb::reducer]
 #[shared_table_reducer]
 fn region_popuplation_agent_loop(ctx: &ReducerContext, _timer: RegionPopulationLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to region_popuplation agent");
         return;
     }

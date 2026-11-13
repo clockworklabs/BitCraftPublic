@@ -21,7 +21,7 @@ pub struct ClaimTechUnlockTimer {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_tech_unlock_tech(ctx: &ReducerContext, timer: ClaimTechUnlockTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     self::reduce(ctx, timer.claim_entity_id, timer.tech_id)
 }
@@ -29,7 +29,7 @@ pub fn claim_tech_unlock_tech(ctx: &ReducerContext, timer: ClaimTechUnlockTimer)
 pub fn reduce(ctx: &ReducerContext, claim_entity_id: u64, tech_id: i32) -> Result<(), String> {
     // Make sure no research is in progress
     let mut claim_tech = unwrap_or_err!(
-        ctx.db.claim_tech_state().entity_id().find(&claim_entity_id),
+        ctx.db.claim_tech_state().entity_id().find(claim_entity_id),
         "Claim has no tech, this should not happen"
     );
     if claim_tech.researching == 0 {
@@ -60,7 +60,7 @@ pub fn unlock_claim_tech(ctx: &ReducerContext, claim_tech: &mut ClaimTechState, 
 
         // Hard coded: EMPIRE INFRASTRUCTURE
         if tech_id == 10000 {
-            let claim = ctx.db.claim_state().entity_id().find(&claim_tech.entity_id).unwrap();
+            let claim = ctx.db.claim_state().entity_id().find(claim_tech.entity_id).unwrap();
             claim_create_empire_settlement_state::send_message(
                 ctx,
                 claim.entity_id,

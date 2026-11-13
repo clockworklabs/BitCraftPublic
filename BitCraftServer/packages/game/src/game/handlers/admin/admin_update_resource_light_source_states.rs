@@ -22,15 +22,15 @@ pub fn update_resource_light_source_states(ctx: &ReducerContext) {
 }
 
 pub fn sync_resource_light_source_state(ctx: &ReducerContext, resource: &ResourceState) {
-    let Some(resource_desc) = ctx.db.resource_desc().id().find(&resource.resource_id) else {
+    let Some(resource_desc) = ctx.db.resource_desc().id().find(resource.resource_id) else {
         return;
     };
 
-    if let Some(mut light) = ctx.db.light_source_state().entity_id().find(&resource.entity_id) {
+    if let Some(mut light) = ctx.db.light_source_state().entity_id().find(resource.entity_id) {
         let light_entity_id = light.entity_id;
 
         if resource_desc.light_radius == 0 {
-            ctx.db.light_source_state().entity_id().delete(&light_entity_id);
+            ctx.db.light_source_state().entity_id().delete(light_entity_id);
             log::info!("[{}] Deleting resource light source state", resource_desc.name);
         } else {
             let light_radius = resource_desc.light_radius as f32;

@@ -17,9 +17,7 @@ pub fn admin_rename_deployable(ctx: &ReducerContext, deployable_name: String, ne
     let entity_id = unwrap_or_err!(
         ctx.db
             .deployable_state_v2()
-            .iter()
-            .filter(|d| d.nickname.to_lowercase() == name_lower)
-            .next(),
+            .iter().find(|d| d.nickname.to_lowercase() == name_lower),
         "Deployable not found"
     )
     .entity_id;

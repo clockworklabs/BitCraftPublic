@@ -13,14 +13,14 @@ pub fn cheat_claim_take_ownership(ctx: &ReducerContext, claim_entity_id: u64) ->
         return Err("Unauthorized.".into());
     }
 
-    let actor_id = game_state::actor_id(&ctx, false)?;
-    let mut claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&claim_entity_id), "Unknown Claim");
+    let actor_id = game_state::actor_id(ctx, false)?;
+    let mut claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(claim_entity_id), "Unknown Claim");
 
     if claim.owner_player_entity_id == actor_id {
         return Err("You're already the owner of this claim".into());
     }
 
-    let player_user_name = match ctx.db.player_username_state().entity_id().find(&claim.owner_player_entity_id) {
+    let player_user_name = match ctx.db.player_username_state().entity_id().find(claim.owner_player_entity_id) {
         Some(value) => value.username,
         None => "none".into(),
     };

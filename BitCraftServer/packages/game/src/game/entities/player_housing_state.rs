@@ -63,7 +63,7 @@ impl PlayerHousingState {
         // Apply player housing's permissions to all dimensions in its network
         for ordained_entity_id in ordained_entities {
             for permission in existing_permissions.iter() {
-                let mut permission_state = permission.clone();
+                let mut permission_state = *permission;
                 permission_state.entity_id = game_state::create_entity(ctx);
                 permission_state.ordained_entity_id = ordained_entity_id;
                 ctx.db.permission_state().insert(permission_state);

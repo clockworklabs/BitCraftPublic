@@ -36,7 +36,7 @@ impl ItemListDesc {
             return vec![item_stack];
         }
 
-        let item_list_id = ctx.db.item_desc().id().find(&item_stack.item_id).unwrap().item_list_id;
+        let item_list_id = ctx.db.item_desc().id().find(item_stack.item_id).unwrap().item_list_id;
         if item_list_id == 0 {
             return vec![item_stack];
         }
@@ -76,7 +76,7 @@ impl ItemListDesc {
 
                         let item_desc = item_desc_cache
                             .entry(item_stack.item_id)
-                            .or_insert(ctx.db.item_desc().id().find(&item_stack.item_id).unwrap());
+                            .or_insert(ctx.db.item_desc().id().find(item_stack.item_id).unwrap());
 
                         if item_desc.item_list_id == 0 {
                             item_stacks.push(*item_stack);

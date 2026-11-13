@@ -10,7 +10,7 @@ fn cheat_claim_totem_complete_current_research(ctx: &ReducerContext, claim_entit
     }
 
     let claim_tech = unwrap_or_err!(
-        ctx.db.claim_tech_state().entity_id().find(&claim_entity_id),
+        ctx.db.claim_tech_state().entity_id().find(claim_entity_id),
         "Claim has no tech, this should not happen"
     );
 
@@ -22,8 +22,8 @@ fn cheat_claim_totem_complete_current_research(ctx: &ReducerContext, claim_entit
 
         let tech_id = claim_tech.researching;
 
-        return claim_tech_unlock_tech::reduce(ctx, claim_entity_id, tech_id);
+        claim_tech_unlock_tech::reduce(ctx, claim_entity_id, tech_id)
     } else {
-        return Err("Tech is not being researched".into());
+        Err("Tech is not being researched".into())
     }
 }

@@ -12,8 +12,8 @@ impl TradeOrderState {
         ctx: &ReducerContext,
         shop_entity_id: u64,
         stock: i32,
-        offer_items: &Vec<ItemStack>,
-        required_items: &Vec<ItemStack>,
+        offer_items: &[ItemStack],
+        required_items: &[ItemStack],
         traveler_trade_order_id: Option<i32>,
     ) {
         let trade_order_entity_id = game_state::create_entity(ctx);
@@ -26,12 +26,12 @@ impl TradeOrderState {
             entity_id: trade_order_entity_id,
             shop_entity_id,
             remaining_stock: stock,
-            offer_items: if is_traveler_trade_order { Vec::new() } else { offer_items.clone() },
+            offer_items: if is_traveler_trade_order { Vec::new() } else { offer_items.to_owned() },
             offer_cargo_id: Vec::new(), // # MIGRATION # OBSOLETE 
             required_items: if is_traveler_trade_order {
                 Vec::new()
             } else {
-                required_items.clone()
+                required_items.to_owned()
             },
             required_cargo_id: Vec::new(), // # MIGRATION # OBSOLETE 
             traveler_trade_order_id,
@@ -43,8 +43,8 @@ impl TradeOrderState {
     }
 
     pub fn is_valid_market_mode_order(
-        offer_items: &Vec<ItemStack>,
-        required_items: &Vec<ItemStack>,
+        offer_items: &[ItemStack],
+        required_items: &[ItemStack],
     ) -> bool {
         if let Some(offered_item) = offer_items.first() {
             if offered_item.item_id == TradeOrderState::MARKET_MODE_CURRENCY_ID {
@@ -58,13 +58,13 @@ impl TradeOrderState {
             }
         }
 
-        return false;
+        false
     }
 
     pub fn get_num_similar_market_mode_orders(
-        trade_orders: &Vec<TradeOrderState>,
-        offer_items: &Vec<ItemStack>,
-        required_items: &Vec<ItemStack>,
+        trade_orders: &[TradeOrderState],
+        offer_items: &[ItemStack],
+        required_items: &[ItemStack],
     ) -> usize {
         if let Some(offered_item) = offer_items.first() {
             if offered_item.item_id != TradeOrderState::MARKET_MODE_CURRENCY_ID {
@@ -84,13 +84,13 @@ impl TradeOrderState {
             }
         }
 
-        return 0;
+        0
     }
 
     pub fn has_any_in_stock_trade_orders(ctx: &ReducerContext, shop_entity_id: u64) -> bool {
         let trade_orders: Vec<TradeOrderState> = ctx.db.trade_order_state().shop_entity_id().filter(shop_entity_id).collect();
 
-        if trade_orders.len() == 0 {
+        if trade_orders.is_empty() {
             return false;
         }
 

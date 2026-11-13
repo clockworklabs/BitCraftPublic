@@ -66,47 +66,47 @@ impl Sub for HexDirection {
 
 impl HexDirection {
     pub fn opposite(direction: HexDirection) -> HexDirection {
-        return if direction < HexDirection::from(6) {
+        if direction < HexDirection::from(6) {
             direction + HexDirection::from(6)
         } else {
             direction - HexDirection::from(6)
-        };
+        }
     }
 
     pub fn previous(direction: HexDirection) -> HexDirection {
-        return direction - HexDirection::from(1);
+        direction - HexDirection::from(1)
     }
 
     pub fn previous_n(direction: HexDirection, n: i32) -> HexDirection {
-        return direction - HexDirection::from(n);
+        direction - HexDirection::from(n)
     }
 
     pub fn next(direction: HexDirection) -> HexDirection {
-        return direction + HexDirection::from(1);
+        direction + HexDirection::from(1)
     }
 
     pub fn next_n(direction: HexDirection, n: i32) -> HexDirection {
-        return direction + HexDirection::from(n);
+        direction + HexDirection::from(n)
     }
 
     pub fn previous_flat(direction: HexDirection) -> HexDirection {
-        return if direction == HexDirection::NE {
+        if direction == HexDirection::NE {
             HexDirection::NW
         } else {
             HexDirection::from(((direction as i32 >> 1) - 1) << 1)
-        };
+        }
     }
 
     pub fn next_flat(direction: HexDirection) -> HexDirection {
-        return if direction == HexDirection::NW {
+        if direction == HexDirection::NW {
             HexDirection::NE
         } else {
             HexDirection::from(((direction as i32 >> 1) + 1) << 1)
-        };
+        }
     }
 
     pub fn is_pointy(direction: HexDirection) -> bool {
-        return direction as i32 % 2 == 1;
+        direction as i32 % 2 == 1
     }
 
     pub const POINTY: [HexDirection; 6] = [
@@ -165,8 +165,7 @@ impl HexDirection {
 
     pub fn radians_to_direction(angle: f64) -> HexDirection {
         let pi = std::f64::consts::PI;
-        let bounds = vec![
-            (pi * 1. / 12., pi * 3. / 12.),
+        let bounds = [(pi * 1. / 12., pi * 3. / 12.),
             (pi * 3. / 12., pi * 5. / 12.),
             (pi * 5. / 12., pi * 7. / 12.), // 1.57
             (pi * 7. / 12., pi * 9. / 12.),
@@ -176,9 +175,8 @@ impl HexDirection {
             (pi * -9. / 12., pi * -7. / 12.),
             (pi * -7. / 12., pi * -5. / 12.), // -1.57
             (pi * -5. / 12., pi * -3. / 12.),
-            (pi * -3. / 12., pi * -1. / 12.),
-            (pi * -1. / 12., pi * 1. / 12.), // 0
-        ];
+            (pi * -3. / 12., -pi / 12.),
+            (-pi / 12., pi * 1. / 12.)];
         for direction in HexDirection::ALL {
             if angle >= bounds[direction as usize].0 && angle < bounds[direction as usize].1 {
                 return direction;

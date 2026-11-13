@@ -10,7 +10,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn add_favorite_friend(ctx: &ReducerContext, player_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let mut friends_state = unwrap_or_err!(
         ctx.db

@@ -11,9 +11,9 @@ use crate::{parameters_desc, unwrap_or_err};
 use spacetimedb::{ReducerContext, Table};
 
 fn validate_co_owner_permissions(ctx: &ReducerContext, actor_id: u64, rent_entity_id: u64) -> Result<(), String> {
-    let rent = unwrap_or_err!(ctx.db.rent_state().entity_id().find(&rent_entity_id), "Rental does not exist");
+    let rent = unwrap_or_err!(ctx.db.rent_state().entity_id().find(rent_entity_id), "Rental does not exist");
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&rent.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(rent.claim_entity_id),
         "Rental is not part of a claim"
     );
     if !claim.has_co_owner_permissions(ctx, actor_id) {
@@ -25,12 +25,12 @@ fn validate_co_owner_permissions(ctx: &ReducerContext, actor_id: u64, rent_entit
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_add_listing(ctx: &ReducerContext, request: RentAddListingRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     validate_co_owner_permissions(ctx, actor_id, request.rent_entity_id)?;
 
-    let mut rent = ctx.db.rent_state().entity_id().find(&request.rent_entity_id).unwrap();
+    let mut rent = ctx.db.rent_state().entity_id().find(request.rent_entity_id).unwrap();
     if !rent.active {
         rent.active = true;
         ctx.db.rent_state().entity_id().update(rent);
@@ -41,12 +41,12 @@ pub fn rent_add_listing(ctx: &ReducerContext, request: RentAddListingRequest) ->
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_unlist(ctx: &ReducerContext, request: RentUnlistRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     validate_co_owner_permissions(ctx, actor_id, request.rent_entity_id)?;
 
-    let mut rent = ctx.db.rent_state().entity_id().find(&request.rent_entity_id).unwrap();
+    let mut rent = ctx.db.rent_state().entity_id().find(request.rent_entity_id).unwrap();
     if rent.active {
         rent.active = false;
         ctx.db.rent_state().entity_id().update(rent);
@@ -57,10 +57,10 @@ pub fn rent_unlist(ctx: &ReducerContext, request: RentUnlistRequest) -> Result<(
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_deposit_coins(ctx: &ReducerContext, request: RentDepositCoinsRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let mut rent = ctx.db.rent_state().entity_id().find(&request.rent_entity_id).unwrap();
+    let mut rent = ctx.db.rent_state().entity_id().find(request.rent_entity_id).unwrap();
     if !rent.active {
         return Err("This rental is not listed yet".into());
     }
@@ -83,10 +83,10 @@ pub fn rent_deposit_coins(ctx: &ReducerContext, request: RentDepositCoinsRequest
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_remove_tenant(ctx: &ReducerContext, request: RentRemoveTenantRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let mut rent = ctx.db.rent_state().entity_id().find(&request.rent_entity_id).unwrap();
+    let mut rent = ctx.db.rent_state().entity_id().find(request.rent_entity_id).unwrap();
     if !rent.active {
         return Err("This rental is not listed yet".into());
     }
@@ -109,10 +109,10 @@ pub fn rent_remove_tenant(ctx: &ReducerContext, request: RentRemoveTenantRequest
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_add_tenant(ctx: &ReducerContext, request: RentAddTenantRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let mut rent = ctx.db.rent_state().entity_id().find(&request.rent_entity_id).unwrap();
+    let mut rent = ctx.db.rent_state().entity_id().find(request.rent_entity_id).unwrap();
     if !rent.active {
         return Err("This rental is not listed yet".into());
     }
@@ -142,11 +142,11 @@ pub fn rent_add_tenant(ctx: &ReducerContext, request: RentAddTenantRequest) -> R
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_set_daily_rate(ctx: &ReducerContext, request: RentSetDailyRateRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     validate_co_owner_permissions(ctx, actor_id, request.rent_entity_id)?;
-    let mut rent = ctx.db.rent_state().entity_id().find(&request.rent_entity_id).unwrap();
+    let mut rent = ctx.db.rent_state().entity_id().find(request.rent_entity_id).unwrap();
     rent.daily_rent = request.daily_rate;
     ctx.db.rent_state().entity_id().update(rent);
     Ok(())
@@ -155,19 +155,19 @@ pub fn rent_set_daily_rate(ctx: &ReducerContext, request: RentSetDailyRateReques
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_purchase(ctx: &ReducerContext, request: RentPurchaseRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut rent = unwrap_or_err!(
-        ctx.db.rent_state().entity_id().find(&request.rent_entity_id),
+        ctx.db.rent_state().entity_id().find(request.rent_entity_id),
         "Rental does not exist"
     );
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&rent.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(rent.claim_entity_id),
         "Rental is not part of a claim"
     );
 
-    if rent.white_list.len() > 0 {
+    if !rent.white_list.is_empty() {
         return Err("Rental is not available".into());
     }
 
@@ -186,7 +186,7 @@ pub fn rent_purchase(ctx: &ReducerContext, request: RentPurchaseRequest) -> Resu
         return Err("This rental is not listed yet".into());
     }
 
-    let amount = ctx.db.parameters_desc().version().find(&0).unwrap().rent_deposit_days as u32 * rent.daily_rent;
+    let amount = ctx.db.parameters_desc().version().find(0).unwrap().rent_deposit_days as u32 * rent.daily_rent;
     rent.pay_rent(ctx, actor_id, amount)?;
     rent.white_list.push(actor_id);
     rent.active = true;
@@ -197,13 +197,13 @@ pub fn rent_purchase(ctx: &ReducerContext, request: RentPurchaseRequest) -> Resu
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_evict(ctx: &ReducerContext, request: RentEvictRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     // for now simply wipe the rent
     // DAB Note: need to add treasury concept to the claim
     let mut rent = unwrap_or_err!(
-        ctx.db.rent_state().entity_id().find(&request.rent_entity_id),
+        ctx.db.rent_state().entity_id().find(request.rent_entity_id),
         "This rental no longer exists."
     );
 
@@ -216,7 +216,7 @@ pub fn rent_evict(ctx: &ReducerContext, request: RentEvictRequest) -> Result<(),
     }
 
     let owning_claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&rent.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(rent.claim_entity_id),
         "This rental is not linked to a claim"
     );
 
@@ -230,7 +230,7 @@ pub fn rent_evict(ctx: &ReducerContext, request: RentEvictRequest) -> Result<(),
         rent.clear();
     } else {
         let compensatory_fee =
-            (rent.daily_rent as f32 * ctx.db.parameters_desc().version().find(&0).unwrap().rent_eviction_compensation) as u32;
+            (rent.daily_rent as f32 * ctx.db.parameters_desc().version().find(0).unwrap().rent_eviction_compensation) as u32;
         let mut remaining_compensatory_fee = compensatory_fee;
         let mut claim_local = owning_claim.local_state(ctx);
 
@@ -283,10 +283,10 @@ pub struct RentEvictTimer {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_evict_term(ctx: &ReducerContext, timer: RentEvictTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     let mut rent = unwrap_or_err!(
-        ctx.db.rent_state().entity_id().find(&timer.rent_entity_id),
+        ctx.db.rent_state().entity_id().find(timer.rent_entity_id),
         "This rental no longer exists."
     );
     AlertState::new(ctx, AlertType::EvictionStatement, rent.white_list[0], rent.entity_id)?;
@@ -298,13 +298,13 @@ pub fn rent_evict_term(ctx: &ReducerContext, timer: RentEvictTimer) -> Result<()
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_terminate(ctx: &ReducerContext, request: RentTerminateRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     // for now simply wipe the rent
     // DAB Note: need to add treasury concept to the claim
     let mut rent = unwrap_or_err!(
-        ctx.db.rent_state().entity_id().find(&request.rent_entity_id),
+        ctx.db.rent_state().entity_id().find(request.rent_entity_id),
         "This rental no longer exists."
     );
 
@@ -316,7 +316,7 @@ pub fn rent_terminate(ctx: &ReducerContext, request: RentTerminateRequest) -> Re
         return Err("Not authorized - you are being evicted.".into());
     }
 
-    if rent.white_list.len() > 0 && rent.white_list[0] != actor_id {
+    if !rent.white_list.is_empty() && rent.white_list[0] != actor_id {
         return Err("Only the renter can terminate the rental.".into());
     }
 
@@ -330,10 +330,10 @@ pub fn rent_terminate(ctx: &ReducerContext, request: RentTerminateRequest) -> Re
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn rent_collect_eviction_fee(ctx: &ReducerContext, rent_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let mut rent = ctx.db.rent_state().entity_id().find(&rent_entity_id).unwrap();
+    let mut rent = ctx.db.rent_state().entity_id().find(rent_entity_id).unwrap();
     if !rent.active {
         return Err("This rental is not listed yet".into());
     }

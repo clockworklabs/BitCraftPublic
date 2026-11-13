@@ -45,7 +45,7 @@ fn marginal_tile_maintenance(tile_count: i32, mut tile_costs: Vec<ClaimTileCost>
 
 impl ClaimState {
     pub fn clear_notifications(ctx: &ReducerContext, claim_entity_id: u64) {
-        if let Some(claim) = ctx.db.claim_state().entity_id().find(&claim_entity_id) {
+        if let Some(claim) = ctx.db.claim_state().entity_id().find(claim_entity_id) {
             for member in claim.members(ctx) {
                 // DAB Note: It could be nice to add a "your claim was destroyed because you didn't take care of your claim totem" alert.
                 AlertState::delete(ctx, AlertType::OutOfSupplies, member.player_entity_id, claim.entity_id);
@@ -88,26 +88,26 @@ impl ClaimState {
     }
 
     pub fn local_state(&self, ctx: &ReducerContext) -> ClaimLocalState {
-        return ctx.db.claim_local_state().entity_id().find(self.entity_id).unwrap();
+        ctx.db.claim_local_state().entity_id().find(self.entity_id).unwrap()
     }
 
     pub fn get_member(&self, ctx: &ReducerContext, entity_id: u64) -> Option<ClaimMemberState> {
-        return ctx
+        ctx
             .db
             .claim_member_state()
             .player_claim()
             .filter((entity_id, self.entity_id))
-            .next();
+            .next()
     }
 
     pub fn is_member(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64) -> bool {
-        return ctx
+        ctx
             .db
             .claim_member_state()
             .player_claim()
             .filter((actor_id, claim_entity_id))
             .next()
-            .is_some();
+            .is_some()
     }
 
     pub fn has_owner_permissions(&self, entity_id: u64) -> bool {
@@ -161,7 +161,7 @@ impl ClaimState {
     }
 
     fn refresh_end_timestamp(ctx: &ReducerContext, mut alert: AlertState, supplies: f32, decay: f32) {
-        let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().building_decay_tick_millis as u64;
+        let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().building_decay_tick_millis as u64;
         let milliseconds_elapsed = game_state::unix_ms(ctx.timestamp);
         let next_tick = ((tick_length - (milliseconds_elapsed % tick_length)) / 1000) as f32;
         let duration = Duration::from_secs_f32(next_tick + supplies / decay * ((tick_length / 1000) as f32));
@@ -205,15 +205,15 @@ impl ClaimState {
     }
 
     pub fn members(&self, ctx: &ReducerContext) -> impl Iterator<Item = ClaimMemberState> {
-        return ctx.db.claim_member_state().claim_entity_id().filter(self.entity_id);
+        ctx.db.claim_member_state().claim_entity_id().filter(self.entity_id)
     }
 
     pub fn num_tiles_in_radius(radius: i32) -> i32 {
-        return 1 + 3 * radius * (radius + 1);
+        1 + 3 * radius * (radius + 1)
     }
 
     fn num_tiles_in_ring(radius: i32) -> i32 {
-        return radius * 6;
+        radius * 6
     }
 
     pub fn num_neighbors_in_radius(radius: i32) -> i32 {
@@ -222,12 +222,12 @@ impl ClaimState {
         let num_neighbors_inner_radius = num_tiles_inner_radius * 6; //Tiles in the inner radius have 6 neighbors each
         let num_neighbors_outer_ring = 6 * 3 + (num_tiles_outer_ring - 6) * 4; //Outer ring has 6 corners with 3 neighbors each, the other tiles have 4 neighbors
 
-        return num_neighbors_inner_radius + num_neighbors_outer_ring;
+        num_neighbors_inner_radius + num_neighbors_outer_ring
     }
 
     pub fn get_upkeep_multiplier(&self, ctx: &ReducerContext) -> f32 {
         let local = self.local_state(ctx);
-        return local.get_upkeep_multiplier(ctx);
+        local.get_upkeep_multiplier(ctx)
     }
 }
 
@@ -250,7 +250,7 @@ impl ClaimMemberState {
 
 impl ClaimLocalState {
     pub fn members(&self, ctx: &ReducerContext) -> impl Iterator<Item = ClaimMemberState> {
-        return ctx.db.claim_member_state().claim_entity_id().filter(self.entity_id);
+        ctx.db.claim_member_state().claim_entity_id().filter(self.entity_id)
     }
 
     pub fn update_supplies_and_commit(mut self, ctx: &ReducerContext, supplies_delta: f32, check_threshold: bool) -> Result<(), String> {
@@ -264,7 +264,7 @@ impl ClaimLocalState {
                 .db
                 .claim_tech_state()
                 .entity_id()
-                .find(&self.entity_id)
+                .find(self.entity_id)
                 .unwrap()
                 .max_supplies(ctx);
             next_supplies = next_supplies.min(max_supplies);

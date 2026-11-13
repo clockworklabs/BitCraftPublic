@@ -93,7 +93,7 @@ impl EquipmentState {
 
         // apply all equipped item stats
         for item_id in equipped_item_ids {
-            if let Some(equipment) = ctx.db.equipment_desc().item_id().find(&item_id) {
+            if let Some(equipment) = ctx.db.equipment_desc().item_id().find(item_id) {
                 for stat_delta in &equipment.stats {
                     let entry = bonuses.entry(stat_delta.id).or_insert((0.0, 0.0));
                     if stat_delta.is_pct {
@@ -111,12 +111,12 @@ impl EquipmentState {
         player_entity_id: u64,
         action_skill: Option<SkillType>,
     ) -> Result<(), String> {
-        let Some(equipment_state) = ctx.db.equipment_state().entity_id().find(&player_entity_id) else {
+        let Some(equipment_state) = ctx.db.equipment_state().entity_id().find(player_entity_id) else {
             return Ok(());
         };
 
         for item_id in equipment_state.active_worn_equipment_item_ids(ctx) {
-            let Some(equipment) = ctx.db.equipment_desc().item_id().find(&item_id) else {
+            let Some(equipment) = ctx.db.equipment_desc().item_id().find(item_id) else {
                 continue;
             };
 

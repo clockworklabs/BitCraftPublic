@@ -16,7 +16,7 @@ pub fn log_claim_member_leaderboard(ctx: &ReducerContext) -> Result<(), String> 
         .iter()
         .map(|c| (c.name, ctx.db.claim_member_state().claim_entity_id().filter(c.entity_id).count()))
         .collect();
-    claims.sort_by(|a, b| b.1.cmp(&a.1));
+    claims.sort_by_key(|b| std::cmp::Reverse(b.1));
 
     log::info!("Claim Size Ranking");
     log::info!("|        Claim Name         |  Member Count  |");
@@ -28,7 +28,7 @@ pub fn log_claim_member_leaderboard(ctx: &ReducerContext) -> Result<(), String> 
         if name.len() >= 26 {
             log::info!("| {}|{:16} |", &name[0..26], member_count);
         } else {
-            log::info!("| {:26}|{:16} |", &name, member_count);
+            log::info!("| {:26}|{:16} |", name, member_count);
         }
     }
 
@@ -56,7 +56,7 @@ pub fn log_claim_tier_leaderboard(ctx: &ReducerContext) -> Result<(), String> {
                 }
             }
             if highest_tier > 3 {
-                let claim = ctx.db.claim_state().entity_id().find(&c.entity_id).unwrap();
+                let claim = ctx.db.claim_state().entity_id().find(c.entity_id).unwrap();
                 Some((claim.name, highest_tier))
             } else {
                 None
@@ -64,14 +64,14 @@ pub fn log_claim_tier_leaderboard(ctx: &ReducerContext) -> Result<(), String> {
         })
         .collect();
 
-    claim_tiers.sort_by(|a, b| b.1.cmp(&a.1));
+    claim_tiers.sort_by_key(|b| std::cmp::Reverse(b.1));
     log::info!("Claim Tier Ranking");
     log::info!("|        Claim Name        |  Tier  |");
     for (name, tier) in claim_tiers {
         if name.len() >= 26 {
             log::info!("| {}|{:7} |", &name[0..26], tier);
         } else {
-            log::info!("| {:26}|{:7} |", &name, tier);
+            log::info!("| {:26}|{:7} |", name, tier);
         }
     }
 

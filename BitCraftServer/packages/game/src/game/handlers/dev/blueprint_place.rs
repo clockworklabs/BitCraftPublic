@@ -101,7 +101,7 @@ pub fn blueprint_place(
             .rotate_around(&center_small, rotation);
             let building_desc_id = building["BuildingDescId"].as_i32().unwrap();
             let direction = building["Direction"].as_i32().unwrap();
-            let actor_id = game_state::actor_id(&ctx, false)?;
+            let actor_id = game_state::actor_id(ctx, false)?;
             create_building_unsafe(ctx, actor_id, None, coord, direction, building_desc_id, None)?;
         }
         span.end();
@@ -127,7 +127,7 @@ pub fn blueprint_place(
                 resource_desc_id,
                 coord,
                 direction,
-                ctx.db.resource_desc().id().find(&resource_desc_id).unwrap().max_health,
+                ctx.db.resource_desc().id().find(resource_desc_id).unwrap().max_health,
                 false,
                 false,
             )?;
@@ -184,16 +184,16 @@ fn clear_area(
         for location in LocationState::select_all(ctx, &coord) {
             let entity_id = location.entity_id;
             if delete_entities {
-                if ctx.db.building_state().entity_id().find(&entity_id).is_some() {
+                if ctx.db.building_state().entity_id().find(entity_id).is_some() {
                     delete_building(ctx, 0, entity_id, None, false, false);
-                } else if let Some(resource) = ctx.db.resource_state().entity_id().find(&entity_id) {
+                } else if let Some(resource) = ctx.db.resource_state().entity_id().find(entity_id) {
                     resource.despawn_self(ctx);
-                } else if ctx.db.loot_chest_state().entity_id().find(&entity_id).is_some() {
+                } else if ctx.db.loot_chest_state().entity_id().find(entity_id).is_some() {
                     loot_chest_helpers::delete_loot_chest(ctx, entity_id);
                 }
             }
 
-            if delete_pavement && ctx.db.paved_tile_state().entity_id().find(&entity_id).is_some() {
+            if delete_pavement && ctx.db.paved_tile_state().entity_id().find(entity_id).is_some() {
                 PavedTileState::delete_paving(ctx, &entity_id);
             }
         }

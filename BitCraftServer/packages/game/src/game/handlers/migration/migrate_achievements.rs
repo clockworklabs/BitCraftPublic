@@ -30,7 +30,7 @@ pub fn migration_set_achievement_params(ctx: &ReducerContext, allow_destructive:
 }
 
 //This is called during static data upload
-pub fn migrate_achievements(ctx: &ReducerContext, old_achievements: &Vec<AchievementDesc>) -> Result<(), String> {
+pub fn migrate_achievements(ctx: &ReducerContext, old_achievements: &[AchievementDesc]) -> Result<(), String> {
     let par = ctx
         .db
         .migration_achievements_params()
@@ -61,7 +61,7 @@ pub fn migrate_achievements(ctx: &ReducerContext, old_achievements: &Vec<Achieve
         })
         .collect();
 
-    if old_achievements.len() == 0 {
+    if old_achievements.is_empty() {
         return Ok(()); //Initial static data upload
     }
 

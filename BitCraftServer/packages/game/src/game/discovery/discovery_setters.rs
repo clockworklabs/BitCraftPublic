@@ -29,24 +29,24 @@ fn refresh_player_knowledges_scheduled(ctx: &ReducerContext, timer: RefreshPlaye
 }
 
 impl Discovery {
-    pub(super) fn knowledge_entry_array_hash(entries: &Vec<KnowledgeEntry>) -> i32 {
+    pub(super) fn knowledge_entry_array_hash(entries: &[KnowledgeEntry]) -> i32 {
         entries.iter().filter(|e| e.state == KnowledgeState::Acquired).count() as i32 * 10000
             + entries.iter().filter(|e| e.state == KnowledgeState::Discovered).count() as i32
     }
 
-    pub(super) fn location_entry_array_hash(entries: &Vec<KnowledgeLocationEntry>) -> i32 {
+    pub(super) fn location_entry_array_hash(entries: &[KnowledgeLocationEntry]) -> i32 {
         entries.iter().filter(|e| e.state == KnowledgeState::Acquired).count() as i32 * 10000
             + entries.iter().filter(|e| e.state == KnowledgeState::Discovered).count() as i32
     }
 
     #[allow(dead_code)]
-    pub(super) fn entity_entry_array_hash(entries: &Vec<KnowledgeEntityEntry>) -> i32 {
+    pub(super) fn entity_entry_array_hash(entries: &[KnowledgeEntityEntry]) -> i32 {
         entries.iter().filter(|e| e.state == KnowledgeState::Acquired).count() as i32 * 10000
             + entries.iter().filter(|e| e.state == KnowledgeState::Discovered).count() as i32
     }
 
     pub(super) fn discover_construction_recipe_components(&mut self, ctx: &ReducerContext, recipe_id: i32) {
-        if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(&recipe_id) {
+        if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(recipe_id) {
             // discover produced building
             self.discover_building(ctx, recipe.building_description_id);
             // discover required items
@@ -61,7 +61,7 @@ impl Discovery {
     }
 
     pub(super) fn discover_resource_placement_recipe_components(&mut self, ctx: &ReducerContext, recipe_id: i32) {
-        if let Some(recipe) = ctx.db.resource_placement_recipe_desc().id().find(&recipe_id) {
+        if let Some(recipe) = ctx.db.resource_placement_recipe_desc().id().find(recipe_id) {
             // discover produced resource
             self.discover_resource(ctx, recipe.resource_description_id);
             // discover required items
@@ -77,7 +77,7 @@ impl Discovery {
 
     // discover crafting recipe required/comsumed elements
     pub(super) fn discover_craft_recipe_components(&mut self, ctx: &ReducerContext, recipe_id: i32) {
-        if let Some(recipe) = ctx.db.crafting_recipe_desc().id().find(&recipe_id) {
+        if let Some(recipe) = ctx.db.crafting_recipe_desc().id().find(recipe_id) {
             // discover produced items
             for i in &recipe.crafted_item_stacks {
                 if i.item_type == ItemType::Cargo {
@@ -99,7 +99,7 @@ impl Discovery {
 
     // discover construction recipe required/comsumed elements
     pub(super) fn discover_extract_recipe_components(&mut self, ctx: &ReducerContext, recipe_id: i32) {
-        if let Some(recipe) = ctx.db.extraction_recipe_desc().id().find(&recipe_id) {
+        if let Some(recipe) = ctx.db.extraction_recipe_desc().id().find(recipe_id) {
             // discover all extracted items
             for i in &recipe.extracted_item_stacks {
                 let item_stack = i.item_stack.as_ref().unwrap();
@@ -122,7 +122,7 @@ impl Discovery {
 
     // discover paving recipe required/comsumed elements (assuming it's discovered by a discovery trigger)
     pub(super) fn discover_paving_recipe_components(&mut self, ctx: &ReducerContext, recipe_id: i32) {
-        if let Some(recipe) = ctx.db.paving_tile_desc().id().find(&recipe_id) {
+        if let Some(recipe) = ctx.db.paving_tile_desc().id().find(recipe_id) {
             // discover all extracted items
             for i in &recipe.consumed_item_stacks {
                 self.discover_item_and_item_list(ctx, i.item_id);
@@ -135,7 +135,7 @@ impl Discovery {
     }
 
     pub(super) fn discover_pillar_shaping_recipe_components(&mut self, ctx: &ReducerContext, recipe_id: i32) {
-        if let Some(recipe) = ctx.db.pillar_shaping_desc().id().find(&recipe_id) {
+        if let Some(recipe) = ctx.db.pillar_shaping_desc().id().find(recipe_id) {
             // discover all extracted items
             for i in &recipe.consumed_item_stacks {
                 self.discover_item_and_item_list(ctx, i.item_id);
@@ -148,7 +148,7 @@ impl Discovery {
     }
 
     pub(super) fn on_item_acquired(&mut self, ctx: &ReducerContext, item_id: i32) {
-        if let Some(recipe) = ctx.db.item_desc().id().find(&item_id) {
+        if let Some(recipe) = ctx.db.item_desc().id().find(item_id) {
             // acquire secondary knowledge from acquiring an item
             if recipe.secondary_knowledge_id != 0 {
                 self.acquire_secondary(ctx, recipe.secondary_knowledge_id);
@@ -198,7 +198,7 @@ impl Discovery {
     }
 
     pub(super) fn on_cargo_acquired(&mut self, ctx: &ReducerContext, cargo_id: i32) {
-        if let Some(recipe) = ctx.db.cargo_desc().id().find(&cargo_id) {
+        if let Some(recipe) = ctx.db.cargo_desc().id().find(cargo_id) {
             // acquire secondary knowledge from acquiring a cargo
             if recipe.secondary_knowledge_id != 0 {
                 self.acquire_secondary(ctx, recipe.secondary_knowledge_id);
@@ -676,10 +676,10 @@ impl Discovery {
     }
 
     pub fn discover_item_and_item_list(&mut self, ctx: &ReducerContext, item_id: i32) {
-        if let Some(item_list) = ctx.db.item_desc().id().find(&item_id) {
+        if let Some(item_list) = ctx.db.item_desc().id().find(item_id) {
             let item_list_id = item_list.item_list_id;
             if item_list_id != 0 {
-                let item_list = ctx.db.item_list_desc().id().find(&item_list_id).unwrap();
+                let item_list = ctx.db.item_list_desc().id().find(item_list_id).unwrap();
                 for possibility in item_list.possibilities {
                     for item in possibility.items {
                         if item.item_type == ItemType::Item {

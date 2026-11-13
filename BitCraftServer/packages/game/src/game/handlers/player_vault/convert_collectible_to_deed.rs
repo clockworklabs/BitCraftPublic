@@ -12,12 +12,12 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn convert_collectible_to_deed(ctx: &ReducerContext, request: PlayerConvertCollectibleToDeedRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
-    let mut vault: VaultState = unwrap_or_err!(ctx.db.vault_state().entity_id().find(&actor_id), "Vault not initialized");
+    let mut vault: VaultState = unwrap_or_err!(ctx.db.vault_state().entity_id().find(actor_id), "Vault not initialized");
 
     if request.vault_index < 0 || request.vault_index >= vault.collectibles.len() as i32 {
         return Err("Invalid vault index".into());
@@ -27,7 +27,7 @@ pub fn convert_collectible_to_deed(ctx: &ReducerContext, request: PlayerConvertC
         ctx.db
             .collectible_desc()
             .id()
-            .find(&vault.collectibles[request.vault_index as usize].id),
+            .find(vault.collectibles[request.vault_index as usize].id),
         "Invalid collectible id"
     );
 
@@ -63,7 +63,7 @@ pub fn convert_collectible_to_deed(ctx: &ReducerContext, request: PlayerConvertC
     if vault_count == 1 || is_premium_item {
         if collectible_desc.collectible_type == CollectibleType::Deployable {
             let mut player_prefs: PlayerPrefsState =
-                unwrap_or_err!(ctx.db.player_prefs_state().entity_id().find(&actor_id), "Unknown PlayerPrefs");
+                unwrap_or_err!(ctx.db.player_prefs_state().entity_id().find(actor_id), "Unknown PlayerPrefs");
 
             if player_prefs.default_deployable_collectible_id == collectible_desc.id {
                 player_prefs.default_deployable_collectible_id = 0;
@@ -71,7 +71,7 @@ pub fn convert_collectible_to_deed(ctx: &ReducerContext, request: PlayerConvertC
             }
 
             let deployable_desc: DeployableDesc = unwrap_or_err!(
-                ctx.db.deployable_desc().deploy_from_collectible_id().find(&collectible_desc.id),
+                ctx.db.deployable_desc().deploy_from_collectible_id().find(collectible_desc.id),
                 "Unkown DeployableDesc"
             );
 
@@ -83,14 +83,14 @@ pub fn convert_collectible_to_deed(ctx: &ReducerContext, request: PlayerConvertC
                 .find(|x| x.deployable_description_id == deployable_desc.id)
             {
                 if ctx.db.mobile_entity_state().entity_id().find(deployable.entity_id).is_some() {
-                    return Err(format!("Recover your {{0}} first|~{}", deployable_desc.name).into());
+                    return Err(format!("Recover your {{0}} first|~{}", deployable_desc.name));
                 }
-                ctx.db.deployable_state_v2().entity_id().delete(&deployable.entity_id);
+                ctx.db.deployable_state_v2().entity_id().delete(deployable.entity_id);
                 ctx.db
                     .deployable_collectible_state()
                     .deployable_entity_id()
-                    .delete(&deployable.entity_id);
-                ctx.db.trade_order_state().shop_entity_id().delete(&deployable.entity_id);
+                    .delete(deployable.entity_id);
+                ctx.db.trade_order_state().shop_entity_id().delete(deployable.entity_id);
             }
         }
         vault.collectibles.remove(request.vault_index as usize);

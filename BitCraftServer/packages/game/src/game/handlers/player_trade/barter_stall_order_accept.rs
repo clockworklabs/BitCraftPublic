@@ -23,7 +23,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("trade")]
 pub fn barter_stall_order_accept(ctx: &ReducerContext, request: PlayerBarterStallOrderAccept) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(ctx, actor_id, request.shop_entity_id, request.trade_order_entity_id, request.amount)
@@ -40,8 +40,8 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
         return Err("Invalid amount".into());
     }
 
-    let coordinates = ctx.db.mobile_entity_state().entity_id().find(&entity_id).unwrap().coordinates();
-    let building = ctx.db.building_state().entity_id().find(&shop_entity_id);
+    let coordinates = ctx.db.mobile_entity_state().entity_id().find(entity_id).unwrap().coordinates();
+    let building = ctx.db.building_state().entity_id().find(shop_entity_id);
     let mut deployable_location = None;
 
     let mut item_index = None;
@@ -52,13 +52,13 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
         if building.distance_to(ctx, &coordinates) > 5 {
             return Err("Too far".into());
         }
-        claim = ctx.db.claim_state().entity_id().find(&building.claim_entity_id);
+        claim = ctx.db.claim_state().entity_id().find(building.claim_entity_id);
 
         // These indices will be used to find the inventory index.
         // The Item and Cargo Inventories for buildings are created based on the order of the inventory building features.
         // When finding the indicees, ignore non-inventory building features (eg. BarterStall).
         // Note: There can be a building feature that serves as both of the item and cargo inventories (eg. Bank).
-        let description = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+        let description = ctx.db.building_desc().id().find(building.building_description_id).unwrap();
         item_index = description
             .functions
             .iter()
@@ -69,7 +69,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
             .iter()
             .filter(|f| f.storage_slots > 0 || f.cargo_slots > 0)
             .position(|f| f.cargo_slots > 0);
-    } else if let Some(deployable) = ctx.db.deployable_state_v2().entity_id().find(&shop_entity_id) {
+    } else if let Some(deployable) = ctx.db.deployable_state_v2().entity_id().find(shop_entity_id) {
         if deployable.hidden {
             return Err("Cannot interact with a hidden deployable.".into());
         }
@@ -78,7 +78,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
             .db
             .mobile_entity_state()
             .entity_id()
-            .find(&shop_entity_id)
+            .find(shop_entity_id)
             .unwrap()
             .coordinates();
         if location.distance_to(coordinates) > 5 {
@@ -87,7 +87,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
 
         deployable_location = Some(location);
 
-        let description = ctx.db.deployable_desc().id().find(&deployable.deployable_description_id).unwrap();
+        let description = ctx.db.deployable_desc().id().find(deployable.deployable_description_id).unwrap();
         if description.storage > 0 {
             item_index = Some(0);
         }
@@ -97,7 +97,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
     }
 
     let mut trade_order = unwrap_or_err!(
-        ctx.db.trade_order_state().entity_id().find(&trade_order_entity_id),
+        ctx.db.trade_order_state().entity_id().find(trade_order_entity_id),
         "Trade order could not be found!"
     );
 
@@ -114,21 +114,16 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
     let mut required_item_stacks = Vec::new();
 
     //validate traveler trade order requirements
-    if trade_order.traveler_trade_order_id != None {
-        if let Some(traveler_trade_order) = ctx
-            .db
-            .traveler_trade_order_desc()
-            .id()
-            .find(&trade_order.traveler_trade_order_id.unwrap())
-        {
+    if let Some(traveler_trade_order_id) = trade_order.traveler_trade_order_id {
+        if let Some(traveler_trade_order) = ctx.db.traveler_trade_order_desc().id().find(traveler_trade_order_id) {
             //validate achievement requirements
             for achievement_id in traveler_trade_order.achievement_requirements {
                 if !AchievementDesc::meets_requirements_for_achievement(ctx, entity_id, achievement_id) {
                     let achievement = unwrap_or_err!(
-                        ctx.db.achievement_desc().id().find(&achievement_id),
+                        ctx.db.achievement_desc().id().find(achievement_id),
                         "Required achievement does not exist"
                     );
-                    return Err(format!("You must have completed achievement {{0}} to do this trade|~{}", achievement.name).into());
+                    return Err(format!("You must have completed achievement {{0}} to do this trade|~{}", achievement.name));
                 }
             }
 
@@ -136,22 +131,21 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
             for level_requirements in traveler_trade_order.level_requirements {
                 if !PlayerState::meets_level_requirement(ctx, entity_id, &level_requirements) {
                     let skill = unwrap_or_err!(
-                        ctx.db.skill_desc().id().find(&level_requirements.skill_id),
+                        ctx.db.skill_desc().id().find(level_requirements.skill_id),
                         "Required skill does not exist."
                     );
                     return Err(format!(
                         "You must have level {{0}} or higher in {{1}} to do this trade|~{}|~{}",
                         level_requirements.level, skill.name
-                    )
-                    .into());
+                    ));
                 }
             }
 
             // validate knowledges
-            if traveler_trade_order.required_knowledges.len() > 0 || traveler_trade_order.blocking_knowledges.len() > 0 {
+            if !traveler_trade_order.required_knowledges.is_empty() || !traveler_trade_order.blocking_knowledges.is_empty() {
                 let secondary_knowledge = ctx.db.knowledge_secondary_state().entity_id().find(entity_id).unwrap();
 
-                if traveler_trade_order.required_knowledges.len() > 0 {
+                if !traveler_trade_order.required_knowledges.is_empty() {
                     let mut possess_some_knowledges = false;
                     for knowledge_id in &traveler_trade_order.required_knowledges {
                         possess_some_knowledges |= secondary_knowledge
@@ -164,7 +158,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                     }
                 }
 
-                if traveler_trade_order.blocking_knowledges.len() > 0 {
+                if !traveler_trade_order.blocking_knowledges.is_empty() {
                     let mut possess_all_knowledges = true;
                     for knowledge_id in &traveler_trade_order.blocking_knowledges {
                         possess_all_knowledges &= secondary_knowledge
@@ -188,7 +182,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                         return Err("Irrealistic amount involving items with durability".into());
                     }
                     for _ in 0..offered_item.quantity * amount {
-                        offered_item_stacks.push(item_stack.clone());
+                        offered_item_stacks.push(item_stack);
                     }
                 } else {
                     item_stack.quantity = offered_item.quantity * amount;
@@ -204,7 +198,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                         return Err("Irrealistic amount involving items with durability".into());
                     }
                     for _ in 0..required_item.quantity * amount {
-                        required_item_stacks.push(item_stack.clone());
+                        required_item_stacks.push(item_stack);
                     }
                 } else {
                     item_stack.quantity = required_item.quantity * amount;
@@ -223,7 +217,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                         // Adding a check to prevent allocating an insane amount of durability item copies; this is obviously an attempt at sabotage or cheat
                         return Err("Irrealistic amount involving items with durability".into());
                     }
-                    offered_item_stacks.push(item_stack.clone());
+                    offered_item_stacks.push(item_stack);
                 }
             } else {
                 item_stack.quantity = offered_item.quantity * amount;
@@ -238,7 +232,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                     return Err("Irrealistic amount involving items with durability".into());
                 }
                 for _ in 0..required_item.quantity * amount {
-                    required_item_stacks.push(item_stack.clone());
+                    required_item_stacks.push(item_stack);
                 }
             } else {
                 item_stack.quantity = required_item.quantity * amount;
@@ -294,12 +288,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                     .collect(),
                 amount,
             )?;
-            if claim.is_none() {
-                // Everything is removed from the stall
-                if !item_inventory.remove(&removed_items) {
-                    return Err("Stall lacks goods or funds".into());
-                }
-            } else {
+            if let Some(claim) = &claim {
                 // Remove offered items
                 let removed_coins = extract_coins(&mut removed_items);
 
@@ -328,7 +317,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                     }
 
                     if removed_from_treasury > 0 {
-                        let mut claim_local = claim.as_ref().unwrap().local_state(ctx);
+                        let mut claim_local = claim.local_state(ctx);
                         if claim_local.treasury < removed_from_treasury {
                             return Err("Vendor does not have enough funds for this transaction".into());
                         }
@@ -337,6 +326,11 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                         treasury_coins_removed = removed_from_treasury as i32;
                         ctx.db.claim_local_state().entity_id().update(claim_local);
                     }
+                }
+            } else {
+                // Everything is removed from the stall
+                if !item_inventory.remove(&removed_items) {
+                    return Err("Stall lacks goods or funds".into());
                 }
             }
 
@@ -350,12 +344,7 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
                     .collect(),
                 amount,
             )?;
-            if claim.is_none() {
-                // Everything is added in the stall
-                if !item_inventory.add_multiple(ctx, &gained_items) {
-                    return Err("Stall is full".into());
-                }
-            } else {
+            if let Some(claim) = &claim {
                 let gained_coins = extract_coins(&mut gained_items) as u32;
 
                 // Goods are added in the stall
@@ -365,10 +354,15 @@ pub fn reduce(ctx: &ReducerContext, entity_id: u64, shop_entity_id: u64, trade_o
 
                 // Coins are added to the town treasury
                 if gained_coins > 0 {
-                    let mut claim_local = claim.as_ref().unwrap().local_state(ctx);
+                    let mut claim_local = claim.local_state(ctx);
                     claim_local.treasury += gained_coins;
                     ctx.db.claim_local_state().entity_id().update(claim_local);
                     treasury_coins_added = gained_coins as i32;
+                }
+            } else {
+                // Everything is added in the stall
+                if !item_inventory.add_multiple(ctx, &gained_items) {
+                    return Err("Stall is full".into());
                 }
             }
 
@@ -445,7 +439,7 @@ fn scale_item_stacks(ctx: &ReducerContext, item_stacks: &Vec<ItemStack>, amount:
     let mut scaled_item_stacks = Vec::new();
 
     for item_stack in item_stacks {
-        let mut scaled_item_stack = item_stack.clone();
+        let mut scaled_item_stack = *item_stack;
         scaled_item_stack.quantity = 1;
 
         if scaled_item_stack.durability.is_some() || ItemStack::new(ctx, item_stack.item_id, item_stack.item_type, 1).durability.is_some() {
@@ -455,7 +449,7 @@ fn scale_item_stacks(ctx: &ReducerContext, item_stacks: &Vec<ItemStack>, amount:
             }
 
             for _ in 0..item_stack.quantity * amount {
-                scaled_item_stacks.push(scaled_item_stack.clone());
+                scaled_item_stacks.push(scaled_item_stack);
             }
         } else {
             scaled_item_stack.quantity = item_stack.quantity * amount;

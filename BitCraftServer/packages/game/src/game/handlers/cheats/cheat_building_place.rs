@@ -25,17 +25,17 @@ pub fn cheat_building_place(ctx: &ReducerContext, request: PlayerProjectSitePlac
 
     // from build.rs -> pub reduce()
     let recipe = unwrap_or_err!(
-        ctx.db.construction_recipe_desc().id().find(&request.construction_recipe_id),
+        ctx.db.construction_recipe_desc().id().find(request.construction_recipe_id),
         "Invalid recipe."
     );
 
     let coord = SmallHexTile::from(request.coordinates);
-    let actor_id = match ctx.db.user_state().identity().find(&ctx.sender()) {
+    let actor_id = match ctx.db.user_state().identity().find(ctx.sender()) {
         Some(user) => user.entity_id,
         None => 0,
     };
 
-    let building_desc = ctx.db.building_desc().id().find(&recipe.building_description_id).unwrap();
+    let building_desc = ctx.db.building_desc().id().find(recipe.building_description_id).unwrap();
     let mut terrain_cache = TerrainChunkCache::empty();
     let should_flatten_terrain = !game_state_filters::is_submerged(ctx, &mut terrain_cache, coord);
     let footprint = building_desc.get_footprint(&coord, request.facing_direction);
@@ -48,12 +48,12 @@ pub fn cheat_building_place(ctx: &ReducerContext, request: PlayerProjectSitePlac
         let spawn_coord = building_spawn.get_spawn_coordinates(&coord, request.facing_direction);
         match building_spawn.spawn_type {
             crate::messages::static_data::BuildingSpawnType::Building => {
-                let building_desc = ctx.db.building_desc().id().find(&building_spawn.spawn_ids[0]).unwrap();
+                let building_desc = ctx.db.building_desc().id().find(building_spawn.spawn_ids[0]).unwrap();
                 let footprint = building_desc.get_footprint(&spawn_coord, spawn_direction);
                 clear_and_flatten_terrain_under_footprint(ctx, &footprint, should_flatten_terrain);
             }
             crate::messages::static_data::BuildingSpawnType::Resource => {
-                let resource_desc = ctx.db.resource_desc().id().find(&building_spawn.spawn_ids[0]).unwrap();
+                let resource_desc = ctx.db.resource_desc().id().find(building_spawn.spawn_ids[0]).unwrap();
                 let footprint = resource_desc.get_footprint(&spawn_coord, spawn_direction);
                 clear_and_flatten_terrain_under_footprint(ctx, &footprint, should_flatten_terrain);
             }

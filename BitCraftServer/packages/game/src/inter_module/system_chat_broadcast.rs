@@ -30,7 +30,7 @@ pub fn send_message(ctx: &ReducerContext, message: String) {
 
 #[spacetimedb::reducer]
 fn system_chat_broadcast_scheduled(ctx: &ReducerContext, timer: SystemChatBroadcastTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to system_broadcast_scheduled");
         return;
     }

@@ -20,18 +20,18 @@ use crate::{
 #[shared_table_reducer]
 pub fn sign_out(ctx: &ReducerContext) {
     let now_ms = ctx.timestamp;
-    log::info!("[{:?}] [{:?}] sign_out", now_ms, &ctx.sender().to_hex());
+    log::info!("[{:?}] [{:?}] sign_out", now_ms, ctx.sender().to_hex());
 
     sign_out_internal(ctx, ctx.sender(), true);
 }
 
 pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_period: bool) {
-    if let Some(mut user) = ctx.db.user_state().identity().find(&identity) {
+    if let Some(mut user) = ctx.db.user_state().identity().find(identity) {
         PlayerTimestampState::clear(ctx, user.entity_id);
 
         let player_entity_id = user.entity_id;
 
-        if let Some(mut player) = ctx.db.player_state().entity_id().find(&player_entity_id) {
+        if let Some(mut player) = ctx.db.player_state().entity_id().find(player_entity_id) {
             if !player.signed_in {
                 log::info!("(sign_out) Already signed Out for {:?}", identity.to_hex());
                 return;
@@ -77,7 +77,7 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
             ctx.db.player_state().entity_id().update(player);
 
             // restart buff timestamp
-            if let Some(mut active_buff_state) = ctx.db.active_buff_state().entity_id().find(&player_entity_id) {
+            if let Some(mut active_buff_state) = ctx.db.active_buff_state().entity_id().find(player_entity_id) {
                 active_buff_state.pause_all_buffs(ctx);
                 ctx.db.active_buff_state().entity_id().update(active_buff_state);
             } else {
@@ -85,7 +85,7 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
             }
 
             // clear current player target
-            ctx.db.target_state().entity_id().delete(&player_entity_id);
+            ctx.db.target_state().entity_id().delete(player_entity_id);
 
             // end all combat sessions involving this player
             ThreatState::clear_all(ctx, player_entity_id);
@@ -96,7 +96,7 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
             auto_unstuck_player_and_deployable(ctx, &player_entity_id);
 
             // interrupt player and deployable movement
-            if let Some(mut pos) = ctx.db.mobile_entity_state().entity_id().find(&player_entity_id) {
+            if let Some(mut pos) = ctx.db.mobile_entity_state().entity_id().find(player_entity_id) {
                 if let Some(network) = ctx.db.dimension_description_state().dimension_id().find(pos.dimension) {
                     InteriorPlayerCountState::dec(ctx, network.dimension_network_entity_id);
                 }
@@ -110,8 +110,8 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
             } else {
                 log::error!("Player {player_entity_id} has no MobileEntityState");
             }
-            if let Some(mounting) = ctx.db.mounting_state().entity_id().find(&player_entity_id) {
-                if let Some(mut pos) = ctx.db.mobile_entity_state().entity_id().find(&mounting.deployable_entity_id) {
+            if let Some(mounting) = ctx.db.mounting_state().entity_id().find(player_entity_id) {
+                if let Some(mut pos) = ctx.db.mobile_entity_state().entity_id().find(mounting.deployable_entity_id) {
                     if pos.destination_x != pos.location_x || pos.destination_z != pos.location_z {
                         pos.destination_x = pos.location_x;
                         pos.destination_z = pos.location_z;
@@ -129,11 +129,11 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
                     .db
                     .deployable_desc()
                     .id()
-                    .find(&deployable.deployable_description_id)
+                    .find(deployable.deployable_description_id)
                     .unwrap();
                 if deployable_desc.show_for_secs_after_owner_logout >= 0 {
                     // Only hide deployed deployables
-                    if ctx.db.mobile_entity_state().entity_id().find(&deployable.entity_id).is_some() {
+                    if ctx.db.mobile_entity_state().entity_id().find(deployable.entity_id).is_some() {
                         let scheduled_at =
                             if deployable_desc.barter > 0 && !TradeOrderState::has_any_in_stock_trade_orders(ctx, deployable.entity_id) {
                                 now_plus_secs(0, ctx.timestamp)
@@ -146,7 +146,7 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
                             .hide_deployable_timer()
                             .try_insert(HideDeployableTimer {
                                 scheduled_id: 0,
-                                scheduled_at: scheduled_at,
+                                scheduled_at,
                                 entity_id: deployable.entity_id,
                             })
                             .ok()
@@ -179,7 +179,7 @@ pub fn sign_out_internal(ctx: &ReducerContext, identity: Identity, insert_grace_
                 PlayerActionResult::Cancel,
             );
 
-            ctx.db.signed_in_player_state().entity_id().delete(&player_entity_id);
+            ctx.db.signed_in_player_state().entity_id().delete(player_entity_id);
 
             let player_dimension = ctx.db.mobile_entity_state().entity_id().find(player_entity_id).unwrap().dimension;
             PlayerHousingState::update_is_empty_flag(ctx, player_dimension);

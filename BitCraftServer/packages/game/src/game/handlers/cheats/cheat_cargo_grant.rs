@@ -12,7 +12,7 @@ pub fn cheat_cargo_grant(ctx: &ReducerContext, request: CheatCargoGrantRequest) 
         return Err("Unauthorized.".into());
     }
 
-    if ctx.db.player_state().entity_id().find(&request.owner_entity_id).is_none() {
+    if ctx.db.player_state().entity_id().find(request.owner_entity_id).is_none() {
         return Err("Invalid player id".into());
     };
 

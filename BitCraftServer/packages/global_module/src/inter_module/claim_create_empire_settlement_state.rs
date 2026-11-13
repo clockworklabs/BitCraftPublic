@@ -14,7 +14,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: ClaimCreate
         .db
         .empire_settlement_state()
         .claim_entity_id()
-        .find(&request.claim_entity_id)
+        .find(request.claim_entity_id)
         .is_none()
     {
         let chunk_index = TerrainChunkState::chunk_index_from_coords(&SmallHexTile::from(request.location).chunk_coordinates());

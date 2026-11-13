@@ -27,12 +27,12 @@ impl PlayerActionState {
     }
 
     pub fn get_auto_id(ctx: &ReducerContext, entity_id: &u64, layer: &PlayerActionLayer) -> Option<u64> {
-        return PlayerActionState::get_state(ctx, &entity_id, &layer).map(|state| state.auto_id);
+        PlayerActionState::get_state(ctx, entity_id, layer).map(|state| state.auto_id)
     }
 
     pub fn update_by_entity_id(ctx: &ReducerContext, entity_id: &u64, mut state: PlayerActionState) -> Result<(), String> {
         let id: u64 = unwrap_or_err!(
-            PlayerActionState::get_auto_id(ctx, &entity_id, &state.layer),
+            PlayerActionState::get_auto_id(ctx, entity_id, &state.layer),
             "Can't find base layer state, invalid player id."
         );
         state.auto_id = id;
@@ -147,7 +147,7 @@ impl PlayerActionState {
         let layer = action_type.get_layer(ctx);
         let player_action = unwrap_or_err!(PlayerActionState::get_state(ctx, &entity_id, &layer), "Player has no ActionState");
 
-        return move_validation_helpers::validate_move_timestamp(player_action.start_time, timestamp, ctx.timestamp);
+        move_validation_helpers::validate_move_timestamp(player_action.start_time, timestamp, ctx.timestamp)
     }
 
     pub fn validate(ctx: &ReducerContext, actor_id: u64, action_type: PlayerActionType, target: Option<u64>) -> Result<(), String> {
@@ -164,8 +164,7 @@ impl PlayerActionState {
             return Err(format!(
                 "Invalid action type: received {{0}}, expected {{1}}|~{:?}|~{:?}",
                 player_action.action_type, action_type
-            )
-            .into());
+            ));
         }
 
         if player_action.target != target {
@@ -179,6 +178,7 @@ impl PlayerActionState {
         Ok(())
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn success(
         ctx: &ReducerContext,
         entity_id: u64,
@@ -196,9 +196,9 @@ impl PlayerActionState {
             &entity_id,
             PlayerActionState {
                 auto_id: 0,
-                entity_id: entity_id,
-                action_type: action_type,
-                layer: layer,
+                entity_id,
+                action_type,
+                layer,
                 last_action_result: PlayerActionResult::Success,
                 start_time: timestamp,
                 duration,

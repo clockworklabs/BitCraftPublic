@@ -35,7 +35,7 @@ pub struct PlayerUseElevatorTimer {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_use_elevator(ctx: &ReducerContext, platform_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
@@ -51,19 +51,19 @@ pub fn player_use_elevator(ctx: &ReducerContext, platform_entity_id: u64) -> Res
         return Err("Already using an elevator".into());
     }
 
-    let building = unwrap_or_err!(ctx.db.building_state().entity_id().find(&platform_entity_id), "Unknown building");
+    let building = unwrap_or_err!(ctx.db.building_state().entity_id().find(platform_entity_id), "Unknown building");
     let elevator_desc = unwrap_or_err!(
-        ctx.db.elevator_desc().building_id().find(&building.building_description_id),
+        ctx.db.elevator_desc().building_id().find(building.building_description_id),
         "Building is not an elevator"
     );
 
     let player_coord = game_state_filters::coordinates_any(ctx, actor_id);
-    if building.distance_to(ctx, &player_coord.into()) > 2 {
+    if building.distance_to(ctx, &player_coord) > 2 {
         return Err("Too far".into());
     }
 
     let origin_platform_location =
-        unwrap_or_err!(ctx.db.location_state().entity_id().find(&platform_entity_id), "Unknown Location").coordinates();
+        unwrap_or_err!(ctx.db.location_state().entity_id().find(platform_entity_id), "Unknown Location").coordinates();
     let destination_platform_location = origin_platform_location.neighbor(HexDirection::from(building.direction_index));
     let destination_platform_entity_id = get_destination_platform_entity_id(ctx, destination_platform_location)?;
 
@@ -89,13 +89,13 @@ pub fn player_use_elevator(ctx: &ReducerContext, platform_entity_id: u64) -> Res
         .db
         .player_use_elevator_timer()
         .origin_platform_entity_id()
-        .find(&platform_entity_id)
+        .find(platform_entity_id)
         .is_some()
         || ctx
             .db
             .player_use_elevator_timer()
             .destination_platform_entity_id()
-            .find(&platform_entity_id)
+            .find(platform_entity_id)
             .is_some()
     {
         return Err("This elevator is already in use".into());
@@ -116,7 +116,7 @@ pub fn player_use_elevator(ctx: &ReducerContext, platform_entity_id: u64) -> Res
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_elevator_arrive(ctx: &ReducerContext, timer: PlayerUseElevatorTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
     player_action_helpers::schedule_clear_player_action(
         timer.player_entity_id,
         PlayerActionType::UseElevator.get_layer(ctx),
@@ -126,11 +126,11 @@ pub fn player_elevator_arrive(ctx: &ReducerContext, timer: PlayerUseElevatorTime
 
 fn player_elevator_arrive_internal(ctx: &ReducerContext, timer: &PlayerUseElevatorTimer) -> Result<(), String> {
     let mobile_entity = unwrap_or_err!(
-        ctx.db.mobile_entity_state().entity_id().find(&timer.player_entity_id),
+        ctx.db.mobile_entity_state().entity_id().find(timer.player_entity_id),
         "Unknown player location"
     );
     let destination_platform = unwrap_or_err!(
-        ctx.db.location_state().entity_id().find(&timer.destination_platform_entity_id),
+        ctx.db.location_state().entity_id().find(timer.destination_platform_entity_id),
         "Unknown platform location"
     );
 
@@ -166,12 +166,12 @@ fn player_elevator_arrive_internal(ctx: &ReducerContext, timer: &PlayerUseElevat
 
 pub fn get_destination_platform_entity_id(ctx: &ReducerContext, destination_platform: SmallHexTile) -> Result<u64, String> {
     for location in LocationState::select_all(ctx, &destination_platform) {
-        if let Some(building) = ctx.db.building_state().entity_id().find(&location.entity_id) {
+        if let Some(building) = ctx.db.building_state().entity_id().find(location.entity_id) {
             if ctx
                 .db
                 .elevator_desc()
                 .building_id()
-                .find(&building.building_description_id)
+                .find(building.building_description_id)
                 .is_some()
             {
                 return Ok(building.entity_id);
@@ -179,7 +179,7 @@ pub fn get_destination_platform_entity_id(ctx: &ReducerContext, destination_plat
         }
     }
 
-    return Err("Elevator has no second platform".into());
+    Err("Elevator has no second platform".into())
 }
 
 pub fn get_elevation_delta(
@@ -197,5 +197,5 @@ pub fn get_elevation_delta(
         "Invalid platform location"
     );
 
-    return Ok(terrain_cell.elevation - adjacent_terrain_cell.elevation);
+    Ok(terrain_cell.elevation - adjacent_terrain_cell.elevation)
 }

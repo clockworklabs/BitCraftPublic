@@ -62,7 +62,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn traveler_task_agent_loop(ctx: &ReducerContext, _timer: TravelerTaskLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to traveler task agent");
         return;
     }

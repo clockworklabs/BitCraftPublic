@@ -13,10 +13,10 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn acquire_knowledge_from_entities(ctx: &ReducerContext, request: PlayerAcquireKnowledgeFromEntitiesRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let player_coord = game_state_filters::coordinates_any(ctx, actor_id);
-    let discovery_range = ctx.db.parameters_desc().version().find(&0).unwrap().discovery_range;
+    let discovery_range = ctx.db.parameters_desc().version().find(0).unwrap().discovery_range;
 
     let mut discovery = Discovery::new(actor_id);
 

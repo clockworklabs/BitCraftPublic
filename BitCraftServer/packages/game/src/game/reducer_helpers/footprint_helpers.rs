@@ -17,7 +17,7 @@ use crate::{
 use crate::messages::components::{FootprintTileState, ResourceState};
 
 pub fn create_resource_footprint(ctx: &ReducerContext, entity_id: u64, resource: &ResourceDesc, direction_index: i32) {
-    let location = ctx.db.location_state().entity_id().find(&entity_id).unwrap();
+    let location = ctx.db.location_state().entity_id().find(entity_id).unwrap();
     let coordinates = location.coordinates();
     let footprint = resource.get_footprint(&coordinates, direction_index);
 
@@ -30,7 +30,7 @@ pub fn create_resource_footprint(ctx: &ReducerContext, entity_id: u64, resource:
             .try_insert(FootprintTileState {
                 entity_id: new_entity_id,
 
-                footprint_type: footprint_type,
+                footprint_type,
                 owner_entity_id: entity_id,
             })
             .is_err()
@@ -47,14 +47,14 @@ pub fn create_project_site_footprint(ctx: &ReducerContext, entity_id: u64, footp
 }
 
 fn project_site_override_footprint_type(footprint_type: &FootprintType) -> FootprintType {
-    return match footprint_type {
+    match footprint_type {
         FootprintType::Hitbox => FootprintType::Walkable,
         _ => *footprint_type,
-    };
+    }
 }
 
 pub fn update_footprint_after_building_completion(ctx: &ReducerContext, entity_id: u64, direction: i32, building: &BuildingDesc) {
-    let location = ctx.db.location_state().entity_id().find(&entity_id).unwrap();
+    let location = ctx.db.location_state().entity_id().find(entity_id).unwrap();
     let coordinates = location.coordinates();
     let footprint = building.get_footprint(&coordinates, direction);
     update_footprint_after_completion(ctx, entity_id, footprint);
@@ -78,7 +78,7 @@ fn update_footprint_after_completion(ctx: &ReducerContext, entity_id: u64, footp
 
     // Loop over building footprint description, and update based on the order
     for (index, (_, footprint_type)) in footprint.iter().enumerate() {
-        let existing = &existing_footprint[index as usize];
+        let existing = &existing_footprint[index];
         if existing.footprint_type == *footprint_type {
             continue;
         }
@@ -125,8 +125,8 @@ pub fn create_footprint(
 pub fn clear_resources_under_footprint(ctx: &ReducerContext, footprint: &[(SmallHexTile, FootprintType)], clear_all: bool) {
     for (coords, _) in footprint {
         // destroy resources under footprint
-        if let Some(resource) = ResourceState::get_at_location(ctx, &coords) {
-            let resource_desc = ctx.db.resource_desc().id().find(&resource.resource_id).unwrap();
+        if let Some(resource) = ResourceState::get_at_location(ctx, coords) {
+            let resource_desc = ctx.db.resource_desc().id().find(resource.resource_id).unwrap();
             if resource_desc.flattenable || clear_all {
                 resource.despawn_self(ctx);
             }
@@ -137,8 +137,8 @@ pub fn clear_resources_under_footprint(ctx: &ReducerContext, footprint: &[(Small
 pub fn delete_footprint(ctx: &ReducerContext, entity_id: u64) {
     let footprints = ctx.db.footprint_tile_state().owner_entity_id().filter(entity_id);
     for footprint in footprints {
-        ctx.db.footprint_tile_state().entity_id().delete(&footprint.entity_id);
-        ctx.db.location_state().entity_id().delete(&footprint.entity_id);
+        ctx.db.footprint_tile_state().entity_id().delete(footprint.entity_id);
+        ctx.db.location_state().entity_id().delete(footprint.entity_id);
     }
 }
 
@@ -175,7 +175,7 @@ pub fn clear_and_flatten_terrain_under_footprint(
     let mut terrain_cache = TerrainChunkCache::empty();
     let mut tile_elevation: Vec<i16> = Vec::with_capacity(large_tiles.len());
     for lt in &large_tiles {
-        if let Some(tc) = terrain_cache.get_terrain_cell(ctx, &lt) {
+        if let Some(tc) = terrain_cache.get_terrain_cell(ctx, lt) {
             tile_elevation.push(tc.elevation.max(tc.water_level));
         }
     }
@@ -187,7 +187,7 @@ pub fn clear_and_flatten_terrain_under_footprint(
         .iter()
         .map(|v| (*v.0, *v.1))
         .collect();
-    elevation_count.sort_by(|a, b| b.1.cmp(&a.1));
+    elevation_count.sort_by_key(|b| std::cmp::Reverse(b.1));
     let target_elevation = elevation_count[0].0;
 
     //Set elevation for all tiles

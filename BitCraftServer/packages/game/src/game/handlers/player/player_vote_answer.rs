@@ -16,12 +16,12 @@ use super::player_vote_conclude::player_vote_conclude_timer;
 #[shared_table_reducer]
 #[feature_gate]
 pub fn player_vote_answer(ctx: &ReducerContext, request: PlayerVoteAnswerRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     reduce(ctx, request.vote_entity_id, actor_id, request.accept)
 }
 
 pub fn reduce(ctx: &ReducerContext, vote_entity_id: u64, player_entity_id: u64, accept: bool) -> Result<(), String> {
-    let mut vote = unwrap_or_err!(ctx.db.player_vote_state().entity_id().find(&vote_entity_id), "Query is over.").clone();
+    let mut vote = unwrap_or_err!(ctx.db.player_vote_state().entity_id().find(vote_entity_id), "Query is over.").clone();
 
     if vote.outcome != PlayerVoteAnswer::None {
         return Err("Query is over.".into());
@@ -38,7 +38,7 @@ pub fn reduce(ctx: &ReducerContext, vote_entity_id: u64, player_entity_id: u64, 
 
     let yes_count = vote.answers.iter().filter(|a| **a == PlayerVoteAnswer::Yes).count();
     let no_count = vote.answers.iter().filter(|a| **a == PlayerVoteAnswer::No).count();
-    let total_count = vote.answers.iter().count();
+    let total_count = vote.answers.len();
     let success = yes_count as f32 / total_count as f32 >= pass_threshold;
     let failure = no_count as f32 / total_count as f32 > 1.0 - pass_threshold;
     let outcome = if success {

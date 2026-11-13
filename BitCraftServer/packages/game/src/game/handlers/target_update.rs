@@ -16,7 +16,7 @@ use crate::game::handlers::authentication::has_role;
 #[spacetimedb::reducer]
 #[feature_gate("combat")]
 pub fn target_update(ctx: &ReducerContext, request: TargetUpdateRequest) -> Result<(), String> {
-    if let Ok(actor_id) = game_state::actor_id(&ctx, false) {
+    if let Ok(actor_id) = game_state::actor_id(ctx, false) {
         if actor_id != request.owner_entity_id {
             return Err("Unauthorized".into());
         }
@@ -43,14 +43,14 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, target_entity_id: u64, genera
         ThreatState::add_threat(ctx, target_entity_id, actor_id, 0.0);
     }
 
-    if let Some(target_state) = ctx.db.target_state().entity_id().find(&actor_id) {
+    if let Some(target_state) = ctx.db.target_state().entity_id().find(actor_id) {
         // Not a target change
         if target_entity_id == target_state.target_entity_id {
             return Ok(());
         }
         // delete or update existing target
         if target_entity_id == 0 {
-            ctx.db.target_state().entity_id().delete(&actor_id);
+            ctx.db.target_state().entity_id().delete(actor_id);
         } else {
             let mut target_state = target_state.clone();
             target_state.target_entity_id = target_entity_id;

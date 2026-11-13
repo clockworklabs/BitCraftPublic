@@ -25,7 +25,7 @@ impl StaminaState {
 
         let previous_stamina = self.stamina;
         self.stamina = (self.stamina + delta).clamp(min, max);
-        return self.stamina != previous_stamina;
+        self.stamina != previous_stamina
     }
 
     pub fn add_player_stamina(ctx: &ReducerContext, entity_id: u64, delta: f32) -> bool {
@@ -33,7 +33,7 @@ impl StaminaState {
             return true;
         }
 
-        if let Some(mut stamina) = ctx.db.stamina_state().entity_id().find(&entity_id) {
+        if let Some(mut stamina) = ctx.db.stamina_state().entity_id().find(entity_id) {
             stamina.add_stamina_delta(delta, ctx.timestamp);
             if delta > 0.0 {
                 stamina.stamina = stamina.stamina.min(StaminaState::max_player_stamina(ctx, entity_id));
@@ -45,7 +45,7 @@ impl StaminaState {
     }
 
     pub fn set_player_stamina(ctx: &ReducerContext, entity_id: u64, new_stamina: f32) -> bool {
-        if let Some(mut stamina) = ctx.db.stamina_state().entity_id().find(&entity_id) {
+        if let Some(mut stamina) = ctx.db.stamina_state().entity_id().find(entity_id) {
             stamina.set_stamina(new_stamina, ctx.timestamp);
             ctx.db.stamina_state().entity_id().update(stamina);
             return true;
@@ -54,7 +54,7 @@ impl StaminaState {
     }
 
     pub fn decrease_stamina(ctx: &ReducerContext, entity_id: u64, value: f32) -> bool {
-        if let Some(stamina) = ctx.db.stamina_state().entity_id().find(&entity_id) {
+        if let Some(stamina) = ctx.db.stamina_state().entity_id().find(entity_id) {
             if stamina.stamina >= value {
                 let mut stamina = stamina.clone();
                 stamina.add_stamina_delta(-value.abs(), ctx.timestamp);

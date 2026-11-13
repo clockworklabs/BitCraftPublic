@@ -14,7 +14,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn permission_edit(ctx: &ReducerContext, request: PlayerPermissionEditRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     PermissionState::validate_group(ctx, request.allowed_entity_id, request.group)?;
 
@@ -25,9 +25,9 @@ pub fn permission_edit(ctx: &ReducerContext, request: PlayerPermissionEditReques
     } else if let Some(building) = ctx.db.building_state().entity_id().find(request.ordained_entity_id) {
         player_permission = PermissionState::get_player_permission_for_building(ctx, actor_id, &building);
     } else if let Some(location) = ctx.db.location_state().entity_id().find(request.ordained_entity_id) {
-        player_permission = PermissionState::get_player_permission_for_tile(ctx, actor_id, location.coordinates().into());
+        player_permission = PermissionState::get_player_permission_for_tile(ctx, actor_id, location.coordinates());
     } else if let Some(mobile) = ctx.db.mobile_entity_state().entity_id().find(request.ordained_entity_id) {
-        player_permission = PermissionState::get_player_permission_for_tile(ctx, actor_id, mobile.coordinates().into())
+        player_permission = PermissionState::get_player_permission_for_tile(ctx, actor_id, mobile.coordinates())
     }
 
     if let Some(permission) = player_permission {

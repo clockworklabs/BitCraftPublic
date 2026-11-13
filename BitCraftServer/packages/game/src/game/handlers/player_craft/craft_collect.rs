@@ -20,11 +20,11 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_collect(ctx: &ReducerContext, request: PlayerCraftCollectRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let progressive_action = unwrap_or_err!(
-        ctx.db.progressive_action_state().entity_id().find(&request.pocket_id),
+        ctx.db.progressive_action_state().entity_id().find(request.pocket_id),
         "Invalid pocket"
     );
 
@@ -33,7 +33,7 @@ pub fn craft_collect(ctx: &ReducerContext, request: PlayerCraftCollectRequest) -
     }
 
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&progressive_action.building_entity_id),
+        ctx.db.building_state().entity_id().find(progressive_action.building_entity_id),
         "Invalid building"
     );
     if building.distance_to(ctx, &game_state_filters::coordinates_float(ctx, actor_id).into()) > 2 {
@@ -48,8 +48,8 @@ pub fn craft_collect(ctx: &ReducerContext, request: PlayerCraftCollectRequest) -
         return Err("Recipe mismatch".into());
     }
 
-    let mut crafting_recipe_desc: CraftingRecipeDesc = unwrap_or_err!(
-        ctx.db.crafting_recipe_desc().id().find(&progressive_action.recipe_id),
+    let crafting_recipe_desc: CraftingRecipeDesc = unwrap_or_err!(
+        ctx.db.crafting_recipe_desc().id().find(progressive_action.recipe_id),
         "Invalid recipe"
     );
 
@@ -61,11 +61,9 @@ pub fn craft_collect(ctx: &ReducerContext, request: PlayerCraftCollectRequest) -
         return Err("You don't have the permission to collect from this building".into());
     }
 
-    if let Err(msg) = can_interact_with_building(ctx, &actor_id, &progressive_action.building_entity_id) {
-        return Err(msg.into());
-    }
+    can_interact_with_building(ctx, &actor_id, &progressive_action.building_entity_id)?;
 
-    collect_output(ctx, actor_id, &progressive_action, &mut crafting_recipe_desc, &building)?;
+    collect_output(ctx, actor_id, &progressive_action, &crafting_recipe_desc, &building)?;
     player_action_helpers::post_reducer_update_cargo(ctx, actor_id);
 
     Ok(())
@@ -74,12 +72,10 @@ pub fn craft_collect(ctx: &ReducerContext, request: PlayerCraftCollectRequest) -
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_collect_all(ctx: &ReducerContext, request: PlayerCraftCollectAllRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    if let Err(msg) = can_interact_with_building(ctx, &actor_id, &request.building_entity_id) {
-        return Err(msg.into());
-    }
+    can_interact_with_building(ctx, &actor_id, &request.building_entity_id)?;
 
     let mut collected_any = false;
 
@@ -89,7 +85,7 @@ pub fn craft_collect_all(ctx: &ReducerContext, request: PlayerCraftCollectAllReq
         .building_entity_id()
         .filter(request.building_entity_id)
     {
-        let mut crafting_recipe_desc = match ctx.db.crafting_recipe_desc().id().find(&progressive_action_state.recipe_id) {
+        let crafting_recipe_desc = match ctx.db.crafting_recipe_desc().id().find(progressive_action_state.recipe_id) {
             Some(value) => value,
             None => continue,
         };
@@ -98,7 +94,7 @@ pub fn craft_collect_all(ctx: &ReducerContext, request: PlayerCraftCollectAllReq
             ctx.db
                 .building_state()
                 .entity_id()
-                .find(&progressive_action_state.building_entity_id),
+                .find(progressive_action_state.building_entity_id),
             "Invalid building"
         );
         if building.distance_to(ctx, &game_state_filters::coordinates_float(ctx, actor_id).into()) > 2 {
@@ -113,7 +109,7 @@ pub fn craft_collect_all(ctx: &ReducerContext, request: PlayerCraftCollectAllReq
             continue;
         }
 
-        collect_output(ctx, actor_id, &progressive_action_state, &mut crafting_recipe_desc, &building)?;
+        collect_output(ctx, actor_id, &progressive_action_state, &crafting_recipe_desc, &building)?;
 
         collected_any = true;
     }
@@ -137,7 +133,7 @@ fn can_interact_with_building(ctx: &ReducerContext, actor_id: &u64, building_ent
     // if player is not inside a building check if the request is for
     // an unenterable building (e.g. firepit) and if they are close enough
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Unknown building type"
     );
     if building_desc.unenterable {
@@ -186,8 +182,8 @@ pub fn collect_output(
     )?;
 
     let action_entity_id = progressive_action_state.entity_id;
-    ctx.db.progressive_action_state().entity_id().delete(&action_entity_id);
-    ctx.db.public_progressive_action_state().entity_id().delete(&action_entity_id);
+    ctx.db.progressive_action_state().entity_id().delete(action_entity_id);
+    ctx.db.public_progressive_action_state().entity_id().delete(action_entity_id);
 
     Ok(())
 }

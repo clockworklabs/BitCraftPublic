@@ -25,11 +25,11 @@ pub fn cheat_compendium_place_enemy(ctx: &ReducerContext, request: CheatCompendi
     let mut herd = HerdState::new(ctx, 0); // DAB Note: it would be nice to be able to set a herd state in interiors
     herd.current_population = 1;
     let herd_entity_id = herd.entity_id;
-    game_state::insert_location(ctx, herd_entity_id, request.coordinates.into());
+    game_state::insert_location(ctx, herd_entity_id, request.coordinates);
     let enemy_state = EnemyState::new(ctx, enemy_type, herd_entity_id);
     let enemy_desc = ctx.db.enemy_desc().enemy_type().find(enemy_type as i32).unwrap();
 
-    match EnemyState::spawn_enemy(ctx, &enemy_desc, enemy_state, request.coordinates.into(), Some(&herd)) {
+    match EnemyState::spawn_enemy(ctx, &enemy_desc, enemy_state, request.coordinates, Some(&herd)) {
         Ok(()) => {}
         Err(s) => log::error!("{}", s),
     };

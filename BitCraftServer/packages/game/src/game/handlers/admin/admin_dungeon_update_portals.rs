@@ -36,7 +36,7 @@ pub fn admin_dungeon_update_portals(ctx: &ReducerContext) -> Result<(), String> 
 
         log::info!("dungeon building = {}", b.entity_id);
 
-        while destinations.len() > 0 {
+        while !destinations.is_empty() {
             let entrance_location = destinations.remove(0);
             let mut closest_dist = i32::MAX;
             let mut closest_portal = None;

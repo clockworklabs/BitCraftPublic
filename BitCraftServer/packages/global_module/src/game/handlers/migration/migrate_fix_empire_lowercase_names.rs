@@ -28,7 +28,7 @@ pub fn migrate_fix_empire_lowercase_names(ctx: &ReducerContext) -> Result<(), St
                 entity_id: id,
                 name_lowercase,
             })
-            .expect(format!("Empire {id} has a name that conflicts with another empire").as_str());
+            .unwrap_or_else(|err| panic!("Empire {id} has a name that conflicts with another empire: {err:?}"));
     }
 
     log::info!("Empire names fixed");

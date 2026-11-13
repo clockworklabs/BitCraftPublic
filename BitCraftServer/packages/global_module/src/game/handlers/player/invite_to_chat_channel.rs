@@ -10,9 +10,9 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn invite_to_chat_channel(ctx: &ReducerContext, channel_entity_id: u64, player_entity_id: u64) -> Result<(), String> {
-    unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(&channel_entity_id), "Invalid chat channel");
+    unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(channel_entity_id), "Invalid chat channel");
 
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let actor_permission = unwrap_or_err!(ctx.db.chat_channel_permission_state().chat_channel_and_player_entity_id().filter((channel_entity_id, actor_id)).next(), "You don't have permissions to invite players to join this chat channel.");
     if actor_permission.rank != ChatChannelPermission::Owner as i32 && actor_permission.rank != ChatChannelPermission::Officer as i32 {
@@ -43,7 +43,7 @@ pub fn invite_to_chat_channel(ctx: &ReducerContext, channel_entity_id: u64, play
         return Err("This player is already a member of this chat channel.".into());
     }
 
-    let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(&player_entity_id), "Invalid user.");
+    let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(player_entity_id), "Invalid user.");
     ctx.db.chat_channel_permission_state().insert(ChatChannelPermissionState {
         entity_id: game_state::create_entity(ctx),
         chat_channel_entity_id: channel_entity_id,

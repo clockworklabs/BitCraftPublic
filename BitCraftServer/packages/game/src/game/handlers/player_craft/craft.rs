@@ -40,18 +40,18 @@ pub fn event_delay(recipe: &CraftingRecipeDesc, stats: &CharacterStatsState) -> 
         None => 1.0,
     };
     let craft_time_multiplier = 1.0 / (stats.get(CharacterStatType::CraftingSpeed) + skill_speed - 1.0);
-    return Duration::from_secs_f32(recipe.time_requirement * craft_time_multiplier);
+    Duration::from_secs_f32(recipe.time_requirement * craft_time_multiplier)
 }
 
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_initiate_start(ctx: &ReducerContext, request: PlayerCraftInitiateRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
-    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(&request.recipe_id), "Invalid recipe");
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(request.recipe_id), "Invalid recipe");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&request.building_entity_id),
+        ctx.db.building_state().entity_id().find(request.building_entity_id),
         "Building doesn't exist"
     );
 
@@ -60,7 +60,7 @@ pub fn craft_initiate_start(ctx: &ReducerContext, request: PlayerCraftInitiateRe
     }
 
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Building description doesn't exist"
     );
 
@@ -113,7 +113,7 @@ pub fn craft_initiate_start(ctx: &ReducerContext, request: PlayerCraftInitiateRe
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_initiate(ctx: &ReducerContext, request: PlayerCraftInitiateRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     // This requires some out-of-the-box thinking. The previous successful craft_initiate_start assigns the action data,
     // including the owner_entity_id being set to the player_id and the expiration timestamp being set.
@@ -129,7 +129,7 @@ pub fn craft_initiate(ctx: &ReducerContext, request: PlayerCraftInitiateRequest)
             .max_by_key(|a| a.lock_expiration),
         "No crafting in progress"
     );
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
 
     player_action_helpers::schedule_clear_player_action_on_err(
         actor_id,
@@ -152,19 +152,19 @@ pub fn craft_initiate(ctx: &ReducerContext, request: PlayerCraftInitiateRequest)
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_continue_start(ctx: &ReducerContext, request: PlayerCraftContinueRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let progressive_action = unwrap_or_err!(
         ctx.db
             .progressive_action_state()
             .entity_id()
-            .find(&request.progressive_action_entity_id),
+            .find(request.progressive_action_entity_id),
         "Craft no longer exists"
     );
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
 
     let recipe = unwrap_or_err!(
-        ctx.db.crafting_recipe_desc().id().find(&progressive_action.recipe_id),
+        ctx.db.crafting_recipe_desc().id().find(progressive_action.recipe_id),
         "Invalid recipe"
     );
     let delay = event_delay(&recipe, &stats);
@@ -173,7 +173,7 @@ pub fn craft_continue_start(ctx: &ReducerContext, request: PlayerCraftContinueRe
 
     if progressive_action.get_status_from_recipe(&recipe, ctx.timestamp) == ProgressiveActionStatus::Suspended {
         let building = unwrap_or_err!(
-            ctx.db.building_state().entity_id().find(&progressive_action.building_entity_id),
+            ctx.db.building_state().entity_id().find(progressive_action.building_entity_id),
             "Building doesn't exist"
         );
 
@@ -212,16 +212,16 @@ pub fn craft_continue_start(ctx: &ReducerContext, request: PlayerCraftContinueRe
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn craft_continue(ctx: &ReducerContext, request: PlayerCraftContinueRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let progressive_action = unwrap_or_err!(
         ctx.db
             .progressive_action_state()
             .entity_id()
-            .find(&request.progressive_action_entity_id),
+            .find(request.progressive_action_entity_id),
         "Craft no longer exists"
     );
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
 
     player_action_helpers::schedule_clear_player_action_on_err(
         actor_id,
@@ -241,6 +241,7 @@ pub fn craft_continue(ctx: &ReducerContext, request: PlayerCraftContinueRequest)
     )
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn reduce(
     ctx: &ReducerContext,
     actor_id: u64,
@@ -279,7 +280,7 @@ pub fn apply_ability_profession_hit(
     let recipe_id = action
         .recipe_id
         .ok_or_else(|| "Current crafting action has no recipe".to_string())?;
-    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(&recipe_id), "Invalid recipe");
+    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(recipe_id), "Invalid recipe");
 
     let candidates: Vec<ProgressiveActionState> = ctx
         .db
@@ -310,7 +311,7 @@ pub fn apply_ability_profession_hit(
         return Err("Could not uniquely resolve the current crafting project".into());
     }
 
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     reduce_with_options(
         ctx,
         actor_id,
@@ -326,6 +327,7 @@ pub fn apply_ability_profession_hit(
     )
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn reduce_with_options(
     ctx: &ReducerContext,
     actor_id: u64,
@@ -354,9 +356,9 @@ fn reduce_with_options(
         }
     }
 
-    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(&recipe_id), "Invalid recipe");
+    let recipe = unwrap_or_err!(ctx.db.crafting_recipe_desc().id().find(recipe_id), "Invalid recipe");
 
-    if recipe.blocking_knowledges.len() > 0 {
+    if !recipe.blocking_knowledges.is_empty() {
         let mut possess_all_knowledges = true;
         let secondary_knowledge = ctx.db.knowledge_secondary_state().entity_id().find(actor_id).unwrap();
         for knowledge_id in &recipe.blocking_knowledges {
@@ -378,12 +380,12 @@ fn reduce_with_options(
 
     let player_coord = game_state_filters::coordinates_float(ctx, actor_id);
 
-    if ctx.db.mounting_state().entity_id().find(&actor_id).is_some() {
-        dismount_deployable_and_set_deployable_position(ctx, actor_id, false, player_coord.into());
+    if ctx.db.mounting_state().entity_id().find(actor_id).is_some() {
+        dismount_deployable_and_set_deployable_position(ctx, actor_id, false, player_coord);
     }
 
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&progressive_action.building_entity_id),
+        ctx.db.building_state().entity_id().find(progressive_action.building_entity_id),
         "Invalid building"
     );
 
@@ -407,11 +409,9 @@ fn reduce_with_options(
         return Err("Crafting is already complete".into());
     }
 
-    if craft_status == ProgressiveActionStatus::Suspended {}
-
     if profession_hit_bonus_damage.is_none() {
         let stamina_state = unwrap_or_err!(
-            ctx.db.stamina_state().entity_id().find(&actor_id),
+            ctx.db.stamina_state().entity_id().find(actor_id),
             "Player missing stamina component!"
         );
         if stamina_state.stamina < recipe.stamina_requirement as f32 {
@@ -426,7 +426,7 @@ fn reduce_with_options(
     if recipe.required_claim_tech_id != 0 {
         // Error messages here should not be accessible to non-cheating players as those recipes are hidden if not unlocked by claim, so no need to be too specific about the details.
         let claim_tech = unwrap_or_err!(
-            ctx.db.claim_tech_state().entity_id().find(&building.claim_entity_id),
+            ctx.db.claim_tech_state().entity_id().find(building.claim_entity_id),
             "You require a claim to craft this recipe"
         );
         if !claim_tech.has_unlocked_tech(recipe.required_claim_tech_id) {
@@ -447,7 +447,7 @@ fn reduce_with_options(
     // if player is not inside a building check if the request is for
     // an unenterable building (e.g. firepit) and if they are close enough
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Unknown building type"
     );
 
@@ -473,7 +473,7 @@ fn reduce_with_options(
     let mut tool: Option<ToolDesc> = None;
     let mut meets_tool_requirements = true;
 
-    if recipe.tool_requirements.len() > 0 {
+    if !recipe.tool_requirements.is_empty() {
         tool = match ToolDesc::get_required_tool(ctx, actor_id, &recipe.tool_requirements[0]) {
             Ok(t) => Some(t),
             Err(s) => {
@@ -483,7 +483,7 @@ fn reduce_with_options(
                     meets_tool_requirements = false;
 
                     if progressive_action.owner_entity_id != actor_id {
-                        return Err(s.into());
+                        return Err(s);
                     } else {
                         None
                     }
@@ -493,12 +493,12 @@ fn reduce_with_options(
     }
 
     // Limit to 1 lock per building per player if not a member of the claim, but only when working on our own craft
-    if progressive_action.owner_entity_id == actor_id {
-        if building.claim_entity_id != 0 {
-            if ProgressiveActionState::get_active_locks_on_building(ctx, actor_id, building.entity_id)
+    if progressive_action.owner_entity_id == actor_id
+        && building.claim_entity_id != 0
+            && ProgressiveActionState::get_active_locks_on_building(ctx, actor_id, building.entity_id)
                 .any(|action| action.entity_id != progressive_action.entity_id)
             {
-                if let Some(claim) = ctx.db.claim_state().entity_id().find(&building.claim_entity_id) {
+                if let Some(claim) = ctx.db.claim_state().entity_id().find(building.claim_entity_id) {
                     if claim.owner_player_entity_id != 0 {
                         if !claim.get_member(ctx, actor_id).is_some() {
                             return Err("Non claim members can only have 1 ongoing craft per building".into());
@@ -511,8 +511,6 @@ fn reduce_with_options(
                     return Err("Invalid claim".into());
                 }
             }
-        }
-    }
 
     // New Craft (will be only set once in player_craft_initiate_start)
     if let Some(count) = new_craft_count {
@@ -542,7 +540,7 @@ fn reduce_with_options(
         .db
         .experience_state()
         .entity_id()
-        .find(&actor_id)
+        .find(actor_id)
         .unwrap()
         .get_level(recipe.level_requirements[0].skill_id);
     let recipe_desired_skill_level = recipe.level_requirements[0].level;
@@ -584,7 +582,7 @@ fn reduce_with_options(
                     damage,
                 );
 
-                let experience_per_progress = recipe.experience_per_progress.get(0);
+                let experience_per_progress = recipe.experience_per_progress.first();
                 if let Some(experience_per_progress) = experience_per_progress {
                     let quantity = f32::ceil(experience_per_progress.quantity * experience_actions_count as f32) as i32;
                     ExperienceState::add_experience(ctx, actor_id, experience_per_progress.skill_id, quantity);
@@ -680,7 +678,7 @@ fn validate_slots(ctx: &ReducerContext, actor_id: u64, building: &BuildingState,
     }
 
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Building description doesn't exist"
     );
 

@@ -13,7 +13,7 @@ use crate::{
 #[shared_table_reducer]
 #[feature_gate("build")]
 pub fn building_set_nickname(ctx: &ReducerContext, request: PlayerBuildingSetNicknameRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     reduce(ctx, actor_id, request.building_entity_id, request.nickname)
 }
@@ -23,7 +23,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, building_entity_id: u64, nick
 
     UserModerationState::validate_chat_privileges(ctx, &ctx.sender(), "Your naming privileges have been suspended")?;
 
-    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(&building_entity_id), "No such building.");
+    let building_state = unwrap_or_err!(ctx.db.building_state().entity_id().find(building_entity_id), "No such building.");
 
     if !PermissionState::can_interact_with_building(ctx, actor_id, &building_state, Permission::Build) {
         return Err("You don't have permission to interact with this building".into());
@@ -34,14 +34,14 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, building_entity_id: u64, nick
     }
 
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building_state.building_description_id),
+        ctx.db.building_desc().id().find(building_state.building_description_id),
         "Invalid building description"
     );
     if building_desc.has_category(ctx, BuildingCategory::Portal) {
         return Err("Can't set a nickname for this building.".into());
     }
 
-    if let Err(_) = is_user_text_input_valid(&nickname, 35, true) {
+    if is_user_text_input_valid(&nickname, 35, true).is_err() {
         return Err("Failed to set Building nickname".into());
     }
 

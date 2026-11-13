@@ -44,7 +44,7 @@ pub fn reset_chunk_index(ctx: &ReducerContext) -> Result<(), String> {
         return Err("Invalid permissions".into());
     }
 
-    let globals = ctx.db.globals().version().find(&0).unwrap();
+    let globals = ctx.db.globals().version().find(0).unwrap();
     log::info!("Dimension Counter: {}", globals.dimension_counter);
     for i in 2..=globals.dimension_counter {
         ctx.db

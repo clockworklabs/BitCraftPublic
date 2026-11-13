@@ -30,23 +30,20 @@ impl HexNode for TerrainNode {
     }
 
     fn get_coordinates(&self) -> HexCoordinates {
-        return self.coordinates.clone();
+        self.coordinates
     }
 }
 
 #[derive(PartialEq, Clone)]
+#[derive(Default)]
 pub enum NodeType {
+    #[default]
     Sea,
     Lake,
     Land,
     River,
 }
 
-impl Default for NodeType {
-    fn default() -> Self {
-        NodeType::Sea
-    }
-}
 
 impl TerrainNode {
     pub fn world_position(&self) -> Vector2 {

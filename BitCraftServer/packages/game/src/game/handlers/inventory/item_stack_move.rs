@@ -20,19 +20,19 @@ use super::inventory_helper;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn item_stack_move(ctx: &ReducerContext, request: PlayerItemStackMoveRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut source_inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&request.from_pocket.inventory_entity_id),
+        ctx.db.inventory_state().entity_id().find(request.from_pocket.inventory_entity_id),
         "Invalid source inventory"
     );
 
     let mut target_inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&request.to_pocket.inventory_entity_id),
+        ctx.db.inventory_state().entity_id().find(request.to_pocket.inventory_entity_id),
         "Invalid target inventory"
     );
 
@@ -43,8 +43,8 @@ pub fn item_stack_move(ctx: &ReducerContext, request: PlayerItemStackMoveRequest
     }
 
     if target_inventory.owner_entity_id > 0 {
-        if let Some(building_state) = ctx.db.building_state().entity_id().find(&target_inventory.owner_entity_id) {
-            let desc = ctx.db.building_desc().id().find(&building_state.building_description_id).unwrap();
+        if let Some(building_state) = ctx.db.building_state().entity_id().find(target_inventory.owner_entity_id) {
+            let desc = ctx.db.building_desc().id().find(building_state.building_description_id).unwrap();
             if !desc.has_category(ctx, BuildingCategory::Storage)
                 && !desc.has_category(ctx, BuildingCategory::TradingPost)
                 && !desc.has_category(ctx, BuildingCategory::Barter)
@@ -57,7 +57,7 @@ pub fn item_stack_move(ctx: &ReducerContext, request: PlayerItemStackMoveRequest
         }
     }
 
-    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Player has no location").coordinates();
+    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Player has no location").coordinates();
 
     let source_inventory_type = inventory_helper::validate_interact(
         ctx,
@@ -100,8 +100,8 @@ pub fn item_stack_move(ctx: &ReducerContext, request: PlayerItemStackMoveRequest
     if item_stack.item_type == ItemType::Cargo {
         inventory_helper::validate_cargo_target(ctx, &target_inventory, &deposit_stack)?;
 
-        if let Some(building) = ctx.db.building_state().entity_id().find(&target_inventory.owner_entity_id) {
-            let building_desc = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+        if let Some(building) = ctx.db.building_state().entity_id().find(target_inventory.owner_entity_id) {
+            let building_desc = ctx.db.building_desc().id().find(building.building_description_id).unwrap();
             if let Some(function) = BuildingFunction::from_inventory_index(&building_desc, target_inventory.inventory_index) {
                 // Typed storage, each slot can only receive a matching cargo id
                 // let's see if any of those typed slots matches the type of cargo we're dropping
@@ -112,8 +112,8 @@ pub fn item_stack_move(ctx: &ReducerContext, request: PlayerItemStackMoveRequest
                         forced_target_index = Some(i);
                     }
                 }
-                if forced_target_index.is_none() && function.allowed_item_id_per_slot.len() > 0 {
-                    let cargo_name = ctx.db.cargo_desc().id().find(&item_stack.item_id).unwrap().name;
+                if forced_target_index.is_none() && !function.allowed_item_id_per_slot.is_empty() {
+                    let cargo_name = ctx.db.cargo_desc().id().find(item_stack.item_id).unwrap().name;
                     let err_msg = format!("You cannot put {{0}} in this storage.|~{}", cargo_name);
                     return Err(err_msg);
                 }
@@ -164,7 +164,7 @@ pub fn item_stack_move(ctx: &ReducerContext, request: PlayerItemStackMoveRequest
         return Err("That quantity is no longer available.".into());
     }
 
-    let mut stack = deposit_stack.clone();
+    let mut stack = deposit_stack;
     stack.quantity = quantity - deposit_stack.quantity;
     ActionLogState::log_storage(
         ctx,

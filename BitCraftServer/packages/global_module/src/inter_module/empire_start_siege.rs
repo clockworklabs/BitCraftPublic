@@ -12,7 +12,7 @@ use crate::{
 pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireStartSiegeMsg) -> Result<(), String> {
     if request.is_depleted_watchtower {
         let defending_node = unwrap_or_err!(
-            ctx.db.empire_node_state().entity_id().find(&request.building_entity_id),
+            ctx.db.empire_node_state().entity_id().find(request.building_entity_id),
             "This building cannot be sieged"
         );
         if defending_node.energy > 0 {
@@ -25,12 +25,12 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireStart
         })?;
     }
 
-    return EmpireNodeSiegeState::start_siege(
+    EmpireNodeSiegeState::start_siege(
         ctx,
         request.player_entity_id,
         request.building_entity_id,
         request.supplies,
         request.building_coord.into(),
         false,
-    );
+    )
 }

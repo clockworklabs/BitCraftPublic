@@ -45,7 +45,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireDonat
         }
     }
 
-    player_data.donated_empire_currency += request.count as u32;
+    player_data.donated_empire_currency += request.count;
 
     // Citizens-to-Noble auto-upgrade
     if player_data.donated_shards + player_data.donated_empire_currency >= empire.nobility_threshold as u32 && player_data.noble.is_none() {

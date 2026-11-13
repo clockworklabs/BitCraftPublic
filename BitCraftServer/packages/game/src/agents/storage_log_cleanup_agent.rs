@@ -33,7 +33,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn storage_log_cleanup_loop(ctx: &ReducerContext, _timer: StorageLogCleanupLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to starving agent");
         return;
     }

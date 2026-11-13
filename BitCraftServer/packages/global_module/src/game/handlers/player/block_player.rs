@@ -13,9 +13,9 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn block_player(ctx: &ReducerContext, player_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
-    unwrap_or_err!(ctx.db.player_username_state().entity_id().find(&player_entity_id), "Invalid player");
+    unwrap_or_err!(ctx.db.player_username_state().entity_id().find(player_entity_id), "Invalid player");
 
     if ctx
         .db

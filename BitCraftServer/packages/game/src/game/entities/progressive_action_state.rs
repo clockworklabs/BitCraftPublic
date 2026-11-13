@@ -56,7 +56,7 @@ impl ProgressiveActionState {
             return ProgressiveActionStatus::Suspended;
         }
 
-        return ProgressiveActionStatus::Active;
+        ProgressiveActionStatus::Active
     }
 
     pub fn is_expired(&self, now: Timestamp) -> bool {

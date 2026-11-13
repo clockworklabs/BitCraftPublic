@@ -69,7 +69,7 @@ fn update_granted_shards(
 ) -> Result<(), String> {
     let user_state = unwrap_or_err!(ctx.db.user_state().identity().find(identity), "Unknown user");
     let mut player_shard_state = unwrap_or_err!(
-        ctx.db.player_shard_state().entity_id().find(&user_state.entity_id),
+        ctx.db.player_shard_state().entity_id().find(user_state.entity_id),
         "Unknown player shard state"
     );
 

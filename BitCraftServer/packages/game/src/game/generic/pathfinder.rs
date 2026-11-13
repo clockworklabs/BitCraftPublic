@@ -10,6 +10,15 @@ where
     closed: HashSet<T>,
 }
 
+impl<T> Default for Pathfinder<T>
+where
+    T: Eq + Hash + Clone,
+ {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Pathfinder<T>
 where
     T: Eq + Hash + Clone,
@@ -85,12 +94,12 @@ where
             let mut path: Vec<T> = Vec::new();
 
             while node.parent.is_some() {
-                node = self.node_by_t.get(&node.parent.as_ref().unwrap()).unwrap();
+                node = self.node_by_t.get(node.parent.as_ref().unwrap()).unwrap();
 
                 path.push(node.location.clone());
             }
 
-            if path.len() == 0 {
+            if path.is_empty() {
                 return None;
             }
 
@@ -100,7 +109,7 @@ where
             return Some(path);
         }
 
-        return None;
+        None
     }
 
     fn clear_state(&mut self) {
@@ -128,7 +137,7 @@ where
     T: Eq + Hash,
 {
     fn eq(&self, other: &Self) -> bool {
-        return self.location.eq(&other.location);
+        self.location.eq(&other.location)
     }
 }
 
@@ -146,7 +155,8 @@ where
     T: Eq + Hash,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        return self.partial_cmp(other).unwrap();
+        // Reversed so that the BinaryHeap pops the node with the lowest f-cost first.
+        other.f_costs().partial_cmp(&self.f_costs()).unwrap()
     }
 }
 
@@ -155,7 +165,7 @@ where
     T: Eq + Hash,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        return other.f_costs().partial_cmp(&self.f_costs());
+        Some(self.cmp(other))
     }
 }
 
@@ -173,7 +183,7 @@ where
     }
 
     fn f_costs(&self) -> f32 {
-        return self.g_costs + self.h_costs;
+        self.g_costs + self.h_costs
     }
 }
 

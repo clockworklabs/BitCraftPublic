@@ -27,15 +27,15 @@ pub mod trade_sessions_agent;
 pub mod traveler_task_agent;
 
 pub fn should_run(ctx: &ReducerContext) -> bool {
-    if let Some(config) = ctx.db.config().version().find(&0) {
+    if let Some(config) = ctx.db.config().version().find(0) {
         return config.agents_enabled;
     }
 
-    return false;
+    false
 }
 
 pub fn init(ctx: &ReducerContext) {
-    if ctx.db.parameters_desc().version().find(&0).is_some() {
+    if ctx.db.parameters_desc().version().find(0).is_some() {
         enemy_regen_agent::init(ctx);
         player_regen_agent::init(ctx);
         teleportation_energy_regen_agent::init(ctx);

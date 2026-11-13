@@ -4,7 +4,7 @@ use spacetimedb::ReducerContext;
 
 #[spacetimedb::reducer]
 pub fn equipment_preset_activate(ctx: &ReducerContext, index: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let mut recalculate_stats = false;
 

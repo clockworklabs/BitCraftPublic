@@ -12,11 +12,11 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn deployable_follow(ctx: &ReducerContext, request: PlayerDeployableMoveRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let deployable_entity_id = request.deployable_entity_id;
 
-    if let Some(mounting) = ctx.db.mounting_state().entity_id().find(&actor_id) {
+    if let Some(mounting) = ctx.db.mounting_state().entity_id().find(actor_id) {
         if mounting.deployable_entity_id == deployable_entity_id {
             return Err("~Mounted deployable cannot follow a player".into());
         }
@@ -50,7 +50,7 @@ pub fn deployable_follow(ctx: &ReducerContext, request: PlayerDeployableMoveRequ
     // Validate Boat Move. Note that this for the short term, ideally at some point
     // we will re-enable the above _validate_move that has more comprehensive checks
     let deployable = unwrap_or_err!(
-        ctx.db.deployable_state_v2().entity_id().find(&deployable_entity_id),
+        ctx.db.deployable_state_v2().entity_id().find(deployable_entity_id),
         "~Deployable not found!"
     );
 
@@ -59,12 +59,12 @@ pub fn deployable_follow(ctx: &ReducerContext, request: PlayerDeployableMoveRequ
     }
 
     let desc = unwrap_or_err!(
-        ctx.db.deployable_desc().id().find(&deployable.deployable_description_id),
+        ctx.db.deployable_desc().id().find(deployable.deployable_description_id),
         "~Invalid deployable type"
     );
 
     let pathfinding = unwrap_or_err!(
-        ctx.db.pathfinding_desc().id().find(&desc.pathfinding_id),
+        ctx.db.pathfinding_desc().id().find(desc.pathfinding_id),
         "~Invalid deployable pathfinding info"
     );
 

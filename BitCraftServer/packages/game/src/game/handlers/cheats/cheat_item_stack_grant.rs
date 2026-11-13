@@ -20,7 +20,7 @@ pub fn cheat_item_stack_grant(
     }
 
     if ctx.db.player_state().entity_id().find(player_entity_id).is_none() {
-        return Err(format!("Cannot find player {} in current region", player_entity_id).into());
+        return Err(format!("Cannot find player {} in current region", player_entity_id));
     }
 
     let item_stack = ItemStack::new(ctx, item_id, if is_cargo { ItemType::Cargo } else { ItemType::Item }, quantity);

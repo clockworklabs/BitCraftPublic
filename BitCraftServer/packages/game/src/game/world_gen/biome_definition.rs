@@ -59,17 +59,17 @@ impl BiomeDefinition {
             }
         }
 
-        return total_elevation / divisor as f32;
+        total_elevation / divisor as f32
     }
 
     pub fn get_lake_noise(&self, x: f32, y: f32) -> f32 {
-        return noise_helper::get(
+        noise_helper::get(
             Vector2 { x, y },
             self.lake_noise_specs.scale,
             self.lake_noise_specs.octaves,
             self.lake_noise_specs.persistance,
             self.lake_noise_specs.lacunarity,
             self.lake_noise_specs.offset,
-        );
+        )
     }
 }

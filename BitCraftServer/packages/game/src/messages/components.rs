@@ -74,7 +74,9 @@ pub enum KnowledgeState {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, spacetimedb::SpacetimeType)]
 #[sats(name = "TeleportLocationType")]
 #[repr(u8)]
+#[derive(Default)]
 pub enum TeleportLocationType {
+    #[default]
     BirthLocation,
     TradingPost,
     HomeLocation,
@@ -82,11 +84,6 @@ pub enum TeleportLocationType {
     Waystone,
 }
 
-impl Default for TeleportLocationType {
-    fn default() -> Self {
-        TeleportLocationType::BirthLocation
-    }
-}
 
 use strum_macros::EnumIter;
 #[derive(spacetimedb::SpacetimeType, Clone, Copy, Debug, Default, PartialEq, Eq, EnumIter, PartialOrd, Ord, Hash)]

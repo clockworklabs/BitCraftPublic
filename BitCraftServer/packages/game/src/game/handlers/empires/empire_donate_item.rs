@@ -21,7 +21,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_donate_item(ctx: &ReducerContext, request: EmpireDonateItemRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let from_pocket = request.from_pocket;
 
@@ -82,7 +82,7 @@ pub fn empire_donate_item(ctx: &ReducerContext, request: EmpireDonateItemRequest
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireDonateItemMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         //Add supply cargo if remote call fails
         let mut player_inventory = unwrap_or_return!(
             InventoryState::get_player_inventory(ctx, request.player_entity_id),
@@ -96,6 +96,6 @@ pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: Empire
         )];
         player_inventory.add_multiple_with_overflow(ctx, &supplies);
         ctx.db.inventory_state().entity_id().update(player_inventory);
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     }
 }

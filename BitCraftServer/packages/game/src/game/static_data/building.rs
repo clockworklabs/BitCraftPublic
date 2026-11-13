@@ -5,12 +5,12 @@ use crate::messages::static_data::*;
 
 impl BuildingDesc {
     pub fn fulfills_function(&self, building_type: i32, level: i32) -> bool {
-        return self.functions.iter().any(|f| f.function_type == building_type && f.level >= level);
+        self.functions.iter().any(|f| f.function_type == building_type && f.level >= level)
     }
 
     pub fn get_function(&self, ctx: &ReducerContext, category: BuildingCategory) -> Option<&BuildingFunction> {
         self.functions.iter().find(|f| {
-            let building_type = match ctx.db.building_type_desc().id().find(&f.function_type) {
+            let building_type = match ctx.db.building_type_desc().id().find(f.function_type) {
                 Some(t) => t,
                 None => return false,
             };
@@ -46,7 +46,7 @@ impl BuildingDesc {
                         z: coordinates.z + delta.z,
                         dimension: coordinates.dimension,
                     }
-                    .rotate_around(&coordinates, direction / 2),
+                    .rotate_around(coordinates, direction / 2),
                     delta.footprint_type,
                 )
             })

@@ -92,16 +92,16 @@ pub fn admin_resources_delete_percentage(
 }
 
 fn permanently_delete_resource(ctx: &ReducerContext, entity_id: u64, resource_id: i32) {
-    if ctx.db.resource_state().entity_id().delete(&entity_id) {
+    if ctx.db.resource_state().entity_id().delete(entity_id) {
         crumb_trail_clean_up_agent::clean_up_if_final_prize_resource_deleted(ctx, entity_id);
     }
 
-    if let Some(mut count) = ctx.db.resource_count().resource_id().find(&resource_id) {
+    if let Some(mut count) = ctx.db.resource_count().resource_id().find(resource_id) {
         count.num_in_world -= 1;
         ctx.db.resource_count().resource_id().update(count);
     }
 
-    ctx.db.light_source_state().entity_id().delete(&entity_id);
+    ctx.db.light_source_state().entity_id().delete(entity_id);
     delete_footprint(ctx, entity_id);
     AttachedHerdsState::delete(ctx, entity_id);
     delete_entity(ctx, entity_id);

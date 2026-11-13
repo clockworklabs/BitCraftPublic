@@ -16,14 +16,14 @@ use crate::{
 use super::sleep;
 
 pub fn event_delay(ctx: &ReducerContext, _actor_id: u64, _request: &PlayerTeleportHomeRequest) -> Duration {
-    return Duration::from_secs_f32(params!(ctx).teleport_channel_time_home);
+    Duration::from_secs_f32(params!(ctx).teleport_channel_time_home)
 }
 
 #[spacetimedb::reducer]
 #[shared_table_reducer]
 #[feature_gate]
 pub fn player_teleport_home_start(ctx: &ReducerContext, request: PlayerTeleportHomeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let delay = event_delay(ctx, actor_id, &request);
     let result = player_action_helpers::start_action(
@@ -48,9 +48,9 @@ pub fn player_teleport_home_start(ctx: &ReducerContext, request: PlayerTeleportH
 #[shared_table_reducer]
 #[feature_gate]
 pub fn player_teleport_home(ctx: &ReducerContext, _request: PlayerTeleportHomeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
-    let player = ctx.db.player_state().entity_id().find(&actor_id).unwrap();
+    let player = ctx.db.player_state().entity_id().find(actor_id).unwrap();
     let teleport_location = player.teleport_location;
     let teleport_location_tile = SmallHexTile::from(teleport_location.location);
 

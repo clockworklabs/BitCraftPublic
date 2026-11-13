@@ -12,7 +12,7 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn search_for_closest_building(ctx: &ReducerContext, building_description_ids: Vec<i32>) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     let actor_coord = get_player_location(ctx, actor_id);
 
     let mut shortest_distance = i32::MAX;
@@ -22,7 +22,7 @@ pub fn search_for_closest_building(ctx: &ReducerContext, building_description_id
         for building_state in ctx.db.building_state().building_description_id().filter(building_description_id) {
             let building_entity_id = building_state.entity_id;
             let building_ls = unwrap_or_err!(
-                ctx.db.location_state().entity_id().find(&building_entity_id),
+                ctx.db.location_state().entity_id().find(building_entity_id),
                 "Couldn't locate building."
             );
             let building_coord = building_ls.coordinates();
@@ -44,7 +44,7 @@ pub fn search_for_closest_building(ctx: &ReducerContext, building_description_id
         return Ok(());
     }
 
-    let building_desc = unwrap_or_err!(ctx.db.building_desc().id().find(&closest_id), "Invalid Building Description.");
+    let building_desc = unwrap_or_err!(ctx.db.building_desc().id().find(closest_id), "Invalid Building Description.");
 
     let ls: LocationState = closest.unwrap();
     let coords = ls.coordinates();
@@ -69,14 +69,14 @@ pub fn search_for_closest_building(ctx: &ReducerContext, building_description_id
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn search_for_closest_building_type(ctx: &ReducerContext, building_type_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     let actor_coord = get_player_location(ctx, actor_id);
 
     let mut shortest_distance = i32::MAX;
     let mut closest = None;
 
     let mapping = unwrap_or_err!(
-        ctx.db.building_function_type_mapping_desc().type_id().find(&building_type_id),
+        ctx.db.building_function_type_mapping_desc().type_id().find(building_type_id),
         "Building type doesn't exist."
     );
 
@@ -84,7 +84,7 @@ pub fn search_for_closest_building_type(ctx: &ReducerContext, building_type_id: 
         for building_state in ctx.db.building_state().building_description_id().filter(building_desc_id) {
             let building_entity_id = building_state.entity_id;
             let building_ls = unwrap_or_err!(
-                ctx.db.location_state().entity_id().find(&building_entity_id),
+                ctx.db.location_state().entity_id().find(building_entity_id),
                 "Couldn't locate building."
             );
             let building_coord = building_ls.coordinates();
@@ -115,10 +115,10 @@ pub fn search_for_closest_building_type(ctx: &ReducerContext, building_type_id: 
             .building_desc()
             .id()
             .find(
-                &ctx.db
+                ctx.db
                     .building_state()
                     .entity_id()
-                    .find(&ls.entity_id)
+                    .find(ls.entity_id)
                     .unwrap()
                     .building_description_id,
             )
@@ -150,5 +150,5 @@ fn get_player_location(ctx: &ReducerContext, actor_id: u64) -> SmallHexTile {
         }
     }
 
-    return location;
+    location
 }

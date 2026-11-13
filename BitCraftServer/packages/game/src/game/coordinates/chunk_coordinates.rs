@@ -11,7 +11,7 @@ use std::fmt::Display;
 
 impl ChunkCoordinates {
     pub fn surrounding_and_including(&self, ctx: &ReducerContext) -> Vec<ChunkCoordinates> {
-        let globals = ctx.db.world_region_state().id().find(&0).unwrap();
+        let globals = ctx.db.world_region_state().id().find(0).unwrap();
 
         let mut chunks = vec![*self];
         let (x, z) = (self.x, self.z);
@@ -42,7 +42,7 @@ impl ChunkCoordinates {
                 });
             }
         }
-        return chunks;
+        chunks
     }
 
     pub fn from_hashcode(hashcode: i64) -> Self {
@@ -55,12 +55,12 @@ impl ChunkCoordinates {
     }
 
     pub fn hashcode(&self) -> i64 {
-        return OffsetCoordinates {
+        OffsetCoordinates {
             x: self.x,
             z: self.z,
             dimension: self.dimension,
         }
-        .hashcode();
+        .hashcode()
     }
 
     pub fn from_terrain_coordinates(coords: LargeHexTile) -> Self {
@@ -93,7 +93,7 @@ impl ChunkCoordinates {
 
 impl PartialOrd for ChunkCoordinates {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.hashcode().partial_cmp(&other.hashcode())
+        Some(self.cmp(other))
     }
 }
 

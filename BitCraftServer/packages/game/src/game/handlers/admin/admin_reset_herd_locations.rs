@@ -71,7 +71,7 @@ fn update_attached_herds(ctx: &ReducerContext) {
             }
         }
         if updated {
-            if attached_herd.herds_entity_ids.len() == 0 {
+            if attached_herd.herds_entity_ids.is_empty() {
                 ctx.db.attached_herds_state().entity_id().delete(attached_herd.entity_id);
             } else {
                 ctx.db.attached_herds_state().entity_id().update(attached_herd);

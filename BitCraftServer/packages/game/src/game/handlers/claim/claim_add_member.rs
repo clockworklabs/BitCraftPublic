@@ -12,11 +12,11 @@ use crate::{
 #[shared_table_reducer]
 #[feature_gate]
 pub fn claim_add_member(ctx: &ReducerContext, request: PlayerClaimAddMemberRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     // validate permissions for non-internal queries
-    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&request.claim_entity_id), "No such claim.");
+    let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(request.claim_entity_id), "No such claim.");
 
     if !claim.has_officer_permissions(ctx, actor_id) {
         return Err("Only the owner, co-owners and officers can add new members.".into());
@@ -42,7 +42,7 @@ pub fn reduce(ctx: &ReducerContext, claim: ClaimState, claim_entity_id: u64, pla
             .db
             .claim_tech_state()
             .entity_id()
-            .find(&claim_entity_id)
+            .find(claim_entity_id)
             .unwrap()
             .max_members(ctx) as usize
     {

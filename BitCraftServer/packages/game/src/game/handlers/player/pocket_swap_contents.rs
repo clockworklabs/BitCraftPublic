@@ -18,7 +18,7 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn pocket_swap_contents(ctx: &ReducerContext, request: PlayerPocketSwapContentsRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     reduce(ctx, actor_id, &request.from_pocket, &request.to_pocket, request.quantity)
 }
@@ -33,19 +33,19 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
     let same_inventory = from_pocket.inventory_entity_id == to_pocket.inventory_entity_id;
 
     let mut from_inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&from_pocket.inventory_entity_id),
+        ctx.db.inventory_state().entity_id().find(from_pocket.inventory_entity_id),
         "Invalid source inventory"
     );
 
     let mut to_inventory = unwrap_or_err!(
-        ctx.db.inventory_state().entity_id().find(&to_pocket.inventory_entity_id),
+        ctx.db.inventory_state().entity_id().find(to_pocket.inventory_entity_id),
         "Invalid target inventory"
     );
 
     let to_inventory_owner_entity_id = to_inventory.owner_entity_id;
     let from_inventory_owner_entity_id = from_inventory.owner_entity_id;
 
-    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Player has no location").coordinates();
+    let player_location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Player has no location").coordinates();
 
     let from_inventory_type = inventory_helper::validate_interact(
         ctx,
@@ -74,7 +74,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
     }
 
     let from_index = from_pocket.pocket_index as usize;
-    let from_contents = unwrap_or_err!(from_inventory.get_pocket_contents(from_index), "Invalid origin").clone();
+    let from_contents = unwrap_or_err!(from_inventory.get_pocket_contents(from_index), "Invalid origin");
     if from_contents.item_id <= 0 || from_contents.quantity <= 0 {
         return Err("Invalid source pocket.".into());
     }
@@ -88,7 +88,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
     }
 
     let tool_info = ctx.db.tool_desc().item_id().filter(from_contents.item_id).next();
-    let weapon_info = ctx.db.weapon_desc().item_id().find(&from_contents.item_id);
+    let weapon_info = ctx.db.weapon_desc().item_id().find(from_contents.item_id);
     let is_tool = tool_info.is_some();
     let is_weapon = weapon_info.is_some();
     let to_toolbelt = to_inventory.inventory_index == 1 && to_inventory.owner_entity_id == actor_id;
@@ -102,7 +102,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
         // Weapon always goes on last pocket
         if to_pocket.pocket_index == ToolTypeDesc::get_combat_weapon_slot(ctx) {
             if let Some(info) = weapon_info {
-                let weapon_type = ctx.db.weapon_type_desc().id().find(&info.weapon_type).unwrap();
+                let weapon_type = ctx.db.weapon_type_desc().id().find(info.weapon_type).unwrap();
                 if weapon_type.hunting {
                     return Err("Hunting tools can't be equipped there.".into());
                 }
@@ -155,8 +155,8 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
     if is_cargo {
         inventory_helper::validate_cargo_target(ctx, &to_inventory, &from_contents)?;
 
-        if let Some(building) = ctx.db.building_state().entity_id().find(&to_inventory.owner_entity_id) {
-            let building_desc = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+        if let Some(building) = ctx.db.building_state().entity_id().find(to_inventory.owner_entity_id) {
+            let building_desc = ctx.db.building_desc().id().find(building.building_description_id).unwrap();
             if let Some(function) = BuildingFunction::from_inventory_index(&building_desc, to_inventory.inventory_index) {
                 // Typed storage, each slot can only receive a matching cargo id
                 if let Some(required_cargo_id) = function.allowed_item_id_per_slot.get(to_index) {
@@ -168,12 +168,12 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
                 }
             }
         }
-        volume = match ctx.db.cargo_desc().id().find(&item_id) {
+        volume = match ctx.db.cargo_desc().id().find(item_id) {
             Some(c) => c.volume,
             None => return Err("Invalid source pocket".into()), // invalid cargo id, probably 0.
         };
     } else {
-        if let Some(item_desc) = ctx.db.item_desc().id().find(&item_id) {
+        if let Some(item_desc) = ctx.db.item_desc().id().find(item_id) {
             volume = item_desc.volume;
         } else {
             return Err("Invalid source pocket".into()); // invalid item id, probably 0.
@@ -228,11 +228,10 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
         }
 
         if from_contents.item_id != to_contents.item_id {
-            if is_cargo && to_contents.quantity > 1 {
-                if from_inventory.owner_entity_id == actor_id || to_inventory.owner_entity_id == actor_id {
+            if is_cargo && to_contents.quantity > 1
+                && (from_inventory.owner_entity_id == actor_id || to_inventory.owner_entity_id == actor_id) {
                     return Err("Cannot swap a stack containing multiple cargos to your inventory".into());
                 }
-            }
 
             if from_contents.quantity != quantity {
                 return Err("Invalid target pocket".into());
@@ -240,7 +239,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
 
             // Make sure the swapped item doesn't end up illegally on the toolbelt
             let tool_info = ctx.db.tool_desc().item_id().filter(to_contents.item_id);
-            let weapon_info = ctx.db.weapon_desc().item_id().find(&to_contents.item_id);
+            let weapon_info = ctx.db.weapon_desc().item_id().find(to_contents.item_id);
             let is_tool = tool_info.count() > 0;
             let is_weapon = weapon_info.is_some();
             let is_allowed_on_toolbelt = is_tool || is_weapon;
@@ -253,12 +252,12 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
             }
 
             let to_volume = if is_cargo {
-                match ctx.db.cargo_desc().id().find(&to_contents.item_id) {
+                match ctx.db.cargo_desc().id().find(to_contents.item_id) {
                     Some(c) => c.volume,
                     None => return Err("Invalid target pocket".into()), // invalid cargo id, probably 0.
                 }
             } else {
-                match ctx.db.item_desc().id().find(&to_contents.item_id) {
+                match ctx.db.item_desc().id().find(to_contents.item_id) {
                     Some(i) => i.volume,
                     None => return Err("Invalid target pocket".into()), // invalid item id, probably 0.
                 }
@@ -425,15 +424,15 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, from_pocket: &PocketKey, to_p
 }
 
 fn validate_equip_on_toolbelt(ctx: &ReducerContext, actor_id: u64, item_id: i32, to_index: i32) -> Result<(), String> {
-    let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(&item_id), "Item can't be moved in toolbelt");
+    let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(item_id), "Item can't be moved in toolbelt");
 
     if let Some(level_req) = &equipment_info.level_requirement {
         if !PlayerState::meets_level_requirement(ctx, actor_id, level_req) {
-            let mut skill_name = ctx.db.skill_desc().id().find(&level_req.skill_id).unwrap().name;
+            let mut skill_name = ctx.db.skill_desc().id().find(level_req.skill_id).unwrap().name;
             if skill_name == "ANY" {
                 skill_name = "in any skill".into();
             }
-            return Err(format!("You need to be level {{0}} {{1}}|~{0}|~{1}", level_req.level, skill_name).into());
+            return Err(format!("You need to be level {{0}} {{1}}|~{0}|~{1}", level_req.level, skill_name));
         }
     }
     if !AchievementDesc::evaluate_achievements(ctx, actor_id, equipment_info.required_achievements) {

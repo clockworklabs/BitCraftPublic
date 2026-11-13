@@ -37,11 +37,11 @@ fn validate_building(ctx: &ReducerContext, actor_id: u64, player_location: Small
         }
     }
 
-    if !PermissionState::can_interact_with_building(ctx, actor_id, &building, Permission::Inventory) {
+    if !PermissionState::can_interact_with_building(ctx, actor_id, building, Permission::Inventory) {
         return Err("You don't have permission to interact with this buildings inventory".into());
     }
 
-    if !permission_helper::can_interact_with_building(ctx, &building, actor_id, ClaimPermission::Inventory) {
+    if !permission_helper::can_interact_with_building(ctx, building, actor_id, ClaimPermission::Inventory) {
         return Err("You don't have permission to interact with this buildings inventory".into());
     }
 
@@ -58,14 +58,14 @@ fn validate_deployable(
         return Err("You don't have permission to interact with this deployable's inventory".into());
     }
 
-    if let Some(mounting_state) = ctx.db.mounting_state().entity_id().find(&actor_id) {
+    if let Some(mounting_state) = ctx.db.mounting_state().entity_id().find(actor_id) {
         if mounting_state.deployable_entity_id == deployable.entity_id {
             return Ok(());
         }
     }
 
     let mobile_entity = unwrap_or_err!(
-        ctx.db.mobile_entity_state().entity_id().find(&deployable.entity_id),
+        ctx.db.mobile_entity_state().entity_id().find(deployable.entity_id),
         "Deployable has no location"
     );
 
@@ -93,17 +93,17 @@ fn validate_tile(ctx: &ReducerContext, actor_id: u64, player_location: SmallHexT
         return Ok(());
     }
 
-    return Err("This storage is no longer available".into());
+    Err("This storage is no longer available".into())
 }
 
 fn get_location(ctx: &ReducerContext, owner_entity_id: u64) -> Option<SmallHexTile> {
-    if let Some(mobile_entity) = ctx.db.mobile_entity_state().entity_id().find(&owner_entity_id) {
+    if let Some(mobile_entity) = ctx.db.mobile_entity_state().entity_id().find(owner_entity_id) {
         return Some(mobile_entity.coordinates());
-    } else if let Some(location) = ctx.db.location_state().entity_id().find(&owner_entity_id) {
+    } else if let Some(location) = ctx.db.location_state().entity_id().find(owner_entity_id) {
         return Some(location.coordinates());
     }
 
-    return None;
+    None
 }
 
 pub fn validate_interact(
@@ -132,26 +132,26 @@ pub fn validate_interact(
         return Err("No permitted regional bank nearby".into());
     }
 
-    if let Some(building) = ctx.db.building_state().entity_id().find(&owner_entity_id) {
+    if let Some(building) = ctx.db.building_state().entity_id().find(owner_entity_id) {
         validate_building(ctx, actor_id, player_location, &building)?;
         return Ok(InventoryType::Building);
     }
 
-    if let Some(deployable) = ctx.db.deployable_state_v2().entity_id().find(&owner_entity_id) {
+    if let Some(deployable) = ctx.db.deployable_state_v2().entity_id().find(owner_entity_id) {
         validate_deployable(ctx, actor_id, player_location, &deployable)?;
         return Ok(InventoryType::Deployable);
     }
 
-    if let Some(_loot_chest) = ctx.db.loot_chest_state().entity_id().find(&owner_entity_id) {
+    if let Some(_loot_chest) = ctx.db.loot_chest_state().entity_id().find(owner_entity_id) {
         validate_tile(ctx, actor_id, player_location, owner_entity_id)?;
         return Ok(InventoryType::LootChest);
     }
 
-    if let Some(dropped_inventory) = ctx.db.dropped_inventory_state().entity_id().find(&owner_entity_id) {
+    if let Some(dropped_inventory) = ctx.db.dropped_inventory_state().entity_id().find(owner_entity_id) {
         dropped_inventory.validate_interact_and_get_inventory_coordinates(ctx, actor_id)?;
         return Ok(InventoryType::Dropped);
     }
-    return Err(format!("Unknown entity type for owner_entity_id {{0}}|~{}", owner_entity_id));
+    Err(format!("Unknown entity type for owner_entity_id {{0}}|~{}", owner_entity_id))
 }
 
 pub fn validate_move(target_inventory_type: &InventoryType) -> Result<(), String> {
@@ -162,7 +162,7 @@ pub fn validate_move(target_inventory_type: &InventoryType) -> Result<(), String
         return Err("Cannot move items into a dropped inventory, you have to drop those manually".into());
     }
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn validate_cargo_target(ctx: &ReducerContext, target_inventory: &InventoryState, item_stack: &ItemStack) -> Result<(), String> {
@@ -170,7 +170,7 @@ pub fn validate_cargo_target(ctx: &ReducerContext, target_inventory: &InventoryS
         return Ok(());
     }
 
-    let cargo_desc = unwrap_or_err!(ctx.db.cargo_desc().id().find(&item_stack.item_id), "Invalid cargo id");
+    let cargo_desc = unwrap_or_err!(ctx.db.cargo_desc().id().find(item_stack.item_id), "Invalid cargo id");
 
     if cargo_desc.cannot_store_in_buildings
         && (target_inventory.is_regional_bank()
@@ -178,7 +178,7 @@ pub fn validate_cargo_target(ctx: &ReducerContext, target_inventory: &InventoryS
                 .db
                 .building_state()
                 .entity_id()
-                .find(&target_inventory.owner_entity_id)
+                .find(target_inventory.owner_entity_id)
                 .is_some())
     {
         return Err("You cannot store this cargo in buildings.".into());
@@ -187,7 +187,7 @@ pub fn validate_cargo_target(ctx: &ReducerContext, target_inventory: &InventoryS
             .db
             .deployable_state_v2()
             .entity_id()
-            .find(&target_inventory.owner_entity_id)
+            .find(target_inventory.owner_entity_id)
             .is_some()
     {
         return Err("You cannot store this cargo in deployables.".into());
@@ -203,7 +203,7 @@ pub fn validate_split(source_inventory_type: &InventoryType) -> Result<(), Strin
     if *source_inventory_type == InventoryType::Dropped {
         return Err("Cannot split items inside a dropped inventory".into());
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn validate_swap(source_inventory_type: &InventoryType, target_inventory_type: &InventoryType) -> Result<(), String> {
@@ -214,5 +214,5 @@ pub fn validate_swap(source_inventory_type: &InventoryType, target_inventory_typ
         return Err("Cannot swap items into a dropped inventory, you have to drop those manually".into());
     }
 
-    return Ok(());
+    Ok(())
 }

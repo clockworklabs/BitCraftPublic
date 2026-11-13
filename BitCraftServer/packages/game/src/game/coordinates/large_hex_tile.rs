@@ -9,53 +9,53 @@ use std::ops::{Add, Sub};
 
 impl From<LargeHexTile> for HexCoordinates {
     fn from(coordinates: LargeHexTile) -> Self {
-        return HexCoordinates {
+        HexCoordinates {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
 impl From<&LargeHexTile> for HexCoordinates {
     fn from(coordinates: &LargeHexTile) -> Self {
-        return HexCoordinates {
+        HexCoordinates {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
 impl From<HexCoordinates> for LargeHexTile {
     fn from(coordinates: HexCoordinates) -> Self {
-        return LargeHexTile {
+        LargeHexTile {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
 impl From<&HexCoordinates> for LargeHexTile {
     fn from(coordinates: &HexCoordinates) -> Self {
-        return LargeHexTile {
+        LargeHexTile {
             x: coordinates.x,
             z: coordinates.z,
             dimension: coordinates.dimension,
-        };
+        }
     }
 }
 
 impl From<LargeHexTile> for ChunkCoordinates {
     fn from(coordinates: LargeHexTile) -> Self {
-        return ChunkCoordinates::from(OffsetCoordinatesLarge::from(coordinates));
+        ChunkCoordinates::from(OffsetCoordinatesLarge::from(coordinates))
     }
 }
 
 impl From<&LargeHexTile> for ChunkCoordinates {
     fn from(coordinates: &LargeHexTile) -> Self {
-        return ChunkCoordinates::from(OffsetCoordinatesLarge::from(coordinates));
+        ChunkCoordinates::from(OffsetCoordinatesLarge::from(coordinates))
     }
 }
 
@@ -146,15 +146,15 @@ impl Display for LargeHexTile {
 
 impl LargeHexTile {
     pub fn center_small_tile(&self) -> SmallHexTile {
-        return SmallHexTile::from(self);
+        SmallHexTile::from(self)
     }
 
     pub fn chunk_coordinates(&self) -> ChunkCoordinates {
-        return ChunkCoordinates::from(self);
+        ChunkCoordinates::from(self)
     }
 
     pub fn to_offset_coordinates(&self) -> OffsetCoordinatesLarge {
-        return (*self).into();
+        (*self).into()
     }
 
     pub fn from_hashcode(hashcode: i64) -> Self {
@@ -163,82 +163,82 @@ impl LargeHexTile {
     }
 
     pub fn hashcode(&self) -> i64 {
-        return OffsetCoordinatesLarge::from(self).hashcode();
+        OffsetCoordinatesLarge::from(self).hashcode()
     }
 
     pub fn hashcode_long(&self) -> i128 {
-        return OffsetCoordinatesLarge::from(self).hashcode_long();
+        OffsetCoordinatesLarge::from(self).hashcode_long()
     }
 
     pub fn neighbor_n(&self, direction: HexDirection, n: i32) -> LargeHexTile {
-        return HexCoordinates::from(self).neighbor_n(direction, n).into();
+        HexCoordinates::from(self).neighbor_n(direction, n).into()
     }
 
     pub fn neighbor(&self, direction: HexDirection) -> LargeHexTile {
-        return HexCoordinates::from(self).neighbor(direction).into();
+        HexCoordinates::from(self).neighbor(direction).into()
     }
 
     pub fn direction(&self, neighbor: &LargeHexTile) -> Option<HexDirection> {
-        return HexCoordinates::from(self).direction(neighbor.into());
+        HexCoordinates::from(self).direction(neighbor.into())
     }
 
     pub fn rotate_around(&self, center: &LargeHexTile, steps: i32) -> LargeHexTile {
-        return HexCoordinates::from(self)
+        HexCoordinates::from(self)
             .rotate_around(&HexCoordinates::from(center), steps)
-            .into();
+            .into()
     }
 
     pub fn distance_to(&self, other: LargeHexTile) -> i32 {
         if other.dimension != self.dimension {
             return i32::MAX;
         }
-        return HexCoordinates::from(self).distance_to(other.into());
+        HexCoordinates::from(self).distance_to(other.into())
     }
 
     pub fn is_corner(&self) -> bool {
-        return HexCoordinates::from(self).is_corner();
+        HexCoordinates::from(self).is_corner()
     }
 
     pub fn approximate_direction(&self, coordinates: LargeHexTile) -> HexDirection {
-        return HexCoordinates::from(self).approximate_direction(coordinates.into());
+        HexCoordinates::from(self).approximate_direction(coordinates.into())
     }
 
     pub fn angle(&self, coordinates: LargeHexTile) -> f64 {
-        return HexCoordinates::from(self).angle(coordinates.into());
+        HexCoordinates::from(self).angle(coordinates.into())
     }
 
     pub fn coordinates_in_radius(center: LargeHexTile, radius: i32) -> Vec<LargeHexTile> {
         //Doesn't include center
-        return HexCoordinates::coordinates_in_radius(center.into(), radius)
+        HexCoordinates::coordinates_in_radius(center.into(), radius)
             .iter()
-            .map(|a| LargeHexTile::from(a))
-            .collect();
+            .map(LargeHexTile::from)
+            .collect()
     }
 
     pub fn ring(center: LargeHexTile, radius: i32) -> Vec<LargeHexTile> {
-        return HexCoordinates::ring(center.into(), radius)
+        HexCoordinates::ring(center.into(), radius)
             .iter()
-            .map(|a| LargeHexTile::from(a))
-            .collect();
+            .map(LargeHexTile::from)
+            .collect()
     }
 
-    pub fn closest(&self, locations: &Vec<LargeHexTile>) -> Option<LargeHexTile> {
-        let locations = locations.iter().map(|a| HexCoordinates::from(a)).collect();
-        match HexCoordinates::from(self).closest(&locations) {
-            Some(a) => return Some(LargeHexTile::from(a)),
-            None => return None,
+    pub fn closest(&self, locations: &[LargeHexTile]) -> Option<LargeHexTile> {
+        let locations = locations.iter().map(HexCoordinates::from).collect();
+        {
+            let a = HexCoordinates::from(self).closest(&locations)?;
+            Some(LargeHexTile::from(a))
         }
     }
 
     pub fn is_center(&self) -> bool {
-        return HexCoordinates::from(self).is_center();
+        HexCoordinates::from(self).is_center()
     }
 
     pub fn to_center_position_xz(&self) -> Vector2 {
-        return HexCoordinates::from(self).to_center_position_xz(true);
+        HexCoordinates::from(self).to_center_position_xz(true)
     }
 
     pub fn from_position(position: Vector2, dimension: u32) -> LargeHexTile {
-        return LargeHexTile::from(HexCoordinates::from_position(position, true, dimension));
+        LargeHexTile::from(HexCoordinates::from_position(position, true, dimension))
     }
 }

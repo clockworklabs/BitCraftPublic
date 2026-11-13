@@ -11,6 +11,7 @@ use spacetimedb::ReducerContext;
 ///
 /// Checks biome validity, water/submersion, and either clears+levels ground or
 /// validates placement rules (paving, overlaps, etc.) depending on flags.
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 pub fn verify_or_prepare_footprint(
     ctx: &ReducerContext,
     terrain_cache: &mut TerrainChunkCache,
@@ -30,8 +31,8 @@ pub fn verify_or_prepare_footprint(
 
     if !ignore_biome {
         let mut biome_value = 0.0f32;
-        for i in 0..valid_biomes.len() {
-            let biome_index = valid_biomes[i] as u64;
+        for &valid_biome in valid_biomes.iter() {
+            let biome_index = valid_biome as u64;
             for j in 0..4 {
                 let biome = (terrain.biomes >> (j * 8)) & 0xFF;
                 if (biome as u64) == biome_index {
@@ -96,7 +97,7 @@ pub fn validate_dimension_rules(
     }
 
     let dim = unwrap_or_err!(
-        ctx.db.dimension_description_state().dimension_id().find(&coords.dimension),
+        ctx.db.dimension_description_state().dimension_id().find(coords.dimension),
         "Invalid dimension"
     );
 
@@ -108,7 +109,7 @@ pub fn validate_dimension_rules(
             return Err(format!("Requires Tier {{0}} interior|~{}", required_interior_tier));
         }
         let inst = unwrap_or_err!(
-            ctx.db.interior_instance_desc().id().find(&dim.interior_instance_id),
+            ctx.db.interior_instance_desc().id().find(dim.interior_instance_id),
             "Missing interior instance"
         );
         if inst.tier < required_interior_tier {

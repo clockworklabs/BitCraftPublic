@@ -26,7 +26,7 @@ impl HerdState {
     */
 
     pub fn attach(ctx: &ReducerContext, host_entity_id: u64, enemy_params_id: Vec<i32>, spawn_location: OffsetCoordinatesSmallMessage) {
-        if enemy_params_id.len() > 0 {
+        if !enemy_params_id.is_empty() {
             let mut herds_entity_ids = Vec::new();
             for enemy_params_id in enemy_params_id {
                 let herd = HerdState::new(ctx, enemy_params_id);
@@ -49,9 +49,9 @@ impl HerdState {
 
 impl AttachedHerdsState {
     pub fn delete(ctx: &ReducerContext, entity_id: u64) {
-        if let Some(attached_herds) = ctx.db.attached_herds_state().entity_id().find(&entity_id) {
+        if let Some(attached_herds) = ctx.db.attached_herds_state().entity_id().find(entity_id) {
             for herd_entity_id in attached_herds.herds_entity_ids {
-                ctx.db.herd_state().entity_id().delete(&herd_entity_id);
+                ctx.db.herd_state().entity_id().delete(herd_entity_id);
             }
         }
         ctx.db.attached_herds_state().entity_id().delete(entity_id);

@@ -12,7 +12,7 @@ pub fn cheat_shards_grant(ctx: &ReducerContext, request: CheatShardsGrantRequest
     }
 
     let mut vault_state = unwrap_or_err!(
-        ctx.db.player_shard_state().entity_id().find(&request.owner_entity_id),
+        ctx.db.player_shard_state().entity_id().find(request.owner_entity_id),
         "Player does not exist"
     );
     vault_state.shards += request.shards;

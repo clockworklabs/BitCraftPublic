@@ -34,7 +34,7 @@ pub fn event_delay_recipe_id(
     request: &PlayerProjectSiteAdvanceProjectRequest,
     stats: &CharacterStatsState,
 ) -> (Duration, Option<i32>) {
-    let project_site = match ctx.db.project_site_state().entity_id().find(&request.owner_entity_id) {
+    let project_site = match ctx.db.project_site_state().entity_id().find(request.owner_entity_id) {
         Some(cs) => cs,
         None => return (Duration::ZERO, None),
     };
@@ -42,7 +42,7 @@ pub fn event_delay_recipe_id(
     let mut time_requirement = 0.0;
     let mut skill_speed = 1.0;
     let recipe_id: Option<i32>;
-    let construction_recipe = ctx.db.construction_recipe_desc().id().find(&project_site.construction_recipe_id);
+    let construction_recipe = ctx.db.construction_recipe_desc().id().find(project_site.construction_recipe_id);
     if let Some(recipe) = construction_recipe {
         time_requirement = recipe.time_requirement;
         recipe_id = Some(project_site.construction_recipe_id);
@@ -54,7 +54,7 @@ pub fn event_delay_recipe_id(
             .db
             .resource_placement_recipe_desc()
             .id()
-            .find(&project_site.resource_placement_recipe_id);
+            .find(project_site.resource_placement_recipe_id);
         recipe_id = Some(project_site.resource_placement_recipe_id);
         if let Some(recipe) = resource_placement_recipe {
             time_requirement = recipe.time_requirement;
@@ -62,15 +62,15 @@ pub fn event_delay_recipe_id(
     }
 
     let build_time_multiplier = 1.0 / (stats.get(CharacterStatType::BuildingSpeed) + skill_speed - 1.0);
-    return (Duration::from_secs_f32(time_requirement * build_time_multiplier), recipe_id);
+    (Duration::from_secs_f32(time_requirement * build_time_multiplier), recipe_id)
 }
 
 #[spacetimedb::reducer]
 #[feature_gate("build")]
 pub fn project_site_advance_project_start(ctx: &ReducerContext, request: PlayerProjectSiteAdvanceProjectRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     let target = Some(request.owner_entity_id);
     let (delay, recipe_id) = event_delay_recipe_id(ctx, &request, &stats);
 
@@ -96,9 +96,9 @@ pub fn project_site_advance_project_start(ctx: &ReducerContext, request: PlayerP
 #[shared_table_reducer] //For waystones and claims
 #[feature_gate("build")]
 pub fn project_site_advance_project(ctx: &ReducerContext, request: PlayerProjectSiteAdvanceProjectRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     player_action_helpers::schedule_clear_player_action_on_err(
         actor_id,
         PlayerActionType::Build.get_layer(ctx),
@@ -123,16 +123,15 @@ pub fn reduce(
     }
 
     let mut project_site = unwrap_or_err!(
-        ctx.db.project_site_state().entity_id().find(&request.owner_entity_id),
+        ctx.db.project_site_state().entity_id().find(request.owner_entity_id),
         "Invalid project site"
     )
     .clone();
 
     let location: LocationState = unwrap_or_err!(
-        ctx.db.location_state().entity_id().find(&request.owner_entity_id),
+        ctx.db.location_state().entity_id().find(request.owner_entity_id),
         "Invalid project site"
-    )
-    .clone();
+    );
 
     let coordinates = location.coordinates();
 
@@ -156,20 +155,20 @@ pub fn reduce(
     let mut resource = None;
     let mut skill = None;
 
-    if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(&project_site.construction_recipe_id) {
+    if let Some(recipe) = ctx.db.construction_recipe_desc().id().find(project_site.construction_recipe_id) {
         skill = recipe.get_skill_type();
-        stamina_requirement = recipe.stamina_requirement as f32;
+        stamina_requirement = recipe.stamina_requirement;
         tool_requirements = recipe.tool_requirements;
         level_requirements = recipe.level_requirements;
         actions_required = recipe.actions_required;
         consumed_item_stacks = recipe.consumed_item_stacks;
         consumed_cargo_stacks = recipe.consumed_cargo_stacks;
-        building = ctx.db.building_desc().id().find(&recipe.building_description_id);
+        building = ctx.db.building_desc().id().find(recipe.building_description_id);
         experience_per_progress = recipe.experience_per_progress;
 
-        if recipe.required_claim_tech_ids.len() != 0 {
+        if !recipe.required_claim_tech_ids.is_empty() {
             let claim_tech = unwrap_or_err!(
-                ctx.db.claim_tech_state().entity_id().find(&project_site.owner_id),
+                ctx.db.claim_tech_state().entity_id().find(project_site.owner_id),
                 "This claim is missing its tech tree"
             );
             for required_claim_tech_id in &recipe.required_claim_tech_ids {
@@ -184,21 +183,21 @@ pub fn reduce(
         .db
         .resource_placement_recipe_desc()
         .id()
-        .find(&project_site.resource_placement_recipe_id)
+        .find(project_site.resource_placement_recipe_id)
     {
         skill = recipe.get_skill_type();
-        stamina_requirement = recipe.stamina_requirement as f32;
+        stamina_requirement = recipe.stamina_requirement;
         tool_requirements = recipe.tool_requirements;
         level_requirements = recipe.level_requirements;
         actions_required = recipe.actions_required;
         consumed_item_stacks = recipe.consumed_item_stacks;
         consumed_cargo_stacks = recipe.consumed_cargo_stacks;
-        resource = ctx.db.resource_desc().id().find(&recipe.resource_description_id);
+        resource = ctx.db.resource_desc().id().find(recipe.resource_description_id);
         experience_per_progress = recipe.experience_per_progress;
 
-        if recipe.required_claim_tech_ids.len() != 0 {
+        if !recipe.required_claim_tech_ids.is_empty() {
             let claim_tech = unwrap_or_err!(
-                ctx.db.claim_tech_state().entity_id().find(&project_site.owner_id),
+                ctx.db.claim_tech_state().entity_id().find(project_site.owner_id),
                 "This claim is missing its tech tree"
             );
             for required_claim_tech_id in &recipe.required_claim_tech_ids {
@@ -211,7 +210,7 @@ pub fn reduce(
     }
 
     let stamina_state = unwrap_or_err!(
-        ctx.db.stamina_state().entity_id().find(&actor_id),
+        ctx.db.stamina_state().entity_id().find(actor_id),
         "Player missing stamina component!"
     );
     if stamina_state.stamina < stamina_requirement {
@@ -223,10 +222,8 @@ pub fn reduce(
     }
 
     // Validate Tool Requirement
-    if tool_requirements.len() > 0 {
-        if let Err(err_str) = ToolDesc::get_required_tool(ctx, actor_id, &tool_requirements[0]) {
-            return Err(err_str.into());
-        }
+    if !tool_requirements.is_empty() {
+        ToolDesc::get_required_tool(ctx, actor_id, &tool_requirements[0])?;
     }
 
     let actor_coords: crate::messages::util::FloatHexTileMessage = game_state_filters::coordinates_float(ctx, actor_id);
@@ -242,8 +239,8 @@ pub fn reduce(
         {
             return Err("Claims can only have one bank".into());
         }
-        if building_desc.has_category(ctx, BuildingCategory::TownMarket) {
-            if ctx
+        if building_desc.has_category(ctx, BuildingCategory::TownMarket)
+            && ctx
                 .db
                 .marketplace_state()
                 .claim_entity_id()
@@ -253,7 +250,6 @@ pub fn reduce(
             {
                 return Err("Claims can only have one market".into());
             }
-        }
     }
 
     let mut terrain_cache = TerrainChunkCache::empty();
@@ -263,7 +259,7 @@ pub fn reduce(
     // Floating platforms are built over water: the seabed elevation is irrelevant
     let is_floating_platform = building
         .as_ref()
-        .map_or(false, |b| ctx.db.floating_platform_desc().building_id().find(&b.id).is_some());
+        .is_some_and(|b| ctx.db.floating_platform_desc().building_id().find(b.id).is_some());
     player_action_helpers::validate_action_elevation(
         ctx,
         &mut terrain_cache,
@@ -307,7 +303,7 @@ pub fn reduce(
         .db
         .experience_state()
         .entity_id()
-        .find(&actor_id)
+        .find(actor_id)
         .unwrap()
         .get_level(level_requirements[0].skill_id);
     let recipe_desired_skill = level_requirements[0].level;
@@ -324,10 +320,7 @@ pub fn reduce(
         let tool_power = if tool_requirements.is_empty() {
             1.0
         } else {
-            let tool = match ToolDesc::get_required_tool(ctx, actor_id, &tool_requirements[0]) {
-                Ok(tool) => tool,
-                Err(err_str) => return Err(err_str.into()),
-            };
+            let tool = ToolDesc::get_required_tool(ctx, actor_id, &tool_requirements[0])?;
             tool.power as f32
         } + skill_power;
 
@@ -374,7 +367,7 @@ pub fn reduce(
                 owner_id = dimension_network.claim_entity_id;
             }
             let direction = project_site.direction;
-            ctx.db.project_site_state().entity_id().delete(&request.owner_entity_id);
+            ctx.db.project_site_state().entity_id().delete(request.owner_entity_id);
 
             if let Some(building) = building {
                 floating_platform_helpers::validate_platform_limit(ctx, building.id, actor_id)?;
@@ -395,7 +388,7 @@ pub fn reduce(
 
                 create_building_claim(ctx, request.owner_entity_id, false)?;
 
-                if ctx.db.interior_network_desc().building_id().find(&building.id).is_some() {
+                if ctx.db.interior_network_desc().building_id().find(building.id).is_some() {
                     create_building_interior(ctx, request.owner_entity_id)?;
                 }
 

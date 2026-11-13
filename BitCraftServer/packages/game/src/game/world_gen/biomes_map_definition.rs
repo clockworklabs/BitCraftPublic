@@ -18,7 +18,7 @@ impl BiomesMapDefinition {
     }
 
     pub fn get_biome(&self, index: i32) -> Option<&BiomeDefinition> {
-        if self.biomes.len() == 0 {
+        if self.biomes.is_empty() {
             return None;
         }
         let index = index.clamp(0, self.biomes.len() as i32 - 1);
@@ -44,7 +44,7 @@ impl BiomesMapDefinition {
             return Some((x * x + y) as usize);
         }
 
-        return Some((y * y + 2 * y + 2 - x) as usize);
+        Some((y * y + 2 * y + 2 - x) as usize)
     }
 
     pub fn get_index_at_pos(&self, world_position: Vector2) -> i32 {
@@ -85,6 +85,6 @@ impl BiomesMapDefinition {
             return false;
         }
 
-        (self.values[index as usize] & SPAWN_MASK) > 0
+        (self.values[index] & SPAWN_MASK) > 0
     }
 }

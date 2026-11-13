@@ -46,7 +46,7 @@ pub fn migrate_onboarding(ctx: &ReducerContext) -> Result<(), String> {
 
     for onboarding_state in ctx.db.onboarding_state().iter() {
         for (onboarding_id, chain_id) in &mapping {
-            if onboarding_state.completed_states.contains(&onboarding_id) {
+            if onboarding_state.completed_states.contains(onboarding_id) {
                 complete_chain(ctx, onboarding_state.entity_id, *chain_id)?;
             }
         }

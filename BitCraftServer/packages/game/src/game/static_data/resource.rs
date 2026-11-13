@@ -12,7 +12,7 @@ impl ResourceDesc {
                         z: coordinates.z + delta.z,
                         dimension: coordinates.dimension,
                     }
-                    .rotate_around(&coordinates, direction / 2),
+                    .rotate_around(coordinates, direction / 2),
                     delta.footprint_type,
                 )
             })
@@ -20,7 +20,7 @@ impl ResourceDesc {
     }
 
     pub fn get_footprint_radius(&self) -> i32 {
-        if self.footprint.len() > 0 {
+        if !self.footprint.is_empty() {
             let mut max_hex_offset = 1;
             for footprint_delta in &self.footprint {
                 if footprint_delta.footprint_type != FootprintType::Perimeter {
@@ -36,6 +36,6 @@ impl ResourceDesc {
             return max_hex_offset;
         }
 
-        return 1;
+        1
     }
 }

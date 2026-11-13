@@ -32,31 +32,30 @@ fn event_delay(ctx: &ReducerContext, terrain_cache: &mut TerrainChunkCache, requ
     let desc = unwrap_or_err!(get_climb_descriptions(elevation_diff), "Invalid climb request");
     let time = desc.get_climb_time(elevation_diff);
 
-    return Ok(Duration::from_secs_f32(time));
+    Ok(Duration::from_secs_f32(time))
 }
 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_climb_start(ctx: &ReducerContext, request: PlayerClimbRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut terrain_cache = TerrainChunkCache::empty();
     let target = Some(FloatHexTile::from(request.destination).parent_large_tile().hashcode_long() as u64);
     let delay = event_delay(ctx, &mut terrain_cache, &request);
-    let result = if delay.is_err() {
-        player_action_helpers::fail_action(actor_id, PlayerActionType::Climb.get_layer(ctx), delay.err().unwrap())
-    } else {
-        player_action_helpers::start_action(
+    let result = match delay {
+        Err(error) => player_action_helpers::fail_action(actor_id, PlayerActionType::Climb.get_layer(ctx), error),
+        Ok(delay) => player_action_helpers::start_action(
             ctx,
             actor_id,
             PlayerActionType::Climb,
             target,
             None,
-            delay.unwrap(),
+            delay,
             reduce(ctx, &mut terrain_cache, actor_id, &request, true),
             request.timestamp,
-        )
+        ),
     };
     if result.is_ok() {
         ctx.db
@@ -69,7 +68,7 @@ pub fn player_climb_start(ctx: &ReducerContext, request: PlayerClimbRequest) -> 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_climb(ctx: &ReducerContext, request: PlayerClimbRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut terrain_cache = TerrainChunkCache::empty();
@@ -88,7 +87,7 @@ fn reduce(
     is_start_reducer: bool,
 ) -> Result<(), String> {
     HealthState::check_incapacitated(ctx, actor_id, true)?;
-    if ctx.db.mounting_state().entity_id().find(&actor_id).is_some() {
+    if ctx.db.mounting_state().entity_id().find(actor_id).is_some() {
         return Err("Can't walk while in a deployable.".into());
     }
 
@@ -99,7 +98,7 @@ fn reduce(
         return Err("Can't climb that far.".into());
     }
 
-    let mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Invalid request");
+    let mobile = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Invalid request");
     if mobile.coordinates_float().distance_to(start_coordinates) > 2f32 {
         return Err("Invalid origin.".into());
     }
@@ -139,7 +138,7 @@ fn reduce(
 
         let climb_requirement_desc = unwrap_or_err!(get_climb_requirement_desc(ctx, elevation_diff), "Not a climb");
         let stamina_cost = climb_requirement_desc.stamina_cost as f32;
-        let stamina_state = ctx.db.stamina_state().entity_id().find(&actor_id).unwrap();
+        let stamina_state = ctx.db.stamina_state().entity_id().find(actor_id).unwrap();
         if stamina_state.stamina < stamina_cost {
             return Err("Not enough stamina".into());
         }
@@ -173,9 +172,7 @@ fn get_climb_requirement_desc(ctx: &ReducerContext, elevation_diff: i16) -> Opti
     return ctx
         .db
         .climb_requirement_desc()
-        .iter()
-        .filter(|a| elevation_diff >= a.min_elevation && elevation_diff <= a.max_elevation)
-        .next();
+        .iter().find(|a| elevation_diff >= a.min_elevation && elevation_diff <= a.max_elevation);
 }
 
 #[derive(Clone)]
@@ -190,12 +187,12 @@ struct ClimbAnimationDescription {
 
 //i32::min isn't const for some reason :/
 const fn min_const(a: i16, b: i16) -> i16 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 //i32::max isn't const for some reason :/
 const fn max_const(a: i16, b: i16) -> i16 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 impl ClimbAnimationDescription {
@@ -230,7 +227,7 @@ impl ClimbAnimationDescription {
 
     pub fn get_climb_time(&self, elevation_diff: i16) -> f32 {
         let adjusted_elevation = elevation_diff.abs() - self.climb_tile_elevation_offset.abs();
-        return self.climb_time_flat + self.climb_time_per_elevation_unit * adjusted_elevation as f32;
+        self.climb_time_flat + self.climb_time_per_elevation_unit * adjusted_elevation as f32
     }
 }
 
@@ -256,7 +253,7 @@ const CLIMB_DESCRIPTIONS: [ClimbAnimationDescription; 7] = [
         30,
         11,
         i16::MAX,
-        24.0 / 24.0,
+        1.0, // 24.0 / 24.0
         7,
         26.0 / 24.0 / 4.5,
     ),
@@ -294,9 +291,7 @@ const CLIMB_DESCRIPTIONS: [ClimbAnimationDescription; 7] = [
 ];
 
 fn get_climb_descriptions(elevation_diff: i16) -> Option<ClimbAnimationDescription> {
-    return CLIMB_DESCRIPTIONS
-        .iter()
-        .filter(|a| elevation_diff >= a.min_elevation && elevation_diff <= a.max_elevation)
-        .next()
-        .cloned();
+    CLIMB_DESCRIPTIONS
+        .iter().find(|a| elevation_diff >= a.min_elevation && elevation_diff <= a.max_elevation)
+        .cloned()
 }

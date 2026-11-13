@@ -16,9 +16,9 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn join_chat_channel(ctx: &ReducerContext, entity_id: u64) -> Result<(), String> {
-    let chat_channel = unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(&entity_id), "Invalid chat channel");
+    let chat_channel = unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(entity_id), "Invalid chat channel");
 
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let all_player_permissions = ctx.db.chat_channel_permission_state().player_entity_id().filter(&actor_id);
     if all_player_permissions
@@ -74,7 +74,7 @@ pub fn join_chat_channel(ctx: &ReducerContext, entity_id: u64) -> Result<(), Str
         return Err("This chat channel has reached members limit.".into());
     }
 
-    let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(&actor_id), "Invalid user.");
+    let user = unwrap_or_err!(ctx.db.user_state().entity_id().find(actor_id), "Invalid user.");
     ctx.db.chat_channel_permission_state().insert(ChatChannelPermissionState {
         entity_id: game_state::create_entity(ctx),
         chat_channel_entity_id: entity_id,

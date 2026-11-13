@@ -10,7 +10,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_achievement(ctx: &ReducerContext, achievement_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -24,7 +24,7 @@ pub fn discover_achievement(ctx: &ReducerContext, achievement_id: i32) -> Result
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_building(ctx: &ReducerContext, building_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -38,7 +38,7 @@ pub fn discover_building(ctx: &ReducerContext, building_id: i32) -> Result<(), S
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_cargo(ctx: &ReducerContext, cargo_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -52,7 +52,7 @@ pub fn discover_cargo(ctx: &ReducerContext, cargo_id: i32) -> Result<(), String>
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_claim(ctx: &ReducerContext, claim_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -66,7 +66,7 @@ pub fn discover_claim(ctx: &ReducerContext, claim_entity_id: u64) -> Result<(), 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_construction_recipe(ctx: &ReducerContext, construction_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -83,7 +83,7 @@ pub fn discover_construction_recipe(ctx: &ReducerContext, construction_id: i32) 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_crafting_recipe(ctx: &ReducerContext, craft_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -97,7 +97,7 @@ pub fn discover_crafting_recipe(ctx: &ReducerContext, craft_id: i32) -> Result<(
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_deployable(ctx: &ReducerContext, deployable_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -111,7 +111,7 @@ pub fn discover_deployable(ctx: &ReducerContext, deployable_id: i32) -> Result<(
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_enemy(ctx: &ReducerContext, enemy_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -125,7 +125,7 @@ pub fn discover_enemy(ctx: &ReducerContext, enemy_id: i32) -> Result<(), String>
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_extraction_recipe(ctx: &ReducerContext, extract_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -139,7 +139,7 @@ pub fn discover_extraction_recipe(ctx: &ReducerContext, extract_id: i32) -> Resu
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_item(ctx: &ReducerContext, item_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -153,7 +153,7 @@ pub fn discover_item(ctx: &ReducerContext, item_id: i32) -> Result<(), String> {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_scroll(ctx: &ReducerContext, scroll_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -167,7 +167,7 @@ pub fn discover_scroll(ctx: &ReducerContext, scroll_id: i32) -> Result<(), Strin
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_npc(ctx: &ReducerContext, npc_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -181,7 +181,7 @@ pub fn discover_npc(ctx: &ReducerContext, npc_id: i32) -> Result<(), String> {
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_pavement(ctx: &ReducerContext, paving_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -196,7 +196,7 @@ pub fn discover_pavement(ctx: &ReducerContext, paving_id: i32) -> Result<(), Str
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_pillar_shaping(ctx: &ReducerContext, pillar_shaping_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -210,7 +210,7 @@ pub fn discover_pillar_shaping(ctx: &ReducerContext, pillar_shaping_id: i32) -> 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_resource(ctx: &ReducerContext, resource_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -224,7 +224,7 @@ pub fn discover_resource(ctx: &ReducerContext, resource_id: i32) -> Result<(), S
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_resource_placement(ctx: &ReducerContext, resource_placement_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -241,7 +241,7 @@ pub fn discover_resource_placement(ctx: &ReducerContext, resource_placement_id: 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_ruins(ctx: &ReducerContext, coordinates: OffsetCoordinatesSmall) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -253,7 +253,7 @@ pub fn discover_ruins(ctx: &ReducerContext, coordinates: OffsetCoordinatesSmall)
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_secondary_knowledge(ctx: &ReducerContext, secondary_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);
@@ -270,7 +270,7 @@ pub fn discover_secondary_knowledge(ctx: &ReducerContext, secondary_id: i32) -> 
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn discover_collectible(ctx: &ReducerContext, collectible_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut discovery = Discovery::new(actor_id);

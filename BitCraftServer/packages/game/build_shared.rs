@@ -40,13 +40,11 @@ fn build_all_handlers_mods() {
     build_handlers_mod("src/game/handlers");
 
     // Generate mod.rs for all sub-folder
-    for e in glob("src/game/handlers/*").expect("Failed to read glob pattern") {
-        if let Ok(path_buf) = e {
-            if path_buf.is_dir() {
-                let dir = path_buf.file_name().unwrap().to_str().unwrap();
-                let path = format!("src/game/handlers/{dir}");
-                build_handlers_mod(path.as_str());
-            }
+    for path_buf in glob("src/game/handlers/*").expect("Failed to read glob pattern").flatten() {
+        if path_buf.is_dir() {
+            let dir = path_buf.file_name().unwrap().to_str().unwrap();
+            let path = format!("src/game/handlers/{dir}");
+            build_handlers_mod(path.as_str());
         }
     }
 }
@@ -59,28 +57,31 @@ fn build_handlers_mod(dir: &str) {
 
     let mut path_bufs: Vec<PathBuf> = Vec::new();
     //Find sub-folders
-    for e in glob(format!("{dir}/*").as_str()).expect("Failed to read glob pattern") {
-        if let Ok(path_buf) = e {
-            if path_buf.is_dir() {
-                path_bufs.push(path_buf.clone());
-            }
+    for path_buf in glob(format!("{dir}/*").as_str()).expect("Failed to read glob pattern").flatten() {
+        if path_buf.is_dir() {
+            path_bufs.push(path_buf.clone());
         }
     }
     //Find handlers
-    for e in glob(format!("{dir}/*.rs").as_str()).expect("Failed to read glob pattern") {
-        if let Ok(path_buf) = e {
-            if path_buf.file_name().unwrap() == "mod.rs" {
-                // Do nothing
-            } else {
-                path_bufs.push(path_buf.clone());
-            }
+    for path_buf in glob(format!("{dir}/*.rs").as_str()).expect("Failed to read glob pattern").flatten() {
+        if path_buf.file_name().unwrap() == "mod.rs" {
+            // Do nothing
+        } else {
+            path_bufs.push(path_buf.clone());
         }
     }
 
     // mod definitions
+    let dir_name = std::path::Path::new(dir).file_name().and_then(|name| name.to_str());
     for path_buf in &path_bufs {
+        let module_name = path_buf.file_stem().unwrap().to_str().unwrap();
+        if Some(module_name) == dir_name {
+            output.push_str(
+                "#[expect(clippy::module_inception, reason = \"handler modules are generated from file names, and a handler file may share its directory's name\")]\n",
+            );
+        }
         output.push_str("pub mod ");
-        output.push_str(path_buf.file_stem().unwrap().to_str().unwrap());
+        output.push_str(module_name);
         output.push_str(";\n");
     }
 
@@ -97,7 +98,7 @@ fn build_gamestate_operations() {
     let mut output = "".to_string();
     let mut writeln = |s: &str| {
         output.push_str(s);
-        output.push_str("\n");
+        output.push('\n');
     };
 
     // 1. Read GameState/mod.rs, parse all tables
@@ -132,7 +133,7 @@ fn build_gamestate_operations() {
             continue;
         }
 
-        if let Some(ch) = line.chars().nth(0) {
+        if let Some(ch) = line.chars().next() {
             if ch == '}' {
                 // End of table.
                 next_tables.clear();
@@ -141,8 +142,8 @@ fn build_gamestate_operations() {
             }
         }
 
-        if line.contains("pub struct") {
-            if next_struct_is_table {
+        if line.contains("pub struct")
+            && next_struct_is_table {
                 next_struct_is_table = false;
 
                 // SpacetimeDB 2.x table declarations use `accessor = ...` rather
@@ -165,9 +166,8 @@ fn build_gamestate_operations() {
                     }
                 }
             }
-        }
 
-        if next_tables.len() > 0 && line.contains(" entity_id: u64") {
+        if !next_tables.is_empty() && line.contains(" entity_id: u64") {
             for table in &next_tables {
                 all_entity_tables.push(table.clone());
             }
@@ -184,14 +184,14 @@ fn build_gamestate_operations() {
     writeln("use spacetimedb::ReducerContext;");
 
     for k in &all_entity_tables {
-        writeln(format!("use crate::{};", camel_to_snake(&k)).as_str());
+        writeln(format!("use crate::{};", camel_to_snake(k)).as_str());
     }
 
     writeln("\n\npub fn delete_entity(ctx: &ReducerContext, entity_id: u64) {");
     writeln("   let _ = (ctx, entity_id);");
 
     for k in &delete_table {
-        writeln(format!("   ctx.db.{}().entity_id().delete(entity_id);", camel_to_snake(&k)).as_str());
+        writeln(format!("   ctx.db.{}().entity_id().delete(entity_id);", camel_to_snake(k)).as_str());
     }
     writeln("}\n");
 
@@ -200,14 +200,14 @@ fn build_gamestate_operations() {
     writeln("   let _ = (ctx, entity_id);");
 
     for k in &all_entity_tables {
-        writeln(format!("   ctx.db.{}().entity_id().delete(entity_id);", camel_to_snake(&k)).as_str());
+        writeln(format!("   ctx.db.{}().entity_id().delete(entity_id);", camel_to_snake(k)).as_str());
     }
     writeln("}\n");
 
     write_if_file_changed("src/game/autogen/_delete_entity.rs", output);
 }
 
-fn camel_to_snake(str: &String) -> String {
+fn camel_to_snake(str: &str) -> String {
     let mut output = String::new();
     for c in str.chars() {
         if c.is_uppercase() {
@@ -231,13 +231,11 @@ pub fn build_shared_tables() {
 
     // 1. Read GameState/mod.rs, parse all tables
     let mut input: String = String::new();
-    for e in glob(format!("src/messages/*.rs").as_str()).expect("Failed to read glob pattern") {
-        if let Ok(path_buf) = e {
-            if path_buf.file_name().unwrap() == "mod.rs" {
-                // Do nothing
-            } else {
-                input = input + fs::read_to_string(path_buf.clone()).unwrap().as_str();
-            }
+    for path_buf in glob("src/messages/*.rs".to_string().as_str()).expect("Failed to read glob pattern").flatten() {
+        if path_buf.file_name().unwrap() == "mod.rs" {
+            // Do nothing
+        } else {
+            input += fs::read_to_string(path_buf.clone()).unwrap().as_str();
         }
     }
 
@@ -303,7 +301,7 @@ pub fn build_shared_tables() {
     let mut output = String::new();
     let mut writeln = |s: &str| {
         output.push_str(s);
-        output.push_str("\n");
+        output.push('\n');
     };
     writeln("//This file is auto-generated by bitcraft\\build.rs. Do not edit.\n");
     writeln("use spacetimedb::*;");
@@ -333,10 +331,10 @@ pub fn build_shared_tables() {
             let mut output = String::new();
             let mut writeln = |s: &str| {
                 output.push_str(s);
-                output.push_str("\n");
+                output.push('\n');
             };
 
-            writeln("#[derive(SpacetimeType, Clone, Debug)]");
+            writeln("#[derive(SpacetimeType, Clone, Debug, Default)]");
             writeln(format!("pub struct {name} {{").as_str());
             for (table, _pk) in tables {
                 let snake = camel_to_snake(table);
@@ -375,7 +373,6 @@ pub fn build_shared_tables() {
             output
         };
 
-        drop(writeln);
         output.push_str(write_updates_struct("InterModuleTableUpdates", &legacy_shared_tables).as_str());
         output.push('\n');
         output.push_str(write_updates_struct("InterModuleTableUpdatesV2", &all_shared_tables).as_str());
@@ -398,13 +395,11 @@ fn build_static_data_staging_tables() {
 
     // 1. Read GameState/mod.rs, parse all tables
     let mut input: String = String::new();
-    for e in glob(format!("src/messages/*.rs").as_str()).expect("Failed to read glob pattern") {
-        if let Ok(path_buf) = e {
-            if path_buf.file_name().unwrap() == "mod.rs" {
-                // Do nothing
-            } else {
-                input = input + fs::read_to_string(path_buf.clone()).unwrap().as_str();
-            }
+    for path_buf in glob("src/messages/*.rs".to_string().as_str()).expect("Failed to read glob pattern").flatten() {
+        if path_buf.file_name().unwrap() == "mod.rs" {
+            // Do nothing
+        } else {
+            input += fs::read_to_string(path_buf.clone()).unwrap().as_str();
         }
     }
 
@@ -456,7 +451,7 @@ fn build_static_data_staging_tables() {
     let mut output = String::new();
     let mut writeln = |s: &str| {
         output.push_str(s);
-        output.push_str("\n");
+        output.push('\n');
     };
     writeln("//This file is auto-generated by bitcraft\\build.rs. Do not edit.");
     writeln("");
@@ -507,7 +502,7 @@ fn build_static_data_staging_tables() {
     for (name, _, struct_name) in &all_tables {
         writeln(format!("    if ctx.db.staged_{name}().count() == 0 {{").as_str());
         writeln(format!("        return Err(\"Staged data for {struct_name} is empty, aborting.\".into());").as_str());
-        writeln(format!("    }}").as_str());
+        writeln("    }".to_string().as_str());
     }
     writeln("    Ok(())");
     writeln("}");

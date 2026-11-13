@@ -10,7 +10,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn claim_set_purchase_supply_price(ctx: &ReducerContext, request: ClaimSetPurchaseSupplyPriceRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     if request.purchase_price < 0.0 {
@@ -19,12 +19,12 @@ pub fn claim_set_purchase_supply_price(ctx: &ReducerContext, request: ClaimSetPu
 
     let building_entity_id = request.building_entity_id;
     let building = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "No such building to repair."
     );
 
     let claim = unwrap_or_err!(
-        ctx.db.claim_state().entity_id().find(&building.claim_entity_id),
+        ctx.db.claim_state().entity_id().find(building.claim_entity_id),
         "No such claim."
     );
 

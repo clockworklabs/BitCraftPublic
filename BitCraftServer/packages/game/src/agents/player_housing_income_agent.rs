@@ -29,7 +29,7 @@ pub fn schedule_first_tick(ctx: &ReducerContext) {
         .db
         .parameters_desc()
         .version()
-        .find(&0)
+        .find(0)
         .unwrap()
         .player_housing_income_time_of_day;
     let daily_timestamp_tick = (tick_time_of_day * 60.0 * 60.0) as i32;
@@ -57,7 +57,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn player_housing_income_agent_loop(ctx: &ReducerContext, timer: PlayerHousingIncomeLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to player_housing_income agent");
         return;
     }
@@ -92,9 +92,7 @@ fn player_housing_income_agent_loop(ctx: &ReducerContext, timer: PlayerHousingIn
                     let claim_entity_id = claim.entity_id;
                     if income > 0 {
                         // Only keep track of updated claims if the building generates any income
-                        if !claims.contains_key(&claim_entity_id) {
-                            claims.insert(claim_entity_id, claim);
-                        }
+                        claims.entry(claim_entity_id).or_insert(claim);
                     }
                     (claim_entity_id, income)
                 } else {

@@ -13,11 +13,11 @@ pub fn distance_to_segment(point: Vector2, seg1: Vector2, seg2: Vector2) -> f32 
 
     let t: f32 = (Vector2::dot(&(point - seg1), &(seg2 - seg1)) / l2).clamp(0.0, 1.0);
     let projection: Vector2 = seg1 + (seg2 - seg1) * t;
-    return (point - projection).magnitude();
+    (point - projection).magnitude()
 }
 
 pub fn distance_to_portal(ctx: &ReducerContext, building_id: u64, coord: SmallHexTile, mounting_deployable: bool) -> Result<i32, String> {
-    let building = ctx.db.building_state().entity_id().find(&building_id).unwrap();
+    let building = ctx.db.building_state().entity_id().find(building_id).unwrap();
     let building_coord = game_state_filters::coordinates(ctx, building_id);
     let building_portals: Vec<BuildingPortalDesc> = ctx
         .db

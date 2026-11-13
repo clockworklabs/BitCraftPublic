@@ -21,7 +21,7 @@ pub struct PlayerRegenLoopTimer {
 }
 
 pub fn update_timer(ctx: &ReducerContext) {
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     let mut count = 0;
     for mut timer in ctx.db.player_regen_loop_timer().iter() {
         count += 1;
@@ -35,7 +35,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 }
 
 pub fn init(ctx: &ReducerContext) {
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
     ctx.db
         .player_regen_loop_timer()
         .try_insert(PlayerRegenLoopTimer {
@@ -48,7 +48,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn player_regen_agent_loop(ctx: &ReducerContext, _timer: PlayerRegenLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to player_regen agent");
         return;
     }
@@ -57,7 +57,7 @@ fn player_regen_agent_loop(ctx: &ReducerContext, _timer: PlayerRegenLoopTimer) {
         return;
     }
 
-    let params = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let params = ctx.db.parameters_desc().version().find(0).unwrap();
 
     let min_seconds_to_passive_regen_health = params.min_seconds_to_passive_regen_health as u64;
     let min_seconds_to_passive_regen_stamina = params.min_seconds_to_passive_regen_stamina as u64;
@@ -68,7 +68,7 @@ fn player_regen_agent_loop(ctx: &ReducerContext, _timer: PlayerRegenLoopTimer) {
 fn regen_players(ctx: &ReducerContext, min_seconds_to_passive_regen_health: u64, min_seconds_to_passive_regen_stamina: u64) {
     for signed_in_player_state in ctx.db.signed_in_player_state().iter() {
         let character_stats_state = unwrap_or_continue!(
-            ctx.db.character_stats_state().entity_id().find(&signed_in_player_state.entity_id),
+            ctx.db.character_stats_state().entity_id().find(signed_in_player_state.entity_id),
             "Failed to get CharacterStatsState for player with id {}",
             signed_in_player_state.entity_id
         );
@@ -81,7 +81,7 @@ fn regen_players(ctx: &ReducerContext, min_seconds_to_passive_regen_health: u64,
 
 fn regen_health(ctx: &ReducerContext, min_seconds_to_passive_regen_health: u64, character_stats_state: &CharacterStatsState) {
     let mut health_state = unwrap_or_return!(
-        ctx.db.health_state().entity_id().find(&character_stats_state.entity_id),
+        ctx.db.health_state().entity_id().find(character_stats_state.entity_id),
         "Failed to get HealthState for player with id {}",
         character_stats_state.entity_id
     );
@@ -116,7 +116,7 @@ fn regen_health(ctx: &ReducerContext, min_seconds_to_passive_regen_health: u64, 
 
 fn regen_stamina(ctx: &ReducerContext, min_seconds_to_passive_regen_stamina: u64, character_stats_state: &CharacterStatsState) {
     let mut stamina_state = unwrap_or_return!(
-        ctx.db.stamina_state().entity_id().find(&character_stats_state.entity_id),
+        ctx.db.stamina_state().entity_id().find(character_stats_state.entity_id),
         "Failed to get StaminaState for player with id {}",
         character_stats_state.entity_id
     );

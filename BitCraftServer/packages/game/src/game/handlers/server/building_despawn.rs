@@ -13,7 +13,7 @@ pub struct BuildingDespawnTimer {
 
 #[spacetimedb::reducer]
 fn building_despawn(ctx: &ReducerContext, timer: BuildingDespawnTimer) -> Result<(), String> {
-    ServerIdentity::validate_server_or_admin(&ctx)?;
+    ServerIdentity::validate_server_or_admin(ctx)?;
 
     building_helpers::delete_building(ctx, 0, timer.entity_id, None, false, true);
 

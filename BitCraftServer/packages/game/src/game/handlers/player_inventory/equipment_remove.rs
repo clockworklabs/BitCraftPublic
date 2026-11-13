@@ -13,7 +13,7 @@ use spacetimedb::ReducerContext;
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
@@ -33,7 +33,7 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
         0
     };
 
-    let mut equipment = ctx.db.equipment_state().entity_id().find(&actor_id).unwrap();
+    let mut equipment = ctx.db.equipment_state().entity_id().find(actor_id).unwrap();
     let mut equipment_preset = None;
     let mut equipment_slots = &mut equipment.equipment_slots;
 
@@ -68,7 +68,7 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
     if let Some(to_pocket) = &request.to_pocket {
         let pocket_index = to_pocket.pocket_index as usize;
         let mut inventory = unwrap_or_err!(
-            ctx.db.inventory_state().entity_id().find(&to_pocket.inventory_entity_id),
+            ctx.db.inventory_state().entity_id().find(to_pocket.inventory_entity_id),
             "Invalid target inventory"
         );
 
@@ -91,7 +91,7 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
                 return Err("Can't swap".into());
             }
 
-            let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(&item_id), "Can't swap");
+            let equipment_info = unwrap_or_err!(ctx.db.equipment_desc().item_id().find(item_id), "Can't swap");
 
             if !equipment_info.slots.contains(&remove_slot) {
                 return Err("Can't swap equipment of different types".into());
@@ -99,11 +99,11 @@ pub fn equipment_remove(ctx: &ReducerContext, request: PlayerEquipmentRemoveRequ
 
             if let Some(level_req) = &equipment_info.level_requirement {
                 if !PlayerState::meets_level_requirement(ctx, actor_id, level_req) {
-                    let mut skill_name = ctx.db.skill_desc().id().find(&level_req.skill_id).unwrap().name;
+                    let mut skill_name = ctx.db.skill_desc().id().find(level_req.skill_id).unwrap().name;
                     if skill_name == "ANY" {
                         skill_name = "in any skill".into();
                     }
-                    return Err(format!("You need to be level {{0}} {{1}}|~{0}|~{1}", level_req.level, skill_name).into());
+                    return Err(format!("You need to be level {{0}} {{1}}|~{0}|~{1}", level_req.level, skill_name));
                 }
             }
 

@@ -97,7 +97,7 @@ impl LocationCache {
 
             let mut herd_stubs = self.get_herd_stubs(ctx, biome_enum, self.biome_chunks[biome]);
 
-            while herd_stubs.len() > 0 {
+            while !herd_stubs.is_empty() {
                 let samples = self.sample_n_locations(ctx, 200);
                 let mut chosen: Option<SmallHexTile> = None;
                 let mut max_distance = 0;
@@ -173,7 +173,7 @@ impl LocationCache {
             .iter()
             .filter_map(|b| {
                 if ruin_ids.contains(&b.building_description_id) {
-                    let coordinates = ctx.db.location_state().entity_id().find(&b.entity_id).unwrap().coordinates();
+                    let coordinates = ctx.db.location_state().entity_id().find(b.entity_id).unwrap().coordinates();
                     if coordinates.dimension == dimensions::OVERWORLD {
                         return Some(RuinsEntityValuePair {
                             entity_id: b.entity_id,
@@ -212,7 +212,7 @@ impl LocationCache {
             .filter(|b| ruin_ids.contains(&b.building_description_id))
             .map(|b| RuinsEntityValuePair {
                 entity_id: b.entity_id,
-                coordinates: ctx.db.location_state().entity_id().find(&b.entity_id).unwrap().coordinates(),
+                coordinates: ctx.db.location_state().entity_id().find(b.entity_id).unwrap().coordinates(),
             })
             .collect();
 

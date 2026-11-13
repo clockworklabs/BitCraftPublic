@@ -22,7 +22,7 @@ pub fn player_create(ctx: &ReducerContext) -> Result<(), String> {
     //Insert this right away, to prevent attempting to create multiple characters (if the target region is unavailable)
     ctx.db.user_region_state().insert(UserRegionState {
         identity: ctx.sender(),
-        region_id: region_id,
+        region_id,
     });
     ctx.db.user_creation_timestamp_state().insert(UserCreationTimestampState {
         identity: ctx.sender(),
@@ -80,13 +80,13 @@ fn get_best_region_for_new_player(ctx: &ReducerContext) -> Result<u8, String> {
         candidates.push(RegionInfo {
             id,
             distance_from_center,
-            players_in_queue: 0.max(region_population_info.players_in_queue - region_sign_in_parameters.queue_length_tolerance),
+            players_in_queue: region_population_info.players_in_queue - region_sign_in_parameters.queue_length_tolerance,
             signed_in_players: region_population_info.signed_in_players,
             total_accounts: ctx.db.user_region_state().region_id().filter(id).count() as u32,
         });
     }
 
-    if candidates.len() == 0 {
+    if candidates.is_empty() {
         return Err("No regions ready to accept new players".into());
     }
 

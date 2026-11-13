@@ -12,14 +12,14 @@ use spacetimedb::{log, ReducerContext};
 #[shared_table_reducer]
 #[feature_gate]
 pub fn claim_take_ownership(ctx: &ReducerContext, request: PlayerClaimTakeOwnershipRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(ctx, actor_id, request.claim_entity_id)
 }
 
 pub fn reduce(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64) -> Result<(), String> {
-    let mut claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&claim_entity_id), "No such claim.");
+    let mut claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(claim_entity_id), "No such claim.");
     let building_coord = unwrap_or_err!(
         ctx.db.location_state().entity_id().find(claim.owner_building_entity_id),
         "Invalid claim"
@@ -73,5 +73,5 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, claim_entity_id: u64) -> Resu
 }
 
 fn add_player_to_claim(ctx: &ReducerContext, actor_id: u64, claim: &mut ClaimState) -> Result<(), String> {
-    return claim.add_member(ctx, actor_id, true, true, true, true);
+    claim.add_member(ctx, actor_id, true, true, true, true)
 }

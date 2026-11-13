@@ -18,7 +18,7 @@ pub fn admin_despawn_overworld_enemies(ctx: &ReducerContext) {
     }
 
     for enemy in ctx.db.enemy_state().iter() {
-        let location = ctx.db.mobile_entity_state().entity_id().find(&enemy.entity_id).unwrap();
+        let location = ctx.db.mobile_entity_state().entity_id().find(enemy.entity_id).unwrap();
         if location.dimension == dimensions::OVERWORLD {
             enemy_despawn::reduce(ctx, enemy.entity_id, false);
         }

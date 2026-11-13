@@ -19,11 +19,11 @@ use crate::{parameters_desc, unwrap_or_err};
 #[shared_table_reducer]
 #[feature_gate]
 pub fn portal_enter(ctx: &ReducerContext, request: PlayerPortalEnterRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let portal = unwrap_or_err!(ctx.db.portal_state().entity_id().find(&request.portal_entity_id), "Invalid portal");
+    let portal = unwrap_or_err!(ctx.db.portal_state().entity_id().find(request.portal_entity_id), "Invalid portal");
 
     if !portal.enabled {
         return Err("Portal is not enabled".into());
@@ -59,8 +59,8 @@ pub fn portal_enter(ctx: &ReducerContext, request: PlayerPortalEnterRequest) -> 
             .next()
             .unwrap();
 
-        if building_portal_desc.enemy_lock {
-            if ctx
+        if building_portal_desc.enemy_lock
+            && ctx
                 .db
                 .mobile_entity_state()
                 .dimension()
@@ -72,7 +72,6 @@ pub fn portal_enter(ctx: &ReducerContext, request: PlayerPortalEnterRequest) -> 
             {
                 return Err("You must defeat all enemies in this section before you can proceed".into());
             }
-        }
     }
 
     let mut is_mounting_deployable = false;
@@ -94,11 +93,11 @@ pub fn portal_enter(ctx: &ReducerContext, request: PlayerPortalEnterRequest) -> 
     // Refresh Innerlight when the portal destination is overworld
     if portal.destination_dimension == OVERWORLD {
         let mut active_buff_state = unwrap_or_err!(
-            ctx.db.active_buff_state().entity_id().find(&actor_id),
+            ctx.db.active_buff_state().entity_id().find(actor_id),
             "Player has no active buff state."
         );
 
-        let innerlight_buff_duration = ctx.db.parameters_desc().version().find(&0).unwrap().sign_in_aggro_immunity; //note: separate parameter?
+        let innerlight_buff_duration = ctx.db.parameters_desc().version().find(0).unwrap().sign_in_aggro_immunity; //note: separate parameter?
         active_buff_state.set_innerlight_buff(ctx, innerlight_buff_duration);
         ctx.db.active_buff_state().entity_id().update(active_buff_state);
     }

@@ -15,10 +15,10 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn purchase_premium_item(ctx: &ReducerContext, premium_item_desc_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     let user_region_state = unwrap_or_err!(ctx.db.user_region_state().identity().find(ctx.sender()), "Unknown user");
-    let mut player_shard_state = unwrap_or_err!(ctx.db.player_shard_state().entity_id().find(&actor_id), "Unknown PlayerShardState");
+    let mut player_shard_state = unwrap_or_err!(ctx.db.player_shard_state().entity_id().find(actor_id), "Unknown PlayerShardState");
     let premium_item_desc = unwrap_or_err!(ctx.db.premium_item_desc().id().find(premium_item_desc_id), "Unknown premium item");
 
     if !premium_item_desc.is_enabled {

@@ -43,7 +43,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 }
 
 pub fn init(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().empire_siege_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().empire_siege_tick_millis as u64;
     let now = (ctx.timestamp.to_micros_since_unix_epoch() / 1000) as u64;
     let num_cycles = now / tick_length;
     let next_tick = (num_cycles + 1) * tick_length;
@@ -63,14 +63,14 @@ pub fn init(ctx: &ReducerContext) {
 #[spacetimedb::reducer]
 #[shared_table_reducer]
 fn empire_siege_agent_loop(ctx: &ReducerContext, timer: EmpireSiegeLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to empire_siege_agent");
         return;
     }
 
     if timer.first_tick {
         // schedule repeating after first tick
-        let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().empire_siege_tick_millis as u64;
+        let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().empire_siege_tick_millis as u64;
 
         ctx.db
             .empire_siege_loop_timer()
@@ -87,7 +87,7 @@ fn empire_siege_agent_loop(ctx: &ReducerContext, timer: EmpireSiegeLoopTimer) {
         return;
     }
 
-    let parameters = ctx.db.parameters_desc().version().find(&0).unwrap();
+    let parameters = ctx.db.parameters_desc().version().find(0).unwrap();
     let empire_siege_tick = parameters.empire_siege_tick_millis / 1000;
     let empire_siege_raise_pct = parameters.empire_siege_raise_pct;
     let empire_siege_delay_ticks = parameters.empire_siege_delay_ticks;
@@ -112,7 +112,7 @@ fn empire_siege_agent_loop(ctx: &ReducerContext, timer: EmpireSiegeLoopTimer) {
         }
         if cost > siege.energy {
             let drain = cost - siege.energy;
-            let mut empire_node = ctx.db.empire_node_state().entity_id().find(&building_entity_id).unwrap();
+            let mut empire_node = ctx.db.empire_node_state().entity_id().find(building_entity_id).unwrap();
             if siege.energy > 0 {
                 siege.energy = 0;
                 EmpireNodeSiegeState::update_shared(ctx, siege, crate::inter_module::InterModuleDestination::AllOtherRegions);
@@ -126,12 +126,11 @@ fn empire_siege_agent_loop(ctx: &ReducerContext, timer: EmpireSiegeLoopTimer) {
                         EmpireNodeState::update_shared(ctx, empire_node, crate::inter_module::InterModuleDestination::AllOtherRegions);
                     }
                     // Defender siege ends when tower runs out of supplies
-                    if !ended_sieges.contains_key(&building_entity_id) {
-                        let attacking_empire = EmpireNodeSiegeState::get_attacking_siege(ctx, building_entity_id)
+                    ended_sieges.entry(building_entity_id).or_insert_with(|| {
+                        EmpireNodeSiegeState::get_attacking_siege(ctx, building_entity_id)
                             .unwrap()
-                            .empire_entity_id;
-                        ended_sieges.insert(building_entity_id, attacking_empire);
-                    }
+                            .empire_entity_id
+                    });
                 } else {
                     empire_node.energy -= drain;
                     EmpireNodeState::update_shared(ctx, empire_node, crate::inter_module::InterModuleDestination::AllOtherRegions);

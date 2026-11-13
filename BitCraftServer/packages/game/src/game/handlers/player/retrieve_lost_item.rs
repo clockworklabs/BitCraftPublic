@@ -15,7 +15,7 @@ use crate::{parameters_desc, unwrap_or_err};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn retrieve_lost_item(ctx: &ReducerContext, request: PlayerRetrieveLostItemRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
@@ -26,7 +26,7 @@ pub fn retrieve_lost_item(ctx: &ReducerContext, request: PlayerRetrieveLostItemR
     );
 
     let building_desc = unwrap_or_err!(
-        ctx.db.building_desc().id().find(&building.building_description_id),
+        ctx.db.building_desc().id().find(building.building_description_id),
         "Unknown building type"
     );
 
@@ -54,7 +54,7 @@ pub fn retrieve_lost_item(ctx: &ReducerContext, request: PlayerRetrieveLostItemR
                 return Err("That deployable is not yours".into());
             }
 
-            let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
+            let max_distance = ctx.db.parameters_desc().version().find(0).unwrap().withdraw_from_deployables_range;
             if game_state_filters::coordinates_float(ctx, target_deployable.entity_id).distance_to(player_coordinates) > max_distance as f32
             {
                 return Err("Target inventory is too far".into());
@@ -71,7 +71,7 @@ pub fn retrieve_lost_item(ctx: &ReducerContext, request: PlayerRetrieveLostItemR
         inventory_helper::validate_move(&target_inventory_type)?;
     }
 
-    let building_coord: SmallHexTile = game_state_filters::coordinates_try_get(ctx, request.building_entity_id)?.into();
+    let building_coord: SmallHexTile = game_state_filters::coordinates_try_get(ctx, request.building_entity_id)?;
     let max_distance = params!(ctx).item_recovery_range;
 
     // TODO, possibly: sort by distance so the closest inventories get depleted first.
@@ -144,7 +144,7 @@ pub fn retrieve_lost_item(ctx: &ReducerContext, request: PlayerRetrieveLostItemR
                                 |x| building.distance_to(ctx, &x),
                                 true,
                             )?;
-                            if overflow_items.len() > 0 {
+                            if !overflow_items.is_empty() {
                                 item_stack.quantity = overflow_items[0].quantity;
                             } else {
                                 pocket.contents = None;

@@ -22,7 +22,7 @@ impl BuildingState {
     }
 
     pub fn footprint(&self, ctx: &ReducerContext, center: SmallHexTile) -> Vec<(SmallHexTile, FootprintType)> {
-        if let Some(building_desc) = ctx.db.building_desc().id().find(&self.building_description_id) {
+        if let Some(building_desc) = ctx.db.building_desc().id().find(self.building_description_id) {
             return building_desc.get_footprint(&center, self.direction_index);
         }
 
@@ -42,11 +42,10 @@ impl BuildingState {
 
                 let num_pockets = f.storage_slots + f.cargo_slots;
                 // A vast majority of the buildings will only have 1 inventory
-                inventory_index = inventory_index + 1;
+                inventory_index += 1;
                 let inventory = InventoryState::get_by_owner_with_index(ctx, self.entity_id, inventory_index);
 
-                if inventory.is_some() {
-                    let mut inventory = inventory.unwrap();
+                if let Some(mut inventory) = inventory {
                     let previous_pockets = inventory.pockets.len() as i32;
                     if num_pockets > previous_pockets {
                         // Note: If we still can upgrade buildings and inventories, we will need to do something about cargo indexes
@@ -79,13 +78,13 @@ impl BuildingState {
         if claim_entity_id == 0 {
             return;
         }
-        if let Some(building) = ctx.db.building_state().entity_id().find(&building_entity_id) {
+        if let Some(building) = ctx.db.building_state().entity_id().find(building_entity_id) {
             if building.claim_entity_id == 0 {
                 // Update claim decay
-                let building_desc = ctx.db.building_desc().id().find(&building.building_description_id).unwrap();
+                let building_desc = ctx.db.building_desc().id().find(building.building_description_id).unwrap();
                 let building_maintenance = building_desc.maintenance;
                 if building_maintenance != 0.0 {
-                    let claim = ctx.db.claim_state().entity_id().find(&claim_entity_id).unwrap();
+                    let claim = ctx.db.claim_state().entity_id().find(claim_entity_id).unwrap();
                     let mut claim_local = claim.local_state(ctx);
                     claim_local.building_maintenance += building_maintenance;
                     ctx.db.claim_local_state().entity_id().update(claim_local);
@@ -94,7 +93,7 @@ impl BuildingState {
                 // if building is a portal, also claim its interior network
                 // DAB Note: might need to make it recursive to claim sub-networks
                 if building_desc.has_category(ctx, BuildingCategory::Portal) {
-                    if let Some(mut dimension_network_desc_state) = ctx.db.dimension_network_state().building_id().find(&building_entity_id)
+                    if let Some(mut dimension_network_desc_state) = ctx.db.dimension_network_state().building_id().find(building_entity_id)
                     {
                         dimension_network_desc_state.claim_entity_id = claim_entity_id;
                         ctx.db.dimension_network_state().entity_id().update(dimension_network_desc_state);
@@ -106,26 +105,26 @@ impl BuildingState {
                 ctx.db.building_state().entity_id().update(building);
             }
         }
-        if let Some(mut waystone) = ctx.db.waystone_state().building_entity_id().find(&building_entity_id) {
+        if let Some(mut waystone) = ctx.db.waystone_state().building_entity_id().find(building_entity_id) {
             waystone.claim_entity_id = claim_entity_id;
             ctx.db.waystone_state().building_entity_id().update(waystone);
         }
-        if let Some(mut bank) = ctx.db.bank_state().building_entity_id().find(&building_entity_id) {
+        if let Some(mut bank) = ctx.db.bank_state().building_entity_id().find(building_entity_id) {
             bank.claim_entity_id = claim_entity_id;
             ctx.db.bank_state().building_entity_id().update(bank);
         }
-        if let Some(mut bank) = ctx.db.regional_bank_state().building_entity_id().find(&building_entity_id) {
+        if let Some(mut bank) = ctx.db.regional_bank_state().building_entity_id().find(building_entity_id) {
             bank.claim_entity_id = claim_entity_id;
             ctx.db.regional_bank_state().building_entity_id().update(bank);
         }
-        if let Some(mut marketplace) = ctx.db.marketplace_state().building_entity_id().find(&building_entity_id) {
+        if let Some(mut marketplace) = ctx.db.marketplace_state().building_entity_id().find(building_entity_id) {
             marketplace.claim_entity_id = claim_entity_id;
             ctx.db.marketplace_state().building_entity_id().update(marketplace);
         }
     }
 
     pub fn unclaim(ctx: &ReducerContext, building_entity_id: u64, from_destructor: bool) {
-        if let Some(building) = ctx.db.building_state().entity_id().find(&building_entity_id) {
+        if let Some(building) = ctx.db.building_state().entity_id().find(building_entity_id) {
             building.unclaim_self(ctx, true, from_destructor);
         }
     }
@@ -139,7 +138,7 @@ impl BuildingState {
                 // Update claim decay
                 let building_maintenance = building_desc.maintenance;
                 if building_maintenance != 0.0 {
-                    let claim = ctx.db.claim_state().entity_id().find(&self.claim_entity_id).unwrap();
+                    let claim = ctx.db.claim_state().entity_id().find(self.claim_entity_id).unwrap();
                     let mut claim_local = claim.local_state(ctx);
                     claim_local.building_maintenance -= building_maintenance;
                     ctx.db.claim_local_state().entity_id().update(claim_local);
@@ -160,16 +159,16 @@ impl BuildingState {
             ctx.db.waystone_state().building_entity_id().update(waystone);
         }
         // Shouldn't be needed since banks SHOULD have the destroy_on_unclaim flag; still leaving this code in case it's forgotten as the alternative would be worse.
-        if let Some(mut bank) = ctx.db.bank_state().building_entity_id().find(&building_entity_id) {
+        if let Some(mut bank) = ctx.db.bank_state().building_entity_id().find(building_entity_id) {
             bank.claim_entity_id = 0;
             ctx.db.bank_state().building_entity_id().update(bank);
         }
-        if let Some(mut bank) = ctx.db.regional_bank_state().building_entity_id().find(&building_entity_id) {
+        if let Some(mut bank) = ctx.db.regional_bank_state().building_entity_id().find(building_entity_id) {
             bank.claim_entity_id = 0;
             ctx.db.regional_bank_state().building_entity_id().update(bank);
         }
         // Shouldn't be needed since marketplaces SHOULD have the destroy_on_unclaim flag; still leaving this code in case it's forgotten as the alternative would be worse.
-        if let Some(mut marketplace) = ctx.db.marketplace_state().building_entity_id().find(&building_entity_id) {
+        if let Some(mut marketplace) = ctx.db.marketplace_state().building_entity_id().find(building_entity_id) {
             marketplace.claim_entity_id = 0;
             ctx.db.marketplace_state().building_entity_id().update(marketplace);
         }
@@ -247,9 +246,9 @@ impl BuildingState {
         if building_desc.has_category(ctx, BuildingCategory::Waystone) || building_desc.has_category(ctx, BuildingCategory::OneWayWaystone)
         {
             ctx.db.waystone_state().insert(WaystoneState {
-                building_entity_id: building_entity_id,
-                claim_entity_id: claim_entity_id,
-                coordinates: coordinates,
+                building_entity_id,
+                claim_entity_id,
+                coordinates,
             });
         }
     }
@@ -298,9 +297,9 @@ impl BuildingState {
                 return Err("Claims can only have one market".into());
             }
             ctx.db.marketplace_state().insert(MarketplaceState {
-                building_entity_id: building_entity_id,
-                claim_entity_id: claim_entity_id,
-                coordinates: coordinates,
+                building_entity_id,
+                claim_entity_id,
+                coordinates,
             });
         }
         Ok(())
@@ -308,7 +307,7 @@ impl BuildingState {
 
     pub fn ensure_claim_tech(&self, ctx: &ReducerContext) -> Result<(), String> {
         //To allow crafting in Ruined Towns
-        if let Some(claim) = ctx.db.claim_state().entity_id().find(&self.claim_entity_id) {
+        if let Some(claim) = ctx.db.claim_state().entity_id().find(self.claim_entity_id) {
             if claim.neutral {
                 return Ok(());
             }
@@ -321,9 +320,9 @@ impl BuildingState {
             .filter(self.building_description_id)
             .next()
         {
-            if recipe.required_claim_tech_ids.len() != 0 {
+            if !recipe.required_claim_tech_ids.is_empty() {
                 let claim_tech = unwrap_or_err!(
-                    ctx.db.claim_tech_state().entity_id().find(&self.claim_entity_id),
+                    ctx.db.claim_tech_state().entity_id().find(self.claim_entity_id),
                     "This claim is missing its tech tree"
                 );
                 for required_claim_tech_id in &recipe.required_claim_tech_ids {
@@ -341,7 +340,7 @@ impl BuildingState {
 
 impl BuildingNicknameState {
     pub fn set_nickname(ctx: &ReducerContext, building_entity_id: u64, nickname: String) {
-        if let Some(mut nickname_state) = ctx.db.building_nickname_state().entity_id().find(&building_entity_id) {
+        if let Some(mut nickname_state) = ctx.db.building_nickname_state().entity_id().find(building_entity_id) {
             if nickname_state.nickname != nickname {
                 nickname_state.nickname = nickname;
                 BuildingNicknameState::update_shared(ctx, nickname_state, crate::inter_module::InterModuleDestination::Global);

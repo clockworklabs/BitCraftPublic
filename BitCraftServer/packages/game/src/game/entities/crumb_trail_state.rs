@@ -21,12 +21,11 @@ impl CrumbTrailState {
     }
 
     pub fn location(&self) -> SmallHexTileMessage {
-        let location = SmallHexTileMessage::from(if self.active_step == 0 {
+        SmallHexTileMessage::from(if self.active_step == 0 {
             self.original_location
         } else {
             self.crumb_locations[(self.active_step - 1) as usize]
-        });
-        location
+        })
     }
 
     pub fn create(ctx: &ReducerContext, location: SmallHexTileMessage, prospecting_id: i32) -> Option<Self> {
@@ -86,7 +85,7 @@ impl CrumbTrailState {
         let mut total_attempts = 0;
         let deadzone = prospecting_desc.deadzone_angle_between_crumbs / 360.0 * PI;
 
-        while trail.len() > 0 {
+        while !trail.is_empty() {
             total_attempts += 1;
 
             if total_attempts > TOTAL_MAX_ATTEMPTS {
@@ -103,7 +102,7 @@ impl CrumbTrailState {
 
             {
                 // Increase current attempts and get rid of the mut borrow
-                let current_node = trail.get_mut((current_trail_length - 1) as usize).unwrap();
+                let current_node = trail.get_mut(current_trail_length - 1  ).unwrap();
                 current_node.attempts += 1;
 
                 if current_node.attempts > if is_prize_node { FINAL_PRIZE_MAX_ATTEMPTS } else { MAX_ATTEMPTS } {
@@ -142,7 +141,7 @@ impl CrumbTrailState {
             // Check if angle is not within the dead angle
             if current_trail_length > 1 {
                 let v1 = delta; // current crumb to next crumb
-                let prev_v2 = trail[(current_trail_length - 2) as usize].coord.to_center_position_xz();
+                let prev_v2 = trail[current_trail_length - 2 ].coord.to_center_position_xz();
                 let current_v2 = current_node.coord.to_center_position_xz();
                 let v2 = Vec2 {
                     // current crumb to previous crumb
@@ -172,13 +171,12 @@ impl CrumbTrailState {
             if let Some(terrain_cell) = terrain_cache.get_terrain_cell(ctx, &coord.parent_large_tile()) {
                 Self::extra_debug_log(format!("terrain cell biome: {{0}}|~{}", terrain_cell.biome()).as_str());
                 let is_submerged = game_state_filters::is_submerged(ctx, &mut terrain_cache, coord);
-                if is_submerged {
-                    if !is_prize_node && !prospecting_desc.allow_aquatic_bread_crumb {
+                if is_submerged
+                    && !is_prize_node && !prospecting_desc.allow_aquatic_bread_crumb {
                         // denied, crumb is over water and that's not allowed
                         Self::extra_debug_log("denied, on water");
                         continue;
                     }
-                }
                 if !prospecting_desc.biome_requirements.contains(&terrain_cell.biome()) {
                     // denied, biome is not allowed
                     Self::extra_debug_log("denied, wrong biome");
@@ -226,7 +224,7 @@ impl CrumbTrailState {
 
                             // this is pretty much a resource regen/respawn code. We'll need to do a common function at some point.
                             // resource_regen:225
-                            if result.len() > 0 {
+                            if !result.is_empty() {
                                 let resources_to_delete_count = resources_to_delete.iter().group_by_and_count(|r| r.1);
                                 for (entity_id, resource_id) in resources_to_delete {
                                     ResourceState::despawn(ctx, entity_id, resource_id);
@@ -237,7 +235,7 @@ impl CrumbTrailState {
                                         .db
                                         .resource_count()
                                         .resource_id()
-                                        .find(&resource_id)
+                                        .find(resource_id)
                                         .unwrap_or_else(|| panic!("No ResourceCount for resource_id: {}", resource_id));
                                     count.num_in_world -= delete_count as i32;
                                     ctx.db.resource_count().resource_id().update(count);
@@ -353,7 +351,7 @@ impl CrumbTrailState {
         // this is pretty much a resource regen/respawn code. We'll need to do a common function at some point.
         // resource_regen:225
         self.prize_entity_ids.clear();
-        if result.len() > 0 {
+        if !result.is_empty() {
             for &(resource_id, coordinates, direction) in &result {
                 let resource_desc = resource_desc.get(&resource_id).unwrap();
                 // TODO: mirror `ResourceCount` counters into WASM memory,

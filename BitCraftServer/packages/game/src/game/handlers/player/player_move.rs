@@ -14,17 +14,17 @@ use spacetimedb::{ReducerContext, Table};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn player_move(ctx: &ReducerContext, request: PlayerMoveRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, false)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    if ctx.db.mounting_state().entity_id().find(&actor_id).is_some() {
+    if ctx.db.mounting_state().entity_id().find(actor_id).is_some() {
         return Err("Can't walk while in a deployable.".into());
     }
 
-    let player_stats = ctx.db.character_stats_state().entity_id().find(&actor_id).unwrap();
-    let prev_mobile_entity = ctx.db.mobile_entity_state().entity_id().find(&actor_id).unwrap();
+    let player_stats = ctx.db.character_stats_state().entity_id().find(actor_id).unwrap();
+    let prev_mobile_entity = ctx.db.mobile_entity_state().entity_id().find(actor_id).unwrap();
 
     let prev_origin = prev_mobile_entity.coordinates_float();
     let target_coordinates: FloatHexTile = unwrap_or_err!(request.destination, "Expected destination in move request").into();
@@ -32,7 +32,7 @@ pub fn player_move(ctx: &ReducerContext, request: PlayerMoveRequest) -> Result<(
 
     let paving = if request.move_type <= 2 {
         PavedTileState::get_at_location(ctx, &prev_origin.parent_small_tile())
-            .map(|t| ctx.db.paving_tile_desc().id().find(&t.tile_type_id).unwrap())
+            .map(|t| ctx.db.paving_tile_desc().id().find(t.tile_type_id).unwrap())
     } else {
         None
     };
@@ -52,7 +52,7 @@ pub fn player_move(ctx: &ReducerContext, request: PlayerMoveRequest) -> Result<(
         .unwrap_or(SurfaceType::Ground as u8);
     let water_depth = terrain_chunk.get_water_depth_index(prev_chunk_index);
     let speed = game_state_filters::get_speed_on_water_type(
-        &ctx.db.parameters_player_move_desc().version().find(&0).unwrap().default_speed,
+        &ctx.db.parameters_player_move_desc().version().find(0).unwrap().default_speed,
         water_body_type,
         Some(water_depth),
         true,
@@ -123,6 +123,7 @@ pub fn player_move(ctx: &ReducerContext, request: PlayerMoveRequest) -> Result<(
     Ok(())
 }
 
+#[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
 fn validate_move(
     ctx: &ReducerContext,
     actor_id: u64,

@@ -27,7 +27,7 @@ pub fn update_timer(ctx: &ReducerContext) {
         .db
         .parameters_desc()
         .version()
-        .find(&0)
+        .find(0)
         .unwrap()
         .resource_growth_tick_rate_milliseconds as u64;
     let mut count = 0;
@@ -47,7 +47,7 @@ pub fn init(ctx: &ReducerContext) {
         .db
         .parameters_desc()
         .version()
-        .find(&0)
+        .find(0)
         .unwrap()
         .resource_growth_tick_rate_milliseconds as u64;
     ctx.db
@@ -62,7 +62,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to growth agent");
         return;
     }
@@ -73,11 +73,11 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
 
     let now = ctx.timestamp;
     for grown in ctx.db.growth_state().iter().filter(|ga| ga.end_timestamp < now) {
-        if let Some(deposit) = ctx.db.resource_state().entity_id().find(&grown.entity_id) {
+        if let Some(deposit) = ctx.db.resource_state().entity_id().find(grown.entity_id) {
             // Only evolve if the resource is there (which it should be, otherwise the growth component would have been deleted)
             // Stored the recipe instead of the id in case someday we grow non-resources or have
             // a grown entity evolving into a different type of entity
-            let loc = match ctx.db.location_state().entity_id().find(&grown.entity_id) {
+            let loc = match ctx.db.location_state().entity_id().find(grown.entity_id) {
                 Some(l) => l,
                 None => {
                     spacetimedb::log::error!("GrowthState {} is missing location", grown.entity_id);
@@ -90,10 +90,10 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
                 .db
                 .interior_spawned_resource_state()
                 .entity_id()
-                .find(&grown.entity_id);
+                .find(grown.entity_id);
             deposit.despawn_self(ctx);
 
-            let recipe = ctx.db.resource_growth_recipe_desc().id().find(&grown.growth_recipe_id).unwrap();
+            let recipe = ctx.db.resource_growth_recipe_desc().id().find(grown.growth_recipe_id).unwrap();
             let target_resource_id = recipe.grown_resource_id;
             let should_spawn = if recipe.grown_resource_chance >= 1.0 {
                 true
@@ -125,8 +125,8 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
                 grown_entity_id,
                 target_resource_id,
             );
-        } else if let Some(placeable) = ctx.db.placeable_state().entity_id().find(&grown.entity_id) {
-            let loc = match ctx.db.location_state().entity_id().find(&grown.entity_id) {
+        } else if let Some(placeable) = ctx.db.placeable_state().entity_id().find(grown.entity_id) {
+            let loc = match ctx.db.location_state().entity_id().find(grown.entity_id) {
                 Some(l) => l,
                 None => {
                     spacetimedb::log::error!("GrowthState {} is missing location", grown.entity_id);
@@ -138,7 +138,7 @@ fn growth_agent_loop(ctx: &ReducerContext, _timer: GrowthLoopTimer) {
             let owner_entity_id = placeable.owner_entity_id;
             placeable.despawn(ctx);
 
-            let recipe = ctx.db.placeable_growth_desc().id().find(&grown.growth_recipe_id).unwrap();
+            let recipe = ctx.db.placeable_growth_desc().id().find(grown.growth_recipe_id).unwrap();
             if let Some(outcome) = PlaceableState::pick_growth_outcome(ctx, recipe.outcomes_v2) {
                 if let Err(err) = PlaceableState::spawn_growth_outcome_with_fallback(
                     ctx,

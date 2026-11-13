@@ -26,11 +26,11 @@ use super::empires_shared::empire_resupply_node_validate;
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_resupply_node_start(ctx: &ReducerContext, request: EmpireResupplyNodeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
-    let delay = ctx.db.parameters_desc().version().find(&0).unwrap().repair_building_duration as f32;
+    let delay = ctx.db.parameters_desc().version().find(0).unwrap().repair_building_duration as f32;
     let delay = Duration::from_secs_f32(delay);
     let target = request.building_entity_id;
 
@@ -57,7 +57,7 @@ pub fn empire_resupply_node_start(ctx: &ReducerContext, request: EmpireResupplyN
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_resupply_node(ctx: &ReducerContext, request: EmpireResupplyNodeRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     player_action_helpers::schedule_clear_player_action(
         actor_id,
@@ -120,7 +120,7 @@ pub fn empire_resupply_node_reduce(
 
     ctx.db.inventory_state().entity_id().update(inventory);
 
-    let supplies_count = ctx.db.empire_supplies_desc().cargo_id().find(&cargo_id).unwrap().energy;
+    let supplies_count = ctx.db.empire_supplies_desc().cargo_id().find(cargo_id).unwrap().energy;
     send_inter_module_message(
         ctx,
         crate::messages::inter_module::MessageContentsV5::EmpireResupplyNode(EmpireResupplyNodeMsg {
@@ -138,7 +138,7 @@ pub fn empire_resupply_node_reduce(
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireResupplyNodeMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         //Add supply cargo if remote call fails
         let mut player_inventory = unwrap_or_return!(
             InventoryState::get_player_inventory(ctx, request.player_entity_id),
@@ -147,6 +147,6 @@ pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: Empire
         let supplies = vec![ItemStack::single_cargo(request.cargo_id)];
         player_inventory.add_multiple_with_overflow(ctx, &supplies);
         ctx.db.inventory_state().entity_id().update(player_inventory);
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
     }
 }

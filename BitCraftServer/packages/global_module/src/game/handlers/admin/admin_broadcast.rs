@@ -18,7 +18,7 @@ pub fn admin_broadcast_msg(ctx: &ReducerContext, region: u8, title: String, mess
 }
 
 pub fn reduce(ctx: &ReducerContext, _region: u8, title: String, message: String, sign_out: bool) {
-    let mut broadcast = ctx.db.admin_broadcast().version().find(&0).unwrap();
+    let mut broadcast = ctx.db.admin_broadcast().version().find(0).unwrap();
     broadcast.title = title;
     broadcast.message = message;
     broadcast.sign_out = sign_out;

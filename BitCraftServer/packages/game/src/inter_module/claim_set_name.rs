@@ -20,9 +20,9 @@ pub fn send_message(ctx: &ReducerContext, player_entity_id: u64, claim_entity_id
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: ClaimSetNameMsg, error: Option<String>) {
-    if error.is_some() {
+    if let Some(error) = error {
         if request.player_entity_id > 0 {
-            PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+            PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
         }
     } else {
         if let Some(mut claim) = ctx.db.claim_state().entity_id().find(request.claim_entity_id) {

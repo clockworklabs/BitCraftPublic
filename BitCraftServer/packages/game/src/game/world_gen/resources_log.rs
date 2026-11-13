@@ -68,10 +68,10 @@ pub struct SpawnInfo {
 
 impl ResourcesLog {
     pub fn populate_single_resource_chunks_info(ctx: &ReducerContext) {
-        for clump_info in &ctx.db.resources_log().version().find(&0).unwrap().resource_clumps {
+        for clump_info in &ctx.db.resources_log().version().find(0).unwrap().resource_clumps {
             // NOT using SingleResourceToClumpDesc since more than 1 clump can have a similar single resource (in which case only 1 clump is added there
             // and it might not be the one we are looking for)
-            if let Some(clump) = ctx.db.resource_clump_desc().id().find(&clump_info.clump_id) {
+            if let Some(clump) = ctx.db.resource_clump_desc().id().find(clump_info.clump_id) {
                 if clump.resource_id.len() == 1 {
                     if let Err(err) = ctx.db.single_resource_clump_info().try_insert(SingleResourceClumpInfo {
                         clump_id: clump_info.clump_id,

@@ -50,14 +50,14 @@ fn format_missing_input_message(ctx: &ReducerContext, required_stack: &ItemStack
             .db
             .item_desc()
             .id()
-            .find(&required_stack.item_id)
+            .find(required_stack.item_id)
             .map(|item| item.name)
             .unwrap_or_else(|| "Unknown item".into()),
         ItemType::Cargo => ctx
             .db
             .cargo_desc()
             .id()
-            .find(&required_stack.item_id)
+            .find(required_stack.item_id)
             .map(|cargo| cargo.name)
             .unwrap_or_else(|| "Unknown cargo".into()),
     };
@@ -66,7 +66,7 @@ fn format_missing_input_message(ctx: &ReducerContext, required_stack: &ItemStack
 }
 
 fn event_delay_recipe_id(ctx: &ReducerContext, request: &PlayerExtractRequest, stats: &CharacterStatsState) -> (Duration, Option<i32>) {
-    let recipe = ctx.db.extraction_recipe_desc().id().find(&request.recipe_id);
+    let recipe = ctx.db.extraction_recipe_desc().id().find(request.recipe_id);
     if recipe.is_none() {
         return (Duration::ZERO, None);
     }
@@ -86,10 +86,10 @@ fn event_delay_recipe_id(ctx: &ReducerContext, request: &PlayerExtractRequest, s
 #[spacetimedb::reducer]
 #[feature_gate("extract")]
 pub fn extract_start(ctx: &ReducerContext, request: PlayerExtractRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
 
     let target = Some(request.target_entity_id);
     let (delay, recipe_id) = event_delay_recipe_id(ctx, &request, &stats);
@@ -113,10 +113,10 @@ pub fn extract_start(ctx: &ReducerContext, request: PlayerExtractRequest) -> Res
 #[spacetimedb::reducer]
 #[feature_gate("extract")]
 pub fn extract(ctx: &ReducerContext, request: PlayerExtractRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     player_action_helpers::schedule_clear_player_action_on_err(
         actor_id,
         PlayerActionType::Extract.get_layer(ctx),
@@ -149,7 +149,7 @@ pub fn apply_ability_profession_hit(
         timestamp,
         clear_from_claim: false,
     };
-    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(&actor_id), "Player doesn't exist");
+    let stats = unwrap_or_err!(ctx.db.character_stats_state().entity_id().find(actor_id), "Player doesn't exist");
     reduce_with_options(ctx, actor_id, request, stats, false, Some(bonus_damage.max(0)))
 }
 
@@ -174,11 +174,11 @@ fn reduce_with_options(
 
     let mut terrain_cache = TerrainChunkCache::empty();
 
-    let recipe = unwrap_or_err!(ctx.db.extraction_recipe_desc().id().find(&request.recipe_id), "Recipe not found.");
+    let recipe = unwrap_or_err!(ctx.db.extraction_recipe_desc().id().find(request.recipe_id), "Recipe not found.");
 
     if profession_hit_bonus_damage.is_none() {
         let stamina_state = unwrap_or_err!(
-            ctx.db.stamina_state().entity_id().find(&actor_id),
+            ctx.db.stamina_state().entity_id().find(actor_id),
             "Player missing stamina component!"
         );
 
@@ -192,7 +192,7 @@ fn reduce_with_options(
     let deposit = if recipe.cargo_id == 0 {
         // An empty deposit is a "normal" reaction if you spam to extract or if multiple players work on the same node.
         // Therefore, a normal termination would be better than an error message.
-        if let Some(d) = ctx.db.resource_state().entity_id().find(&request.target_entity_id) {
+        if let Some(d) = ctx.db.resource_state().entity_id().find(request.target_entity_id) {
             if ResourceHealthState::is_depleted(ctx, d.entity_id) {
                 // This might happen for animated depleted resources
                 return Err("Deposit already depleted.".into());
@@ -266,15 +266,15 @@ fn reduce_with_options(
 
     let mut target_coords = SmallHexTile::from(coordinates);
     // if resource has a footprint, find the closest footprint tile
-    if let Some(resource) = ctx.db.resource_desc().id().find(&deposit.resource_id) {
-        let footprint = resource.get_footprint(&coordinates.into(), deposit.direction_index);
-        if footprint.len() > 0 {
+    if let Some(resource) = ctx.db.resource_desc().id().find(deposit.resource_id) {
+        let footprint = resource.get_footprint(&coordinates, deposit.direction_index);
+        if !footprint.is_empty() {
             let mut min_dist = actor_coords.distance_to(target_coords.into());
             for (coord, footprint_type) in footprint {
                 if footprint_type != FootprintType::Perimeter {
                     let dist = actor_coords.distance_to(coord.into());
                     if dist < min_dist {
-                        target_coords = coord.into();
+                        target_coords = coord;
                         min_dist = dist;
                     }
                 }
@@ -287,7 +287,7 @@ fn reduce_with_options(
         "Invalid location"
     );
 
-    let mounting = ctx.db.mounting_state().entity_id().find(&actor_id);
+    let mounting = ctx.db.mounting_state().entity_id().find(actor_id);
 
     // If a player isn't on a deployable and is in swim-deep water they aren't allowed to extract
     if terrain_source.player_should_swim() && mounting.is_none() {
@@ -305,7 +305,7 @@ fn reduce_with_options(
         let deployable_desc = ctx.db.deployable_desc().id().find(deployable.deployable_description_id).unwrap();
         deployable_radius = deployable_desc.radius;
         if !deployable_desc.allow_driver_extract {
-            dismount_deployable_and_set_deployable_position(ctx, actor_id, false, actor_coords.into());
+            dismount_deployable_and_set_deployable_position(ctx, actor_id, false, actor_coords);
         }
     }
 
@@ -317,11 +317,11 @@ fn reduce_with_options(
     //reducer_helpers::validate_action_elevation(&mut terrain_cache, actor_coords, target_coords, true, 2, "extract")?;
     // validate claims
 
-    if !PermissionState::can_interact_with_tile(ctx, actor_id, coordinates.into(), Permission::Usage) {
+    if !PermissionState::can_interact_with_tile(ctx, actor_id, coordinates, Permission::Usage) {
         return Err("You don't have permission to forage on this claim.".into());
     }
 
-    if !permission_helper::can_interact_with_tile(ctx, coordinates.into(), actor_id, ClaimPermission::Usage) {
+    if !permission_helper::can_interact_with_tile(ctx, coordinates, actor_id, ClaimPermission::Usage) {
         return Err("You don't have permission to forage on this claim.".into());
     }
 
@@ -339,21 +339,21 @@ fn reduce_with_options(
 
     if request.clear_from_claim {
         // demolish on claim gets the equipped tool power no matter whether it fills requirements or not
-        if recipe.tool_requirements.len() > 0 {
+        if !recipe.tool_requirements.is_empty() {
             tool_power = match ToolDesc::get_equipped_tool(ctx, actor_id, &recipe.tool_requirements[0]) {
                 Some(t) => t.power as f32,
                 None => 1.0,
             };
         }
     } else {
-        if recipe.tool_requirements.len() > 0 {
+        if !recipe.tool_requirements.is_empty() {
             tool_power = match ToolDesc::get_required_tool(ctx, actor_id, &recipe.tool_requirements[0]) {
                 Ok(t) => t.power as f32,
                 Err(s) => {
                     if recipe.allow_use_hands {
                         1.0
                     } else {
-                        return Err(s.into());
+                        return Err(s);
                     }
                 }
             };
@@ -366,7 +366,7 @@ fn reduce_with_options(
         .db
         .experience_state()
         .entity_id()
-        .find(&actor_id)
+        .find(actor_id)
         .unwrap()
         .get_level(recipe.level_requirements[0].skill_id);
     let deposit_desired_level = recipe.level_requirements[0].level;
@@ -396,7 +396,7 @@ fn reduce_with_options(
         }
     }
 
-    if recipe.blocking_knowledges.len() > 0 {
+    if !recipe.blocking_knowledges.is_empty() {
         let mut possess_all_knowledges = true;
         let secondary_knowledge = ctx.db.knowledge_secondary_state().entity_id().find(actor_id).unwrap();
         for knowledge_id in &recipe.blocking_knowledges {
@@ -428,7 +428,7 @@ fn reduce_with_options(
                         None
                     }
                 })
-                .collect();
+                .collect::<Vec<_>>();
 
             if let Err(err) =
                 InventoryState::withdraw_from_player_inventory_and_nearby_deployables(ctx, actor_id, &consumed_item_stacks, |x| {
@@ -447,8 +447,8 @@ fn reduce_with_options(
             InventoryState::reduce_tool_durability(ctx, actor_id, recipe.tool_requirements[0].tool_type, recipe.tool_durability_lost);
         }
 
-        let resource = ctx.db.resource_desc().id().find(&deposit.resource_id).unwrap();
-        let mut deposit_health = ctx.db.resource_health_state().entity_id().find(&deposit_entity_id).unwrap();
+        let resource = ctx.db.resource_desc().id().find(deposit.resource_id).unwrap();
+        let mut deposit_health = ctx.db.resource_health_state().entity_id().find(deposit_entity_id).unwrap();
         if !resource.ignore_damage {
             // Static data may lower max health while this resource still has its old health.
             // Clamp first so this extraction's damage is applied to the new effective health.
@@ -501,7 +501,7 @@ fn reduce_with_options(
                 // demolish on claim grants no experience
                 None
             } else {
-                recipe.experience_per_progress.get(0)
+                recipe.experience_per_progress.first()
             };
 
             // assign completion experience proportional to damage done / max health
@@ -553,7 +553,7 @@ fn reduce_with_options(
             }
         }
 
-        let mut extract_outcome: ExtractOutcomeStateV2 = ctx.db.extract_outcome_state().entity_id().find(&actor_id).unwrap();
+        let mut extract_outcome: ExtractOutcomeStateV2 = ctx.db.extract_outcome_state().entity_id().find(actor_id).unwrap();
         extract_outcome.target_entity_id = deposit_entity_id;
         extract_outcome.damage = damage_output;
         extract_outcome.last_timestamp = ctx.timestamp;
@@ -574,7 +574,7 @@ fn reduce_with_options(
                     .db
                     .interior_spawned_resource_state()
                     .entity_id()
-                    .find(&deposit_entity_id);
+                    .find(deposit_entity_id);
 
                 // Give end of resource items (unless demolishing on claim)
                 if !resource.on_destroy_yield.is_empty() && !request.clear_from_claim {
@@ -587,7 +587,7 @@ fn reduce_with_options(
                     }
                 }
 
-                if let Some(collapse_trigger) = ctx.db.interior_collapse_trigger_state().entity_id().find(&deposit_entity_id) {
+                if let Some(collapse_trigger) = ctx.db.interior_collapse_trigger_state().entity_id().find(deposit_entity_id) {
                     interior_trigger_collapse(ctx, collapse_trigger.dimension_network_entity_id)?;
                 }
 
@@ -642,7 +642,7 @@ fn reduce_with_options(
                 find_valid_cargo_coords(
                     ctx,
                     &mut terrain_cache,
-                    coordinates.into(),
+                    coordinates,
                     deposit.resource_id,
                     deposit.direction_index,
                 )
@@ -679,9 +679,9 @@ fn find_valid_cargo_coords(
         }
 
         // if resource has a footprint, add the surround on each hitbox footprint
-        if let Some(resource) = ctx.db.resource_desc().id().find(&deposit_resource_id) {
+        if let Some(resource) = ctx.db.resource_desc().id().find(deposit_resource_id) {
             let footprint = resource.get_footprint(&source_coord, deposit_direction);
-            if footprint.len() > 0 {
+            if !footprint.is_empty() {
                 for (coord, footprint_type) in footprint {
                     if footprint_type == FootprintType::Hitbox {
                         for surround in SmallHexTile::coordinates_in_radius(coord, 1) {
@@ -692,12 +692,11 @@ fn find_valid_cargo_coords(
             }
         }
 
-        spawn_coordinates.sort_by(|a, b| a.hashcode().cmp(&b.hashcode()));
+        spawn_coordinates.sort_by_key(|a| a.hashcode());
         spawn_coordinates.dedup();
         spawn_coordinates = spawn_coordinates
             .iter()
-            .filter(|coord| validate_tile(ctx, terrain_cache, **coord, &terrain_source, 2))
-            .map(|c| *c)
+            .filter(|coord| validate_tile(ctx, terrain_cache, **coord, &terrain_source, 2)).copied()
             .collect();
     }
     spawn_coordinates

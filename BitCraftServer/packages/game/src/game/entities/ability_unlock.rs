@@ -58,7 +58,7 @@ impl AbilityUnlockDesc {
                         .db
                         .experience_state()
                         .entity_id()
-                        .find(&actor_id)
+                        .find(actor_id)
                         .unwrap()
                         .get_level(level_requirement.skill_id);
                     if player_level < level_requirement.level {

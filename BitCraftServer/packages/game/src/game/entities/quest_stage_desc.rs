@@ -26,7 +26,7 @@ impl QuestStageDesc {
                     let vault_state = unwrap_or_err!(
                         ctx.db.vault_state()
                         .entity_id()
-                        .find(&player_entity_id),
+                        .find(player_entity_id),
                         "No vault state for this player."
                     );
                     if !vault_state.has_collectible(*collectible_id) {

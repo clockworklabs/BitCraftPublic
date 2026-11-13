@@ -46,7 +46,7 @@ use crate::messages::components::{
 
 pub fn interior_trigger_collapse(ctx: &ReducerContext, dimension_network_entity_id: u64) -> Result<(), String> {
     let mut dimension_network = unwrap_or_err!(
-        ctx.db.dimension_network_state().entity_id().find(&dimension_network_entity_id),
+        ctx.db.dimension_network_state().entity_id().find(dimension_network_entity_id),
         "Invalid dimension network"
     );
     if dimension_network.collapse_respawn_timestamp > game_state::unix_ms(ctx.timestamp) {
@@ -54,12 +54,12 @@ pub fn interior_trigger_collapse(ctx: &ReducerContext, dimension_network_entity_
         return Ok(());
     }
 
-    let building = ctx.db.building_state().entity_id().find(&dimension_network.building_id).unwrap();
+    let building = ctx.db.building_state().entity_id().find(dimension_network.building_id).unwrap();
     let interior_descriptor = ctx
         .db
         .interior_network_desc()
         .building_id()
-        .find(&building.building_description_id)
+        .find(building.building_description_id)
         .unwrap();
     let collapse_timestamp = game_state::unix_ms(ctx.timestamp) + (interior_descriptor.trigger_collapse_time as u64 * 1000);
 
@@ -93,7 +93,7 @@ pub fn interior_trigger_collapse(ctx: &ReducerContext, dimension_network_entity_
 }
 
 pub fn find_teleport_coordinates_for_interior_destruction(ctx: &ReducerContext, building_id: u64) -> OffsetCoordinatesFloat {
-    let building = ctx.db.building_state().entity_id().find(&building_id).unwrap();
+    let building = ctx.db.building_state().entity_id().find(building_id).unwrap();
     let building_coord = game_state_filters::coordinates(ctx, building_id);
     let building_portals: Vec<BuildingPortalDesc> = ctx
         .db
@@ -116,7 +116,7 @@ pub fn find_teleport_coordinates_for_interior_destruction(ctx: &ReducerContext, 
             break;
         }
     }
-    return OffsetCoordinatesFloat::from(OffsetCoordinatesSmall::from(teleport_destination));
+    OffsetCoordinatesFloat::from(OffsetCoordinatesSmall::from(teleport_destination))
 }
 
 pub fn expel_players_and_deployables_from_collapsed_interior(ctx: &ReducerContext, dimension_network: &DimensionNetworkState) {
@@ -171,7 +171,7 @@ pub fn expel_players_and_deployables_from_collapsed_interior(ctx: &ReducerContex
             .deployable_entity_id()
             .find(deployable_entity_id)
         {
-            deployable_collectible.location = Some(teleport_oc_small.into());
+            deployable_collectible.location = Some(teleport_oc_small);
             ctx.db
                 .deployable_collectible_state()
                 .deployable_entity_id()
@@ -187,7 +187,6 @@ pub fn delete_dimension_network(
     dimension_network_entity_id: u64,
     interior_teleport_destination: OffsetCoordinatesFloat,
 ) {
-    let interior_teleport_destination = Some(interior_teleport_destination);
 
     let dimensions: Vec<(u32, u64)> = ctx
         .db
@@ -205,8 +204,8 @@ pub fn delete_dimension_network(
             .collect();
 
         for entity in &entities {
-            if let Some(_) = ctx.db.building_state().entity_id().find(entity) {
-                delete_building(ctx, 0, *entity, interior_teleport_destination.clone(), true, false);
+            if ctx.db.building_state().entity_id().find(entity).is_some() {
+                delete_building(ctx, 0, *entity, Some(interior_teleport_destination), true, false);
             }
         }
         for entity in &entities {
@@ -215,24 +214,24 @@ pub fn delete_dimension_network(
             }
         }
         for entity in &entities {
-            if let Some(_) = ctx.db.loot_chest_state().entity_id().find(entity) {
+            if ctx.db.loot_chest_state().entity_id().find(entity).is_some() {
                 loot_chest_helpers::delete_loot_chest(ctx, *entity);
             }
         }
 
         // Interior deployables are subject to "lost and found"
-        let overworld_location: OffsetCoordinatesSmall = interior_teleport_destination.unwrap().into();
+        let overworld_location: OffsetCoordinatesSmall = interior_teleport_destination.into();
         for mobile_entity in MobileEntityState::select_all_in_interior_dimension_iter(ctx, dimension.0) {
             if let Some(deployable) = ctx.db.deployable_state_v2().entity_id().find(mobile_entity.entity_id) {
                 LostItemsState::generate_lost_items_for_deployable(ctx, &deployable, overworld_location.into());
             }
         }
 
-        ctx.db.dimension_description_state().entity_id().delete(&dimension.1);
+        ctx.db.dimension_description_state().entity_id().delete(dimension.1);
     }
 
-    ctx.db.dimension_network_state().entity_id().delete(&dimension_network_entity_id);
-    ctx.db.dungeon_state().entity_id().delete(&dimension_network_entity_id);
+    ctx.db.dimension_network_state().entity_id().delete(dimension_network_entity_id);
+    ctx.db.dungeon_state().entity_id().delete(dimension_network_entity_id);
 }
 
 pub fn respawn_interior(ctx: &ReducerContext, dimension_network_description_id: u64) {
@@ -246,12 +245,12 @@ pub fn respawn_interior(ctx: &ReducerContext, dimension_network_description_id: 
         .collect();
 
     for dimension in &dimensions {
-        let interior_instance = ctx.db.interior_instance_desc().id().find(&dimension.interior_instance_id).unwrap();
+        let interior_instance = ctx.db.interior_instance_desc().id().find(dimension.interior_instance_id).unwrap();
         let shape = ctx
             .db
             .interior_shape_desc()
             .id()
-            .find(&interior_instance.interior_shape_id)
+            .find(interior_instance.interior_shape_id)
             .unwrap();
         let spawns: Vec<InteriorSpawnDesc> = ctx
             .db
@@ -335,9 +334,7 @@ pub fn respawn_interior(ctx: &ReducerContext, dimension_network_description_id: 
                         z,
                         dimension: dimension.dimension_id,
                     });
-                    if let Some(herd_location) = LocationState::select_all(ctx, &coord)
-                        .filter(|loc| ctx.db.herd_state().entity_id().find(&loc.entity_id).is_some())
-                        .next()
+                    if let Some(herd_location) = LocationState::select_all(ctx, &coord).find(|loc| ctx.db.herd_state().entity_id().find(loc.entity_id).is_some())
                     {
                         // Despawn all enemies from that herd
                         for despawned_enemy in ctx.db.enemy_state().herd_entity_id().filter(herd_location.entity_id) {
@@ -367,7 +364,7 @@ pub fn respawn_interior(ctx: &ReducerContext, dimension_network_description_id: 
 
 pub fn create_player_interior(ctx: &ReducerContext, building_description_id: i32, external_building_entity_id: u64) -> Result<u64, String> {
     let building_state = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&external_building_entity_id),
+        ctx.db.building_state().entity_id().find(external_building_entity_id),
         "Building does not exist"
     );
 
@@ -386,7 +383,7 @@ pub fn create_player_interior(ctx: &ReducerContext, building_description_id: i32
 
 pub fn create_building_interior(ctx: &ReducerContext, building_entity_id: u64) -> Result<(), String> {
     let building_state = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&building_entity_id),
+        ctx.db.building_state().entity_id().find(building_entity_id),
         "Building does not exist"
     );
     let dimension_network_descriptor_id = building_entity_id;
@@ -420,7 +417,7 @@ fn create_building_interior_internal(
 
     for interior_instance in &interior_desc.child_interior_instances {
         //Create dimension descriptor
-        let dimension = game_state::create_dimension(ctx) as u32;
+        let dimension = game_state::create_dimension(ctx);
         let dimension_entity = game_state::create_entity(ctx);
         let dimension_desc = DimensionDescriptionState {
             entity_id: dimension_entity,
@@ -470,7 +467,7 @@ fn create_building_interior_internal(
         }
 
         let instance = ctx.db.interior_instance_desc().id().find(interior_instance).unwrap();
-        let shape = ctx.db.interior_shape_desc().id().find(&instance.interior_shape_id).unwrap();
+        let shape = ctx.db.interior_shape_desc().id().find(instance.interior_shape_id).unwrap();
         interior_shape_map.insert(dimension, instance.interior_shape_id);
 
         let mut combat_dimension_exists = ctx.db.combat_dimension_state().dimension_id().find(dimension).is_some();
@@ -576,8 +573,8 @@ fn create_building_interior_internal(
             .filter(portal.id)
             .collect();
         for connection in connections {
-            let connected_portal = ctx.db.building_portal_desc().id().find(&connection.exit_portal_id).unwrap();
-            let connected_spawn = ctx.db.interior_spawn_desc().id().find(&connection.exit_spawn_id).unwrap();
+            let connected_portal = ctx.db.building_portal_desc().id().find(connection.exit_portal_id).unwrap();
+            let connected_spawn = ctx.db.interior_spawn_desc().id().find(connection.exit_spawn_id).unwrap();
             let connected_dimension = dimension_map.get(&connected_spawn.interior_instance_id).unwrap();
             if update_external_portals {
                 let shape = ctx
@@ -621,10 +618,10 @@ fn create_building_interior_internal(
             .filter(building.0)
             .collect();
         for connection in connections {
-            let connected_portal = ctx.db.building_portal_desc().id().find(&connection.exit_portal_id).unwrap();
+            let connected_portal = ctx.db.building_portal_desc().id().find(connection.exit_portal_id).unwrap();
             if connection.exit_spawn_id != 0 {
                 //Connect to another spawn
-                let connected_spawn = ctx.db.interior_spawn_desc().id().find(&connection.exit_spawn_id).unwrap();
+                let connected_spawn = ctx.db.interior_spawn_desc().id().find(connection.exit_spawn_id).unwrap();
                 let connected_dimension = dimension_map.get(&connected_spawn.interior_instance_id).unwrap();
                 let shape = ctx
                     .db
@@ -700,7 +697,7 @@ fn create_building_interior_internal(
         collapse_respawn_timestamp: 0,
         is_collapsed: false,
         rent_entity_id: 0,
-        claim_entity_id: claim_entity_id,
+        claim_entity_id,
     };
 
     if interior_desc.dimension_type == DimensionType::Dungeon {
@@ -723,7 +720,7 @@ fn create_building_interior_internal(
 }
 
 fn spawn_interior_building(ctx: &ReducerContext, spawn: &InteriorSpawnDesc, location: OffsetCoordinatesSmall) -> u64 {
-    let building_description = ctx.db.building_desc().id().find(&spawn.building_id).unwrap();
+    let building_description = ctx.db.building_desc().id().find(spawn.building_id).unwrap();
     let entity_id = game_state::create_entity(ctx);
     game_state::insert_location(ctx, entity_id, location);
 
@@ -748,7 +745,7 @@ pub(crate) fn spawn_interior_resource(
     location: OffsetCoordinatesSmall,
     dimension_network_descriptor_id: u64,
 ) {
-    let clump = ctx.db.resource_clump_desc().id().find(&resource_clump_id).unwrap();
+    let clump = ctx.db.resource_clump_desc().id().find(resource_clump_id).unwrap();
 
     let hex_coordinates = SmallHexTile::from(location);
     let facing_direction = HexDirection::from(spawn.direction);
@@ -763,8 +760,8 @@ pub(crate) fn spawn_interior_resource(
         let offset_z = clump.z[i];
         let resource_dir = clump.direction[i];
 
-        let mut res_footprint = &ctx.db.resource_desc().id().find(&resource_id).unwrap().footprint;
-        if res_footprint.len() == 0 {
+        let mut res_footprint = &ctx.db.resource_desc().id().find(resource_id).unwrap().footprint;
+        if res_footprint.is_empty() {
             // default: single-tile hitbox resource
             res_footprint = &default_footprint
         }
@@ -780,7 +777,7 @@ pub(crate) fn spawn_interior_resource(
             })
             .rotate_around(&hex_coordinates, (facing_direction as i32) / 2);
             let direction = if resource_dir == -1 {
-                HexDirection::FLAT[ctx.rng().gen_range(0..HexDirection::FLAT.len()) as usize] as i32
+                HexDirection::FLAT[ctx.rng().gen_range(0..HexDirection::FLAT.len())] as i32
             } else {
                 let mut dir = facing_direction;
                 for _ in 0..resource_dir {
@@ -797,7 +794,7 @@ pub(crate) fn spawn_interior_resource(
                     resource_id,
                     taken_coordinates,
                     direction,
-                    ctx.db.resource_desc().id().find(&resource_id).unwrap().max_health,
+                    ctx.db.resource_desc().id().find(resource_id).unwrap().max_health,
                     false,
                     true,
                 )
@@ -862,7 +859,7 @@ pub fn handle_interior_spawn_resource_destroyed(
                 .db
                 .interior_spawned_resource_state()
                 .entity_id()
-                .find(&destroyed_entity_id)
+                .find(destroyed_entity_id)
                 .is_none()
         {
             continue;
@@ -871,7 +868,7 @@ pub fn handle_interior_spawn_resource_destroyed(
         ctx.db
             .interior_spawned_resource_state()
             .entity_id()
-            .delete(&destroyed_entity_id);
+            .delete(destroyed_entity_id);
 
         let destroy_triggers: Vec<_> = ctx
             .db
@@ -919,11 +916,11 @@ pub fn handle_interior_spawn_resource_destroyed(
                 .db
                 .interior_collapse_trigger_state()
                 .entity_id()
-                .find(&destroyed_entity_id)
+                .find(destroyed_entity_id)
             {
                 interior_trigger_collapse(ctx, collapse_trigger.dimension_network_entity_id)?;
             }
-            if let Some(resource) = ctx.db.resource_state().entity_id().find(&destroyed_entity_id) {
+            if let Some(resource) = ctx.db.resource_state().entity_id().find(destroyed_entity_id) {
                 resource.despawn_self(ctx);
             }
         }
@@ -980,7 +977,7 @@ fn resolve_random_group_resources(ctx: &ReducerContext, spawns: &[InteriorSpawnD
     let mut assignments = HashMap::new();
     for (group_id, mut spawn_ids) in spawns_by_group {
         spawn_ids.sort_unstable();
-        let Some(group) = ctx.db.interior_spawn_random_group_desc().id().find(&group_id) else {
+        let Some(group) = ctx.db.interior_spawn_random_group_desc().id().find(group_id) else {
             log::error!("Interior spawn random group {} does not exist", group_id);
             continue;
         };
@@ -1002,8 +999,8 @@ fn resolve_random_group_resources(ctx: &ReducerContext, spawns: &[InteriorSpawnD
 }
 
 fn add_interior_collapse_trigger(ctx: &ReducerContext, spawn: &InteriorSpawnDesc, entity_id: u64, dimension_network_descriptor_id: u64) {
-    if spawn.collapse_trigger {
-        if ctx
+    if spawn.collapse_trigger
+        && ctx
             .db
             .interior_collapse_trigger_state()
             .try_insert(InteriorCollapseTriggerState {
@@ -1014,5 +1011,4 @@ fn add_interior_collapse_trigger(ctx: &ReducerContext, spawn: &InteriorSpawnDesc
         {
             log::error!("Failed to insert interior collapse trigger");
         }
-    }
 }

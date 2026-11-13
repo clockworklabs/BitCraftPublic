@@ -14,7 +14,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn collectible_activate(ctx: &ReducerContext, request: PlayerCollectibleActivateRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     reduce(ctx, actor_id, request.vault_index, request.activated, false)
@@ -27,7 +27,7 @@ fn get_deployable_deploybale_appearance_override(
     ctx.db
         .deployable_appearance_override_desc()
         .collectible_id()
-        .find(&collectible_id)
+        .find(collectible_id)
         .ok_or_else(|| format!("Missing deployable appearance override static data for collectible {{0}}.|~{collectible_id}"))
 }
 
@@ -39,24 +39,23 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
         return Err("Invalid collectible, please fill a bug report with a screenshot of the collectible in your vault".into());
     }
 
-    let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(&actor_id), "Vault not initialized");
+    let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(actor_id), "Vault not initialized");
     let collectibles = &mut vault.collectibles;
     if collectibles.len() as i32 <= vault_index {
         return Err("Vault does not contain this collectible.".into());
     }
 
     let collectible_id = unwrap_or_err!(collectibles.get(vault_index as usize), "You no longer own this collectible").id; // this shouldn't ever error
-    let collectible_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(&collectible_id), "Invalid collectible type.");
+    let collectible_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(collectible_id), "Invalid collectible type.");
 
     if collectible_desc.collectible_type == CollectibleType::Emote {
         return Err("Cannot activate emotes".into());
     }
 
-    if collectible_desc.collectible_type == CollectibleType::ClothesCape && activated {
-        if ctx.db.empire_player_data_state().entity_id().find(actor_id).is_none() {
+    if collectible_desc.collectible_type == CollectibleType::ClothesCape && activated
+        && ctx.db.empire_player_data_state().entity_id().find(actor_id).is_none() {
             return Err("Cannot equip an empire cloak when not part of an empire".into());
         }
-    }
 
     for knowledge_req in &collectible_desc.required_knowledges_to_use {
         if !Discovery::already_acquired_secondary(ctx, actor_id, *knowledge_req) {
@@ -96,10 +95,9 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
     }
 
     // make sure nothing equipped invalidates this type
-    for i in 0..collectibles.len() {
-        let col = &collectibles[i];
+    for col in collectibles.iter() {
         if col.activated {
-            let col_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(&col.id), "Corrupted vault inventory.");
+            let col_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(col.id), "Corrupted vault inventory.");
             if col_desc.invalidates_type == collectible_desc.collectible_type {
                 return Err("Something you are wearing is blocking that slot".into());
             }
@@ -141,11 +139,10 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
 
                 // potentially unequip other collectibles
                 if collectible_desc.invalidates_type != CollectibleType::Default {
-                    for j in 0..collectibles.len() {
-                        let other_col = &mut collectibles[j];
+                    for other_col in collectibles.iter_mut() {
                         if other_col.activated {
                             let other_collectible_desc =
-                                unwrap_or_err!(ctx.db.collectible_desc().id().find(&other_col.id), "Corrupted vault inventory.");
+                                unwrap_or_err!(ctx.db.collectible_desc().id().find(other_col.id), "Corrupted vault inventory.");
                             if other_collectible_desc.collectible_type == collectible_desc.invalidates_type {
                                 other_col.activated = false;
                             }
@@ -154,18 +151,17 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
                 }
 
                 if let Some(deploybale_appearance_override) = &deploybale_appearance_override {
-                    for j in 0..collectibles.len() {
+                    for (j, other_col) in collectibles.iter_mut().enumerate() {
                         if j == i {
                             continue;
                         }
 
-                        let other_col = &mut collectibles[j];
                         if !other_col.activated {
                             continue;
                         }
 
                         let other_collectible_desc =
-                            unwrap_or_err!(ctx.db.collectible_desc().id().find(&other_col.id), "Corrupted vault inventory.");
+                            unwrap_or_err!(ctx.db.collectible_desc().id().find(other_col.id), "Corrupted vault inventory.");
                         if other_collectible_desc.collectible_type != CollectibleType::DeployableAppearanceOverride {
                             continue;
                         }
@@ -178,7 +174,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
                 }
             }
         } else {
-            let col_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(&col.id), "Corrupted vault inventory.");
+            let col_desc = unwrap_or_err!(ctx.db.collectible_desc().id().find(col.id), "Corrupted vault inventory.");
             if activated && col_desc.collectible_type == collectible_desc.collectible_type {
                 if max_count == 1 {
                     // shortcut - for limit of 1 activated collectible, unequip all other similar collectibles
@@ -192,7 +188,7 @@ pub fn reduce(ctx: &ReducerContext, actor_id: u64, vault_index: i32, activated: 
     }
 
     if count > max_count {
-        return Err(format!("Cannot activate more than {{0}} collectibles of this kind.|~{}", max_count).into());
+        return Err(format!("Cannot activate more than {{0}} collectibles of this kind.|~{}", max_count));
     }
 
     if !dry_run {

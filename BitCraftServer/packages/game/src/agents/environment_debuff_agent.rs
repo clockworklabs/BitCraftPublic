@@ -28,7 +28,7 @@ pub struct EnvironmentDebuffLoopTimer {
 }
 
 pub fn update_timer(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().environment_debuff_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().environment_debuff_tick_millis as u64;
     let mut count = 0;
     for mut timer in ctx.db.environment_debuff_loop_timer().iter() {
         count += 1;
@@ -42,7 +42,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 }
 
 pub fn init(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().environment_debuff_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().environment_debuff_tick_millis as u64;
     ctx.db
         .environment_debuff_loop_timer()
         .try_insert(EnvironmentDebuffLoopTimer {
@@ -55,7 +55,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn environment_debuff_agent_loop(ctx: &ReducerContext, _timer: EnvironmentDebuffLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to environment_debuff agent");
         return;
     }
@@ -97,7 +97,7 @@ fn environment_debuff_agent_loop(ctx: &ReducerContext, _timer: EnvironmentDebuff
             .db
             .mobile_entity_state()
             .entity_id()
-            .find(&player_entity_id)
+            .find(player_entity_id)
             .unwrap()
             .coordinates();
         if let Some(terrain_chunk) = terrain_cache.get_from_chunk_coordinates(ctx, coord.chunk_coordinates()) {
@@ -141,7 +141,7 @@ fn environment_debuff_agent_loop(ctx: &ReducerContext, _timer: EnvironmentDebuff
                 }
                 if is_debuff_active {
                     // Hurt player because of debuff
-                    let mut health_state = ctx.db.health_state().entity_id().find(&player_entity_id).unwrap();
+                    let mut health_state = ctx.db.health_state().entity_id().find(player_entity_id).unwrap();
                     if health_state.health > 0.0 {
                         health_state.add_health_delta(-damage, ctx.timestamp);
                         update_health_and_check_death(ctx, &mut terrain_cache, health_state, player_entity_id, None);

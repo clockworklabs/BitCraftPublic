@@ -9,15 +9,15 @@ pub mod empire_decay_agent;
 pub mod empire_siege_agent;
 
 pub fn should_run(ctx: &ReducerContext) -> bool {
-    if let Some(config) = ctx.db.config().version().find(&0) {
+    if let Some(config) = ctx.db.config().version().find(0) {
         return config.agents_enabled;
     }
 
-    return false;
+    false
 }
 
 pub fn init(ctx: &ReducerContext) {
-    if ctx.db.parameters_desc().version().find(&0).is_some() {
+    if ctx.db.parameters_desc().version().find(0).is_some() {
         empire_decay_agent::init(ctx);
         empire_siege_agent::init(ctx);
         chat_cleanup_agent::init(ctx);

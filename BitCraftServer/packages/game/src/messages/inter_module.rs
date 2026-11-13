@@ -79,6 +79,7 @@ pub struct InterModuleMessageV5 {
 }
 
 #[derive(SpacetimeType, Clone, Debug)]
+#[expect(clippy::large_enum_variant, reason = "values are short-lived messages, so boxing the large variants isn't worth the churn")]
 pub enum MessageContents {
     TableUpdate(InterModuleTableUpdates),
     TransferPlayerRequest(TransferPlayerMsg),
@@ -120,6 +121,7 @@ pub enum MessageContents {
 }
 
 #[derive(SpacetimeType, Clone, Debug)]
+#[expect(clippy::large_enum_variant, reason = "values are short-lived messages, so boxing the large variants isn't worth the churn")]
 pub enum MessageContentsV2 {
     TableUpdate(InterModuleTableUpdates),
     TransferPlayerRequest(TransferPlayerMsgV2),
@@ -162,6 +164,7 @@ pub enum MessageContentsV2 {
 }
 
 #[derive(SpacetimeType, Clone, Debug)]
+#[expect(clippy::large_enum_variant, reason = "values are short-lived messages, so boxing the large variants isn't worth the churn")]
 pub enum MessageContentsV3 {
     TableUpdate(InterModuleTableUpdates),
     TransferPlayerRequest(TransferPlayerMsgV3),
@@ -204,6 +207,7 @@ pub enum MessageContentsV3 {
 }
 
 #[derive(SpacetimeType, Clone, Debug)]
+#[expect(clippy::large_enum_variant, reason = "values are short-lived messages, so boxing the large variants isn't worth the churn")]
 pub enum MessageContentsV4 {
     TableUpdate(InterModuleTableUpdatesV2),
     TransferPlayerRequest(TransferPlayerMsgV4),
@@ -246,6 +250,7 @@ pub enum MessageContentsV4 {
 }
 
 #[derive(SpacetimeType, Clone, Debug)]
+#[expect(clippy::large_enum_variant, reason = "values are short-lived messages, so boxing the large variants isn't worth the churn")]
 pub enum MessageContentsV5 {
     TableUpdate(InterModuleTableUpdatesV2),
     TransferPlayerRequest(TransferPlayerMsgV5),

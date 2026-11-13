@@ -12,10 +12,10 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn edit_chat_channel(ctx: &ReducerContext, entity_id: u64, name: String, description: String, visibility: ChatChannelVisibility) -> Result<(), String> {
-    let mut chat_channel = unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(&entity_id), "Invalid chat channel");
+    let mut chat_channel = unwrap_or_err!(ctx.db.chat_channel_state().entity_id().find(entity_id), "Invalid chat channel");
 
     if !has_role(ctx, &ctx.sender(), Role::Gm) {
-        let actor_id = game_state::actor_id(&ctx, true)?;
+        let actor_id = game_state::actor_id(ctx, true)?;
 
         let permissions = ctx.db.chat_channel_permission_state().chat_channel_and_player_entity_id().filter((entity_id, actor_id)).next();
         if permissions.is_none() {
@@ -29,11 +29,11 @@ pub fn edit_chat_channel(ctx: &ReducerContext, entity_id: u64, name: String, des
 
     let sanitized_name = sanitize_user_inputs(&name);
 
-    if sanitized_name.len() <= 0 {
-        return Err(format!("Chat channel needs a name."));
+    if sanitized_name.is_empty() {
+        return Err("Chat channel needs a name.".to_string());
     }
 
-    if let Err(_) = is_user_text_input_valid(&sanitized_name, 35, true) {
+    if is_user_text_input_valid(&sanitized_name, 35, true).is_err() {
         return Err("Failed to send chat messages".into());
     }
 

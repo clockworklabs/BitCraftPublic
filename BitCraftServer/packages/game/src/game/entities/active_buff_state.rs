@@ -40,7 +40,7 @@ impl ActiveBuffState {
 
     // Alternative way to start an active buff providing possible overrides for duration, param1 and param2 (None to leave the default)
     pub fn add_active_buff_with_data(&mut self, ctx: &ReducerContext, buff_id: i32, duration: Option<i32>, values: Option<Vec<f32>>) {
-        let buff_description = ctx.db.buff_desc().id().find(&buff_id).unwrap();
+        let buff_description = ctx.db.buff_desc().id().find(buff_id).unwrap();
 
         let index = self.buff_index_or_add(buff_id);
 
@@ -54,11 +54,11 @@ impl ActiveBuffState {
         // get the recipe default parameter values
         let new_values = match values {
             Some(v) => v,
-            None => (&buff_description.stats).into_iter().map(|s| s.value).collect(),
+            None => buff_description.stats.iter().map(|s| s.value).collect(),
         };
 
         if let Some(concurrent_buff) = self.active_buff_of_type(ctx, buff_description.buff_type_id) {
-            let concurrent_desc = ctx.db.buff_desc().id().find(&concurrent_buff.buff_id).unwrap();
+            let concurrent_desc = ctx.db.buff_desc().id().find(concurrent_buff.buff_id).unwrap();
             if buff_description.priority < concurrent_desc.priority {
                 // previous buff has higher priority, so this buff won't be added
                 return;
@@ -83,7 +83,7 @@ impl ActiveBuffState {
         // Players will update stats and recalculate values at buff expiration.
         // Enemies don't need that - they simply apply buffs to their basic stats during attack or movement
         if ctx.db.player_state().entity_id().find(self.entity_id).is_some() {
-            PlayerState::collect_stats_with_uncommited_buffs(ctx, &self);
+            PlayerState::collect_stats_with_uncommited_buffs(ctx, self);
 
             // schedule buff stats removal for when it expires
             if new_duration >= 0 {
@@ -103,7 +103,7 @@ impl ActiveBuffState {
     // Sets the timestamp and duration of the buff index to 0, effectively making it non-persistent and expired.
     pub fn remove_active_buff(&mut self, ctx: &ReducerContext, buff_id: i32) {
         self.remove_active_buff_internal(buff_id);
-        PlayerState::collect_stats_with_uncommited_buffs(ctx, &self);
+        PlayerState::collect_stats_with_uncommited_buffs(ctx, self);
     }
 
     fn remove_active_buff_internal(&mut self, buff_id: i32) {
@@ -120,7 +120,7 @@ impl ActiveBuffState {
             self.remove_active_buff_internal(active_buff_id);
         }
 
-        PlayerState::collect_stats_with_uncommited_buffs(ctx, &self);
+        PlayerState::collect_stats_with_uncommited_buffs(ctx, self);
     }
 
     // Returns the number of seconds left for the buff, or -1 if it's persistent.
@@ -133,7 +133,7 @@ impl ActiveBuffState {
                 }
                 let start_time_stamp = buff_state.buff_start_timestamp.value;
                 let buff_end_time = start_time_stamp + buff_state.buff_duration;
-                let now = unix(now) as i32;
+                let now = unix(now);
                 if now < buff_end_time {
                     return buff_end_time - now;
                 }
@@ -162,12 +162,9 @@ impl ActiveBuffState {
             .map(|desc| desc.id)
             .collect::<Vec<_>>();
 
-        for buff in &self.active_buffs {
-            if buff_ids_for_type.contains(&buff.buff_id) && self.has_active_buff(buff.buff_id, ctx.timestamp) {
-                return Some(buff);
-            }
-        }
-        None
+        self.active_buffs
+            .iter()
+            .find(|buff| buff_ids_for_type.contains(&buff.buff_id) && self.has_active_buff(buff.buff_id, ctx.timestamp))
     }
 
     pub fn active_buff_of_category(&self, ctx: &ReducerContext, buff_category: BuffCategory) -> Option<&ActiveBuff> {
@@ -187,12 +184,9 @@ impl ActiveBuffState {
             .map(|desc| desc.id)
             .collect::<Vec<_>>();
 
-        for buff in &self.active_buffs {
-            if buff_ids_for_type.contains(&buff.buff_id) && self.has_active_buff(buff.buff_id, ctx.timestamp) {
-                return Some(buff);
-            }
-        }
-        None
+        self.active_buffs
+            .iter()
+            .find(|buff| buff_ids_for_type.contains(&buff.buff_id) && self.has_active_buff(buff.buff_id, ctx.timestamp))
     }
 
     pub fn has_active_buff(&self, buff_id: i32, now: Timestamp) -> bool {
@@ -201,7 +195,7 @@ impl ActiveBuffState {
 
     pub fn pause_all_buffs(&mut self, ctx: &ReducerContext) {
         for active_buff in &mut self.active_buffs {
-            if let Some(buff_description) = ctx.db.buff_desc().id().find(&active_buff.buff_id) {
+            if let Some(buff_description) = ctx.db.buff_desc().id().find(active_buff.buff_id) {
                 if buff_description.online_timestamp {
                     let mut timestamp = active_buff.buff_start_timestamp.clone();
                     timestamp.pause(ctx.timestamp);
@@ -215,7 +209,7 @@ impl ActiveBuffState {
         let mut resumed_timed_buffs = Vec::new();
 
         for active_buff in &mut self.active_buffs {
-            if let Some(buff_description) = ctx.db.buff_desc().id().find(&active_buff.buff_id) {
+            if let Some(buff_description) = ctx.db.buff_desc().id().find(active_buff.buff_id) {
                 if buff_description.online_timestamp {
                     let mut timestamp = active_buff.buff_start_timestamp.clone();
                     timestamp.restart(ctx.timestamp);
@@ -265,7 +259,7 @@ impl ActiveBuffState {
     pub fn collect_buff_stats(&self, ctx: &ReducerContext, bonuses: &mut HashMap<CharacterStatType, (f32, f32)>) {
         for buff in &self.active_buffs {
             if self.has_active_buff(buff.buff_id, ctx.timestamp) {
-                if let Some(buff_description) = ctx.db.buff_desc().id().find(&buff.buff_id) {
+                if let Some(buff_description) = ctx.db.buff_desc().id().find(buff.buff_id) {
                     for (i, stat) in buff_description.stats.iter().enumerate() {
                         // Older persisted buffs can have fewer values than the current buff stat list, fall back to static-data defaults instead of panicking on out-of-bounds access.
                         let value = buff.values.get(i).copied().unwrap_or(stat.value);
@@ -297,8 +291,8 @@ impl ActiveBuffState {
     pub fn get_enemy_health_regen(
         ctx: &ReducerContext,
         enemy_entity_id: u64,
-        regen_buffs: &Vec<i32>,
-        regen_buffs_values: &Vec<f32>,
+        regen_buffs: &[i32],
+        regen_buffs_values: &[f32],
     ) -> f32 {
         let mut health_regen = 0.0;
         if let Some(active_buff_state) = ctx.db.active_buff_state().entity_id().find(enemy_entity_id) {

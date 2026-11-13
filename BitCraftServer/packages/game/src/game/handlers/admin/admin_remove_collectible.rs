@@ -9,8 +9,8 @@ pub fn admin_remove_collectible(ctx: &ReducerContext, identity: String, collecti
     }
 
     let identity = Identity::from_str(identity.as_str()).map_err(|_| "Identity couldn't be parsed".to_string())?;
-    let user = unwrap_or_err!(ctx.db.user_state().identity().find(&identity), "User not found");
-    let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(&user.entity_id), "Vault not found");
+    let user = unwrap_or_err!(ctx.db.user_state().identity().find(identity), "User not found");
+    let mut vault = unwrap_or_err!(ctx.db.vault_state().entity_id().find(user.entity_id), "Vault not found");
 
     let removed = vault.remove_collectible_quantity(collectible_id, quantity);
     if removed > 0 {

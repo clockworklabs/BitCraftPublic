@@ -34,5 +34,5 @@ pub fn cheat_pillar_shaping_add_pillar(ctx: &ReducerContext, request: PlayerPill
 
     ctx.db.pillar_shaping_state().try_insert(pillar)?;
 
-    return Ok(());
+    Ok(())
 }

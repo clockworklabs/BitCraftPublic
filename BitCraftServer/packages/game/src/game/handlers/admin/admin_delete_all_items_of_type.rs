@@ -58,11 +58,10 @@ pub fn reduce(ctx: &ReducerContext, player_username: String, item_id: i32, is_ca
 
     // Delete items from owned item piles
     for dropped_inventory in ctx.db.dropped_inventory_state().owner_entity_id().filter(player_entity_id) {
-        if purge_inventory_from(ctx, dropped_inventory.inventory(ctx), item_id, is_cargo) {
-            if dropped_inventory.inventory(ctx).is_empty() {
+        if purge_inventory_from(ctx, dropped_inventory.inventory(ctx), item_id, is_cargo)
+            && dropped_inventory.inventory(ctx).is_empty() {
                 dropped_inventory.delete(ctx);
             }
-        }
     }
 
     Ok(())

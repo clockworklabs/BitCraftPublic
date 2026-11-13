@@ -12,13 +12,13 @@ use crate::{unwrap_or_err};
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn complete_quest_chain(ctx: &ReducerContext, id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let quest_chain_desc = unwrap_or_err!(
         ctx.db.quest_chain_desc()
         .id()
-        .find(&id),
+        .find(id),
         "Failed to find quest chain description."
     );
 
@@ -58,13 +58,13 @@ pub fn complete_quest_chain(ctx: &ReducerContext, id: i32) -> Result<(), String>
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn start_quest_chain(ctx: &ReducerContext, id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let quest_chain_desc = unwrap_or_err!(
         ctx.db.quest_chain_desc()
         .id()
-        .find(&id),
+        .find(id),
         "Failed to find quest chain description."
     );
 
@@ -108,7 +108,7 @@ fn start_quest_chain_internal(ctx: &ReducerContext, actor_id : u64, desc : &Ques
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn advance_quest_stage(ctx: &ReducerContext, chain_id: i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut quest_chain_state = unwrap_or_err!(
@@ -159,7 +159,7 @@ pub fn advance_quest_stage(ctx: &ReducerContext, chain_id: i32) -> Result<(), St
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn set_quest_tracked(ctx: &ReducerContext, id : i32, tracked : bool) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut quest_chain_state = unwrap_or_err!(
@@ -216,13 +216,13 @@ fn untrack_oldest_quest_if_needed(ctx: &ReducerContext, player_entity_id: u64) -
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn request_stage_reward(ctx: &ReducerContext, reward_id : i32) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let onboarding_reward_desc = unwrap_or_err!(
         ctx.db.stage_rewards_desc()
         .id()
-        .find(&reward_id),
+        .find(reward_id),
         "Cannot find correct reward."
     );
 
@@ -242,7 +242,7 @@ pub fn request_stage_reward(ctx: &ReducerContext, reward_id : i32) -> Result<(),
     ctx.db.quest_chain_state().entity_id().update(quest_chain_state);
 
     // Award the items
-    let player_coord = ctx.db.mobile_entity_state().entity_id().find(&actor_id).unwrap().coordinates();
+    let player_coord = ctx.db.mobile_entity_state().entity_id().find(actor_id).unwrap().coordinates();
     InventoryState::deposit_to_player_inventory_and_nearby_deployables(
         ctx,
         actor_id,
@@ -259,7 +259,7 @@ pub fn request_stage_reward(ctx: &ReducerContext, reward_id : i32) -> Result<(),
 #[spacetimedb::reducer]
 #[feature_gate]
 pub fn skip_onboarding(ctx: &ReducerContext) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let mut quest_chain_state = unwrap_or_err!(

@@ -31,11 +31,11 @@ pub fn world_place_building(ctx: &ReducerContext, request: WorldPlaceBuildingReq
     let recipe = request
         .building_spawn_info
         .construction_recipe_id
-        .and_then(|id| ctx.db.construction_recipe_desc().id().find(&id));
+        .and_then(|id| ctx.db.construction_recipe_desc().id().find(id));
 
     let building_desc_id = request.building_spawn_info.building_description_id;
 
-    let building = unwrap_or_err!(ctx.db.building_desc().id().find(&building_desc_id), "Building not found for recipe");
+    let building = unwrap_or_err!(ctx.db.building_desc().id().find(building_desc_id), "Building not found for recipe");
 
     let mut placements_out: Vec<WorldEntityPlacement> = Vec::with_capacity(request.buildings.len());
     let mut terrain_cache = TerrainChunkCache::empty();
@@ -44,7 +44,7 @@ pub fn world_place_building(ctx: &ReducerContext, request: WorldPlaceBuildingReq
         let coords = SmallHexTile::from(p.coordinates);
         let facing_i32 = p.facing_direction;
 
-        let dim = match ctx.db.dimension_description_state().dimension_id().find(&coords.dimension) {
+        let dim = match ctx.db.dimension_description_state().dimension_id().find(coords.dimension) {
             Some(d) => d,
             None => {
                 log::info!("world_place_building: invalid dimension {}", coords.dimension);
@@ -83,7 +83,7 @@ pub fn world_place_building(ctx: &ReducerContext, request: WorldPlaceBuildingReq
         }
 
         let existing_claims = claim_helper::get_partial_claims_under_footprint(ctx, &footprint_full);
-        let built_on_existing_claims = existing_claims.len() > 0;
+        let built_on_existing_claims = !existing_claims.is_empty();
 
         if !request.ignore_claims && built_on_existing_claims {
             log::info!("world_place_building: footprint overlaps multiple claims");
@@ -91,13 +91,13 @@ pub fn world_place_building(ctx: &ReducerContext, request: WorldPlaceBuildingReq
         }
 
         if !request.ignore_claims {
-            if let Some(claim_building) = ctx.db.building_claim_desc().building_id().find(&building_desc_id) {
+            if let Some(claim_building) = ctx.db.building_claim_desc().building_id().find(building_desc_id) {
                 if claim_building.claim_type == ClaimType::Source {
                     if built_on_existing_claims {
                         return Err("Can't build on an existing claim".into());
                     }
 
-                    claim_helper::can_place_claim_totem(ctx, coords.into(), &claim_building, &mut terrain_cache)?;
+                    claim_helper::can_place_claim_totem(ctx, coords, &claim_building, &mut terrain_cache)?;
                 } else if claim_building.claim_type == ClaimType::Extension {
                     return Err("Extension totems are obsolete.".into());
                 }
@@ -123,12 +123,12 @@ pub fn world_place_building(ctx: &ReducerContext, request: WorldPlaceBuildingReq
             }
 
             if is_empire_foundry {
-                let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(&claim_id), "Claim state missing");
+                let claim = unwrap_or_err!(ctx.db.claim_state().entity_id().find(claim_id), "Claim state missing");
                 if ctx
                     .db
                     .empire_state()
                     .capital_building_entity_id()
-                    .find(&claim.owner_building_entity_id)
+                    .find(claim.owner_building_entity_id)
                     .is_none()
                 {
                     log::info!("world_place_building: foundry must be built in empire capital");

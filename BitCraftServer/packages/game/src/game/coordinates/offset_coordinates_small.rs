@@ -9,7 +9,7 @@ impl From<HexCoordinates> for OffsetCoordinatesSmall {
     fn from(coordinates: HexCoordinates) -> Self {
         let oc: SmallHexTile = coordinates.into();
         let oc: OffsetCoordinatesSmall = oc.into();
-        oc.into()
+        oc
     }
 }
 
@@ -24,7 +24,7 @@ impl From<OffsetCoordinatesSmall> for OffsetCoordinates {
     fn from(coordinates: OffsetCoordinatesSmall) -> Self {
         let hfc: SmallHexTile = coordinates.into();
         let hc: HexCoordinates = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -32,7 +32,7 @@ impl From<&OffsetCoordinatesSmall> for OffsetCoordinates {
     fn from(coordinates: &OffsetCoordinatesSmall) -> Self {
         let hfc: SmallHexTile = coordinates.into();
         let hc: HexCoordinates = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -40,7 +40,7 @@ impl From<OffsetCoordinates> for OffsetCoordinatesSmall {
     fn from(coordinates: OffsetCoordinates) -> Self {
         let hfc: HexCoordinates = coordinates.into();
         let hc: SmallHexTile = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -48,7 +48,7 @@ impl From<&OffsetCoordinates> for OffsetCoordinatesSmall {
     fn from(coordinates: &OffsetCoordinates) -> Self {
         let hfc: HexCoordinates = coordinates.into();
         let hc: SmallHexTile = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -56,7 +56,7 @@ impl From<OffsetCoordinatesSmall> for OffsetCoordinatesLarge {
     fn from(coordinates: OffsetCoordinatesSmall) -> Self {
         let hfc: SmallHexTile = coordinates.into();
         let hc: LargeHexTile = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -64,7 +64,7 @@ impl From<&OffsetCoordinatesSmall> for OffsetCoordinatesLarge {
     fn from(coordinates: &OffsetCoordinatesSmall) -> Self {
         let hfc: SmallHexTile = coordinates.into();
         let hc: LargeHexTile = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -72,7 +72,7 @@ impl From<OffsetCoordinatesLarge> for OffsetCoordinatesSmall {
     fn from(coordinates: OffsetCoordinatesLarge) -> Self {
         let hfc: LargeHexTile = coordinates.into();
         let hc: SmallHexTile = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -80,7 +80,7 @@ impl From<&OffsetCoordinatesLarge> for OffsetCoordinatesSmall {
     fn from(coordinates: &OffsetCoordinatesLarge) -> Self {
         let hfc: LargeHexTile = (*coordinates).into();
         let hc: SmallHexTile = hfc.into();
-        return hc.into();
+        hc.into()
     }
 }
 
@@ -149,7 +149,7 @@ impl OffsetCoordinatesSmall {
         let x = (hashcode & 0xFFFF) as i32;
         let z = ((hashcode >> 16) & 0xFFFF) as i32;
         let dimension = ((hashcode >> 32) & 0xFFFF) as u32;
-        return Self { x, z, dimension };
+        Self { x, z, dimension }
     }
 
     pub fn hashcode(&self) -> i64 {

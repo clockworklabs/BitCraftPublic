@@ -22,7 +22,7 @@ pub fn migrate_exploration_achievement_counts(ctx: &ReducerContext) -> Result<()
             .db
             .exploration_chunks_state_v2()
             .entity_id()
-            .find(&exploration_state.entity_id)
+            .find(exploration_state.entity_id)
             .is_some()
         {
             skipped += 1;

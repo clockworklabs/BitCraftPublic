@@ -34,30 +34,21 @@ impl InventoryState {
     }
 
     pub fn next_free_pocket(&self, item_type: ItemType) -> Option<usize> {
-        return match item_type {
+        match item_type {
             ItemType::Item => self.next_free_item_pocket(),
             ItemType::Cargo => self.next_free_cargo_pocket(),
-        };
+        }
     }
 
     pub fn next_free_cargo_pocket(&self) -> Option<usize> {
-        for i in self.cargo_index as usize..self.pockets.len() {
-            if self.is_pocket_empty(i) {
-                return Some(i);
-            }
-        }
-        None
+        (self.cargo_index as usize..self.pockets.len()).find(|&i| self.is_pocket_empty(i))
     }
 
     pub fn next_free_item_pocket(&self) -> Option<usize> {
-        for i in 0..self.cargo_index as usize {
-            if self.is_pocket_empty(i) {
-                return Some(i);
-            }
-        }
-        None
+        (0..self.cargo_index as usize).find(|&i| self.is_pocket_empty(i))
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn new_with_index(
         ctx: &ReducerContext,
         num_pockets: i32,
@@ -91,6 +82,8 @@ impl InventoryState {
         true
     }
 
+    #[expect(clippy::new_ret_no_self, reason = "pre-existing signature, left as is when clippy was enabled")]
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn new(
         ctx: &ReducerContext,
         num_pockets: i32,
@@ -114,6 +107,7 @@ impl InventoryState {
         )
     }
 
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn create_with_pockets(
         entity_id: u64,
         num_pockets: i32,
@@ -181,7 +175,7 @@ impl InventoryState {
     }
 
     pub fn add(&mut self, ctx: &ReducerContext, item_stack: ItemStack) -> bool {
-        let mut item_stack_copy = item_stack.clone();
+        let mut item_stack_copy = item_stack;
         item_stack_copy.fix_durability();
         let mut inventory_copy = self.clone();
         inventory_copy.add_partial(ctx, &mut item_stack_copy);
@@ -244,20 +238,18 @@ impl InventoryState {
         let item_type = item_stack.item_type;
         let is_cargo = item_type == ItemType::Cargo;
 
-        let volume: i32;
-
         let item_id = item_stack.item_id;
-        if is_cargo {
-            volume = match ctx.db.cargo_desc().id().find(&item_id) {
+        let volume: i32 = if is_cargo {
+            match ctx.db.cargo_desc().id().find(item_id) {
                 Some(c) => c.volume,
                 None => return false, // invalid cargo id, probably 0.
-            };
+            }
         } else {
-            volume = match ctx.db.item_desc().id().find(&item_id) {
+            match ctx.db.item_desc().id().find(item_id) {
                 Some(i) => i.volume,
                 None => return false, // invalid item id, probably 0.
             }
-        }
+        };
 
         let mut has_filled_any = false;
 
@@ -317,20 +309,18 @@ impl InventoryState {
         let item_type = item_stack.item_type;
         let is_cargo = item_type == ItemType::Cargo;
 
-        let volume: i32;
-
         let item_id = item_stack.item_id;
-        if is_cargo {
-            volume = match ctx.db.cargo_desc().id().find(&item_id) {
+        let volume: i32 = if is_cargo {
+            match ctx.db.cargo_desc().id().find(item_id) {
                 Some(c) => c.volume,
                 None => return false, // invalid cargo id, probably 0.
-            };
+            }
         } else {
-            volume = match ctx.db.item_desc().id().find(&item_id) {
+            match ctx.db.item_desc().id().find(item_id) {
                 Some(i) => i.volume,
                 None => return false, // invalid item id, probably 0.
             }
-        }
+        };
 
         if self.is_pocket_cargo(pocket_index) != is_cargo {
             return false;
@@ -393,10 +383,7 @@ impl InventoryState {
     }
 
     pub fn is_pocket_empty(&self, pocket_index: usize) -> bool {
-        match self.get_pocket_contents(pocket_index) {
-            Some(_) => false,
-            None => true,
-        }
+        self.get_pocket_contents(pocket_index).is_none()
     }
 
     pub fn get_pocket_contents(&self, pocket_index: usize) -> Option<ItemStack> {
@@ -410,21 +397,15 @@ impl InventoryState {
         let mut count = 0;
         for p in self.pockets.iter() {
             count += match &p.contents {
-                Some(c) => {
-                    if c.item_id == item_id && c.item_type == item_type {
-                        c.quantity
-                    } else {
-                        0
-                    }
-                }
-                None => 0,
+                Some(c) if c.item_id == item_id && c.item_type == item_type => c.quantity,
+                _ => 0,
             };
         }
         count
     }
 
-    pub fn has(&self, item_stacks: &Vec<ItemStack>) -> bool {
-        if item_stacks.len() == 0 {
+    pub fn has(&self, item_stacks: &[ItemStack]) -> bool {
+        if item_stacks.is_empty() {
             return true;
         }
 
@@ -439,10 +420,10 @@ impl InventoryState {
     }
 
     pub fn fits(&self, ctx: &ReducerContext, item_stack: ItemStack) -> bool {
-        self.fits_all(ctx, &vec![item_stack])
+        self.fits_all(ctx, &[item_stack])
     }
 
-    pub fn fits_all(&self, ctx: &ReducerContext, item_stacks: &Vec<ItemStack>) -> bool {
+    pub fn fits_all(&self, ctx: &ReducerContext, item_stacks: &[ItemStack]) -> bool {
         let mut inventory_copy = self.clone();
         for &stack in item_stacks.iter() {
             if !inventory_copy.add(ctx, stack) {
@@ -452,7 +433,7 @@ impl InventoryState {
         true
     }
 
-    pub fn fits_all_after_remove(&self, ctx: &ReducerContext, to_add: &Vec<ItemStack>, to_remove: &Vec<ItemStack>) -> bool {
+    pub fn fits_all_after_remove(&self, ctx: &ReducerContext, to_add: &[ItemStack], to_remove: &[ItemStack]) -> bool {
         let mut inventory_copy = self.clone();
         inventory_copy.remove(to_remove);
         inventory_copy.fits_all(ctx, to_add)
@@ -460,19 +441,16 @@ impl InventoryState {
 
     pub fn is_empty(&self) -> bool {
         for p in self.pockets.iter() {
-            match &p.contents {
-                Some(c) => {
-                    if c.quantity > 0 {
-                        return false;
-                    }
+            if let Some(c) = &p.contents {
+                if c.quantity > 0 {
+                    return false;
                 }
-                None => (),
             };
         }
         true
     }
 
-    pub fn remove_input_stacks(&mut self, ctx: &ReducerContext, input_item_stacks: &Vec<InputItemStack>) -> RemoveItemResult {
+    pub fn remove_input_stacks(&mut self, ctx: &ReducerContext, input_item_stacks: &[InputItemStack]) -> RemoveItemResult {
         let item_stacks: Vec<ItemStack> = input_item_stacks
             .iter()
             .map(|iis| ItemStack::new(ctx, iis.item_id, iis.item_type, iis.quantity))
@@ -491,7 +469,7 @@ impl InventoryState {
         // trim item stacks that rolled a consumption result
         let consumed_item_stacks: Vec<ItemStack> = input_item_stacks
             .iter()
-            .map(|iis| {
+            .filter_map(|iis| {
                 let rnd = ctx.rng().gen_range(0.0..=1.0);
                 if rnd <= iis.consumption_chance {
                     Some(ItemStack::new(ctx, iis.item_id, iis.item_type, iis.quantity))
@@ -499,16 +477,14 @@ impl InventoryState {
                     None
                 }
             })
-            .filter(|iis| iis.is_some())
-            .map(|iis| iis.unwrap())
             .collect();
 
         result.success = self.remove(&consumed_item_stacks);
-        result.inventory_changed = result.success && consumed_item_stacks.len() > 0;
+        result.inventory_changed = result.success && !consumed_item_stacks.is_empty();
         result
     }
 
-    pub fn remove(&mut self, item_stacks: &Vec<ItemStack>) -> bool {
+    pub fn remove(&mut self, item_stacks: &[ItemStack]) -> bool {
         let mut pockets_copy = self.pockets.clone();
 
         for &stack in item_stacks.iter() {
@@ -574,7 +550,7 @@ impl InventoryState {
         let pocket = self.pockets.get(pocket_index);
         if let Some(p) = pocket {
             if let Some(stack) = p.contents.as_ref() {
-                let return_stack = stack.clone();
+                let return_stack = *stack;
                 self.set_at(pocket_index, None);
                 return Some(return_stack);
             }
@@ -626,12 +602,12 @@ impl InventoryState {
         }
 
         let volume = if is_cargo {
-            match ctx.db.cargo_desc().id().find(&item_id) {
+            match ctx.db.cargo_desc().id().find(item_id) {
                 Some(c) => c.volume,
                 None => return false, // invalid cargo id, probably 0.
             }
         } else {
-            match ctx.db.item_desc().id().find(&item_id) {
+            match ctx.db.item_desc().id().find(item_id) {
                 Some(i) => i.volume,
                 None => return false, // invalid item id, probably 0.
             }
@@ -643,8 +619,7 @@ impl InventoryState {
         let mut item_stack = contents.clone_with_quantity(inserted_quantity);
         item_stack.fix_durability();
 
-        if pocket.contents.is_some() {
-            let current = pocket.contents.unwrap();
+        if let Some(current) = pocket.contents {
             if current.item_id != item_id {
                 return false;
             }
@@ -664,7 +639,7 @@ impl InventoryState {
 
         self.pockets = inventory_copy.pockets;
 
-        return true;
+        true
     }
 
     pub fn set_at(&mut self, pocket_index: usize, contents: Option<ItemStack>) {
@@ -732,9 +707,7 @@ impl InventoryState {
     }
 
     pub fn wallet_pocket_target(&self, ctx: &ReducerContext, item_stack: &ItemStack) -> Option<usize> {
-        if ctx.db.player_state().entity_id().find(self.owner_entity_id).is_none() {
-            return None;
-        }
+        ctx.db.player_state().entity_id().find(self.owner_entity_id)?;
         if item_stack.item_type == ItemType::Cargo {
             return None;
         }
@@ -744,7 +717,7 @@ impl InventoryState {
         if item_stack.item_id == ItemStack::empire_currency(ctx, 0).item_id {
             return Some(1);
         }
-        return None;
+        None
     }
 
     pub fn reduce_tool_durability(ctx: &ReducerContext, player_entity_id: u64, tool_type: i32, durability_lost: i32) {
@@ -780,9 +753,7 @@ impl InventoryState {
                                 .db
                                 .tool_desc()
                                 .item_id()
-                                .filter(convert_into)
-                                .filter(|td| td.tool_type == tool_type)
-                                .next()
+                                .filter(convert_into).find(|td| td.tool_type == tool_type)
                                 .is_some()
                             {
                                 // Converts into a similar type of tool that can still be equipped
@@ -889,7 +860,7 @@ impl InventoryState {
 
         if item_stack.item_type == ItemType::Item {
             //handle item list items
-            if let Some(item_desc) = ctx.db.item_desc().id().find(&item_stack.item_id) {
+            if let Some(item_desc) = ctx.db.item_desc().id().find(item_stack.item_id) {
                 if item_desc.item_list_id != 0 {
                     let converted_item_stacks = ItemListDesc::extract_item_stacks_from_item(ctx, item_stack, Some(player_entity_id));
 
@@ -954,7 +925,7 @@ impl InventoryState {
         let mut inventory_copy = self.clone();
         let mut overflow_items: Vec<ItemStack> = Vec::new(); // Items that cannot fit into the player's inventory
         for stack in item_stacks {
-            let mut stack = stack.clone();
+            let mut stack = *stack;
             stack.fix_durability_self();
             inventory_copy.add_partial(ctx, &mut stack);
             if stack.quantity > 0 {
@@ -966,14 +937,14 @@ impl InventoryState {
         if !overflow_items.is_empty() {
             let owner = if self.player_owner_entity_id != 0 { self.player_owner_entity_id } else { self.owner_entity_id };
             let player_coordinates = game_state_filters::coordinates_any(ctx, owner);
-            DroppedInventoryState::update_from_items(ctx, owner, player_coordinates.into(), overflow_items, None);
+            DroppedInventoryState::update_from_items(ctx, owner, player_coordinates, overflow_items, None);
         }
     }
 
     pub fn remove_stacks_from_player_inventory(
         ctx: &ReducerContext,
         player_entity_id: u64,
-        item_stacks: &Vec<ItemStack>,
+        item_stacks: &[ItemStack],
         full_durability_only: bool,
     ) -> bool {
         let mut success_count = 0;
@@ -1017,13 +988,13 @@ impl InventoryState {
                                     //sub amount from wallet
                                     quantity_to_remove -= pocket_quantity;
 
-                                    let mut stack_sub_wallet = stack_to_remove.clone();
+                                    let mut stack_sub_wallet = stack_to_remove;
                                     stack_sub_wallet.quantity = quantity_to_remove;
 
                                     //remove remaining amount form inventory
-                                    if inventory.remove(&vec![stack_sub_wallet]) {
+                                    if inventory.remove(&[stack_sub_wallet]) {
                                         //all coins removed from wallet
-                                        wallet.remove(&vec![wallet_coin_stack]);
+                                        wallet.remove(&[wallet_coin_stack]);
 
                                         inventory_updated = true;
                                         wallet_updated = true;
@@ -1035,7 +1006,7 @@ impl InventoryState {
                                     };
                                 }
                                 //amount in wallet greater, remove all from wallet
-                                else if wallet.remove(&vec![stack_to_remove]) {
+                                else if wallet.remove(&[stack_to_remove]) {
                                     wallet_updated = true;
 
                                     success_count += 1;
@@ -1046,7 +1017,7 @@ impl InventoryState {
                     }
 
                     //no coins in wallet, remove normally
-                    if inventory.remove(&vec![stack_to_remove]) {
+                    if inventory.remove(&[stack_to_remove]) {
                         inventory_updated = true;
 
                         success_count += 1;
@@ -1071,7 +1042,7 @@ impl InventoryState {
             }
         }
 
-        return success_count == item_stacks.len();
+        success_count == item_stacks.len()
     }
 
     pub fn add_partial_and_discover(
@@ -1097,7 +1068,7 @@ impl InventoryState {
             ctx.db.inventory_state().entity_id().update(inventory);
             return true;
         }
-        return false;
+        false
     }
 
     pub fn add_partial_to_inventory_and_discover(
@@ -1111,7 +1082,7 @@ impl InventoryState {
         let player_entity_id = if inventory.player_owner_entity_id != 0 { inventory.player_owner_entity_id } else { player_entity_id };
         if item_stack.item_type == ItemType::Item {
             //handle item list items
-            if let Some(item_desc) = ctx.db.item_desc().id().find(&item_stack.item_id) {
+            if let Some(item_desc) = ctx.db.item_desc().id().find(item_stack.item_id) {
                 if item_desc.item_list_id != 0 {
                     let converted_item_stacks = ItemListDesc::extract_item_stacks_from_item(ctx, *item_stack, Some(player_entity_id));
 
@@ -1132,10 +1103,10 @@ impl InventoryState {
 
         inventory.add_partial(ctx, item_stack);
         if do_discover {
-            discovery.acquire_item_stack(ctx, &item_stack);
+            discovery.acquire_item_stack(ctx, item_stack);
         }
 
-        return true;
+        true
     }
 
     pub fn set_at_and_discover(
@@ -1164,7 +1135,7 @@ impl InventoryState {
             if let Some(item_stack) = pocket_contents {
                 if item_stack.item_type == ItemType::Item {
                     //handle item list items
-                    if let Some(item_desc) = ctx.db.item_desc().id().find(&item_stack.item_id) {
+                    if let Some(item_desc) = ctx.db.item_desc().id().find(item_stack.item_id) {
                         if item_desc.item_list_id != 0 {
                             let converted_item_stacks =
                                 ItemListDesc::extract_item_stacks_from_item(ctx, item_stack, Some(discovery.player_entity_id));
@@ -1234,7 +1205,7 @@ impl InventoryState {
             }
 
             //Deployables that have been collected to the Vault will have a DeployableState but no MobileEntityState
-            let Some(mobile_entity_state) = ctx.db.mobile_entity_state().entity_id().find(&deployable.entity_id) else {
+            let Some(mobile_entity_state) = ctx.db.mobile_entity_state().entity_id().find(deployable.entity_id) else {
                 continue;
             };
 
@@ -1252,12 +1223,12 @@ impl InventoryState {
             inventories_with_distance.push((inventory, distance));
         }
 
-        if inventories_with_distance.len() == 0 {
+        if inventories_with_distance.is_empty() {
             return Vec::new();
         }
 
-        inventories_with_distance.sort_by(|a, b| a.1.cmp(&b.1));
-        return inventories_with_distance.into_iter().map(|x| x.0).collect();
+        inventories_with_distance.sort_by_key(|a| a.1);
+        inventories_with_distance.into_iter().map(|x| x.0).collect()
     }
 
     pub fn has_items_in_player_inventory_and_nearby_deployables<TDistanceFn>(
@@ -1284,7 +1255,7 @@ impl InventoryState {
         }
 
         //Find the player's nearby deployables and get their inventories
-        let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
+        let max_distance = ctx.db.parameters_desc().version().find(0).unwrap().withdraw_from_deployables_range;
         let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
 
         let player_wallet = unwrap_or_err!(InventoryState::get_player_wallet(ctx, player_entity_id), "Player has no wallet");
@@ -1309,7 +1280,7 @@ impl InventoryState {
     pub fn withdraw_from_player_inventory_and_nearby_deployables<TDistanceFn>(
         ctx: &ReducerContext,
         player_entity_id: u64,
-        item_stacks: &Vec<ItemStack>,
+        item_stacks: &[ItemStack],
         get_distance_fn: TDistanceFn,
     ) -> Result<(), String>
     where
@@ -1325,10 +1296,10 @@ impl InventoryState {
         }
 
         //Find the player's nearby deployables and get their inventories
-        let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
+        let max_distance = ctx.db.parameters_desc().version().find(0).unwrap().withdraw_from_deployables_range;
         let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
 
-        if inventories.len() == 0 {
+        if inventories.is_empty() {
             return Err("You don't have the required items.".into());
         }
 
@@ -1342,7 +1313,7 @@ impl InventoryState {
         let mut changed_inventory_indices = HashSet::new();
 
         //Partially remove ItemStacks from the player's wallet, inventory, nearby deployables and keep track of changing inventories
-        for item_stack in &mut item_stacks.clone() {
+        for item_stack in &mut item_stacks.to_owned() {
             for (inventory_index, inventory) in inventories.iter_mut().enumerate() {
                 if inventory.remove_partial(item_stack) {
                     changed_inventory_indices.insert(inventory_index);
@@ -1391,7 +1362,7 @@ impl InventoryState {
 
             output.extend(ItemListDesc::extract_item_stacks_from_item(ctx, *item_stack, Some(player_entity_id)));
 
-            discovery.acquire_item_stack(ctx, &item_stack);
+            discovery.acquire_item_stack(ctx, item_stack);
         }
         discovery.acquire_item_stacks(ctx, &output);
 
@@ -1406,7 +1377,7 @@ impl InventoryState {
             InventoryState::get_player_inventory(ctx, player_entity_id),
             "Player has no inventory"
         );
-        let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().deposit_to_deployables_range;
+        let max_distance = ctx.db.parameters_desc().version().find(0).unwrap().deposit_to_deployables_range;
         let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
         let mut changed_inventory_indices = HashSet::new();
         let mut overflow_items = Vec::new();
@@ -1428,7 +1399,7 @@ impl InventoryState {
                 ctx.db
                     .cargo_desc()
                     .id()
-                    .find(&item_stack.item_id)
+                    .find(item_stack.item_id)
                     .map(|cargo| cargo.cannot_store_in_deployables)
                     .unwrap_or(false)
             } else {
@@ -1446,7 +1417,7 @@ impl InventoryState {
                     }
                 } else if inventory_index > 0 {
                     if skip_deployables_for_cargo
-                        && ctx.db.deployable_state_v2().entity_id().find(&inventory.owner_entity_id).is_some()
+                        && ctx.db.deployable_state_v2().entity_id().find(inventory.owner_entity_id).is_some()
                     {
                         continue;
                     }
@@ -1499,13 +1470,13 @@ impl InventoryState {
         )?;
 
         //Create an item-pile for overflow items
-        if overflow_items.len() > 0 {
+        if !overflow_items.is_empty() {
             if !drop_overflow {
                 return Err("~Unable to drop overflow items".into());
             }
 
             let player_location = unwrap_or_err!(
-                ctx.db.mobile_entity_state().entity_id().find(&player_entity_id),
+                ctx.db.mobile_entity_state().entity_id().find(player_entity_id),
                 "Unknown player location"
             );
 
@@ -1525,7 +1496,7 @@ impl InventoryState {
                 }
 
                 for _ in 0..overflow_cargo.quantity {
-                    let drop_location = cargo_drop_locations[ctx.rng().gen_range(0..cargo_drop_locations.len()) as usize];
+                    let drop_location = cargo_drop_locations[ctx.rng().gen_range(0..cargo_drop_locations.len())];
                     spawn_cargo(ctx, player_entity_id, drop_location, overflow_cargo.item_id, 1);
                 }
             }
@@ -1573,7 +1544,7 @@ impl InventoryState {
     pub fn withdraw_full_durability_from_player_inventory_and_nearby_deployables<TDistanceFn>(
         ctx: &ReducerContext,
         player_entity_id: u64,
-        item_stacks: &Vec<ItemStack>,
+        item_stacks: &[ItemStack],
         get_distance_fn: TDistanceFn,
     ) -> Result<(), String>
     where
@@ -1589,10 +1560,10 @@ impl InventoryState {
         }
 
         //Find the player's nearby deployables and get their inventories
-        let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
+        let max_distance = ctx.db.parameters_desc().version().find(0).unwrap().withdraw_from_deployables_range;
         let mut inventories = Self::get_nearby_deployable_inventories(ctx, player_entity_id, get_distance_fn, max_distance);
 
-        if inventories.len() == 0 {
+        if inventories.is_empty() {
             return Err("You don't have the required items.".into());
         }
 
@@ -1614,7 +1585,7 @@ impl InventoryState {
         let mut changed_inventory_indices = HashSet::new();
 
         //Partially remove ItemStacks from the player's wallet, inventory, nearby deployables and keep track of changing inventories
-        for item_stack in &mut item_stacks.clone() {
+        for item_stack in &mut item_stacks.to_owned() {
             for (inventory_index, inventory) in inventories.iter_mut().enumerate() {
                 if inventory.remove_partial(item_stack) {
                     changed_inventory_indices.insert(inventory_index);
@@ -1642,16 +1613,7 @@ impl InventoryState {
         let inv = self
             .pockets
             .iter()
-            .filter_map(|p| match p.contents {
-                Some(c) => {
-                    if c.quantity > 0 {
-                        Some(c)
-                    } else {
-                        None
-                    }
-                }
-                None => None,
-            })
+            .filter_map(|p| p.contents.filter(|&c| c.quantity > 0))
             .collect();
         inv
     }

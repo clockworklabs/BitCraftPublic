@@ -4,48 +4,48 @@ use spacetimedb::ReducerContext;
 use crate::{game::coordinates::*, messages::components::*};
 
 pub fn coordinates(ctx: &ReducerContext, entity_id: u64) -> SmallHexTile {
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.coordinates();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn offset_coordinates(ctx: &ReducerContext, entity_id: u64) -> OffsetCoordinatesSmall {
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.offset_coordinates();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn coordinates_float(ctx: &ReducerContext, entity_id: u64) -> FloatHexTile {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.coordinates_float();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn offset_coordinates_float(ctx: &ReducerContext, entity_id: u64) -> OffsetCoordinatesFloat {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.offset_coordinates_float();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn coordinates_any(ctx: &ReducerContext, entity_id: u64) -> SmallHexTile {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.coordinates();
     }
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.coordinates();
     }
     panic!("No location for entity id {}", entity_id);
 }
 
 pub fn coordinates_any_float(ctx: &ReducerContext, entity_id: u64) -> FloatHexTile {
-    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return location.coordinates_float();
     }
-    if let Some(location) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(location) = ctx.db.location_state().entity_id().find(entity_id) {
         return location.coordinates().into();
     }
     panic!("No location for entity id {}", entity_id);
@@ -73,25 +73,25 @@ pub fn chunk_indexes_in_radius(coord: SmallHexTile, radius: i32) -> impl Iterato
 }
 
 pub fn get_location_for_entity(ctx: &ReducerContext, entity_id: u64) -> Option<SmallHexTile> {
-    if let Some(loc) = ctx.db.location_state().entity_id().find(&entity_id) {
+    if let Some(loc) = ctx.db.location_state().entity_id().find(entity_id) {
         return Some(loc.coordinates());
     }
-    if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(&entity_id) {
+    if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(entity_id) {
         return Some(loc.coordinates());
     }
     // Progressive actions locations are their building's
-    if let Some(action) = ctx.db.progressive_action_state().entity_id().find(&entity_id) {
-        if let Some(loc) = ctx.db.location_state().entity_id().find(&action.building_entity_id) {
+    if let Some(action) = ctx.db.progressive_action_state().entity_id().find(entity_id) {
+        if let Some(loc) = ctx.db.location_state().entity_id().find(action.building_entity_id) {
             return Some(loc.coordinates());
         }
     }
     // Inventory locations are their owner's
-    if let Some(inventory) = ctx.db.inventory_state().entity_id().find(&entity_id) {
-        if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(&inventory.owner_entity_id) {
+    if let Some(inventory) = ctx.db.inventory_state().entity_id().find(entity_id) {
+        if let Some(loc) = ctx.db.mobile_entity_state().entity_id().find(inventory.owner_entity_id) {
             // Player or Deployable Inventory
             return Some(loc.coordinates());
         }
-        if let Some(loc) = ctx.db.location_state().entity_id().find(&inventory.owner_entity_id) {
+        if let Some(loc) = ctx.db.location_state().entity_id().find(inventory.owner_entity_id) {
             // Building Inventory
             return Some(loc.coordinates());
         }

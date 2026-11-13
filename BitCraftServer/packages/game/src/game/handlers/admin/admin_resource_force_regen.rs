@@ -26,7 +26,7 @@ fn admin_resource_force_regen(ctx: &ReducerContext, resource_id: i32, iterations
         return Err("Unauthorized".into());
     }
 
-    let resources_log = ctx.db.resources_log().version().find(&0);
+    let resources_log = ctx.db.resources_log().version().find(0);
 
     if resources_log.is_none() {
         return Ok(());
@@ -69,18 +69,18 @@ fn admin_resource_force_regen(ctx: &ReducerContext, resource_id: i32, iterations
     let mut resources_to_delete: Vec<(u64 /* entity id */, i32 /* resource id */)> = Vec::with_capacity(512);
     let mut start_count = 0;
     let mut target = 0;
-    if let Some(resource) = resources_log.resources.iter().filter(|r| r.resource_id == resource_id).next() {
+    if let Some(resource) = resources_log.resources.iter().find(|r| r.resource_id == resource_id) {
         let desc = unwrap_or_err!(resource_desc.get(&resource.resource_id), "Missing ResourceDesc");
         if desc.not_respawning {
-            return Err(format!("{} does not respawn.", desc.name).into());
+            return Err(format!("{} does not respawn.", desc.name));
         }
         let resource_count = unwrap_or_err!(
-            ctx.db.resource_count().resource_id().find(&resource.resource_id),
+            ctx.db.resource_count().resource_id().find(resource.resource_id),
             "Missing resource count"
         )
         .num_in_world;
         if resource_count >= resource.world_target && !ignore_target_count {
-            return Err(format!("{} already at target count.", desc.name).into());
+            return Err(format!("{} already at target count.", desc.name));
         }
 
         let mut missing_count = resource.world_target - resource_count;
@@ -119,7 +119,7 @@ fn admin_resource_force_regen(ctx: &ReducerContext, resource_id: i32, iterations
         // TODO: Determine whether it would be faster to use a `LazyMemoOccupiedTiles` here.
         let mut occupied_tiles_hashes = PrecomputeOccupiedTiles::new(ctx);
 
-        if req_resources_in_clumps.len() > 0 {
+        if !req_resources_in_clumps.is_empty() {
             // attempt to place each clump into the map in worldgen order until no more resource exists.
             'outer_loop: for req in &req_resources_in_clumps {
                 let req_resources = req.1;
@@ -128,14 +128,14 @@ fn admin_resource_force_regen(ctx: &ReducerContext, resource_id: i32, iterations
                 let clump_desc = clump_desc_extended.get(&clump_info.clump_id).unwrap();
 
                 for _ in 0..iterations {
-                    let tile_index = ctx.rng().gen_range(0..total_count - 1) as usize;
+                    let tile_index = ctx.rng().gen_range(0..total_count - 1);
                     let offset_coordinates = get_coordinates(tile_index);
                     let hex_coordinates = SmallHexTile::from(offset_coordinates);
                     if try_spawn_resource(
                         ctx,
                         &mut terrain_cache,
                         clump_info,
-                        &clump_desc,
+                        clump_desc,
                         hex_coordinates,
                         &mut occupied_tiles_hashes,
                         //false,
@@ -144,7 +144,7 @@ fn admin_resource_force_regen(ctx: &ReducerContext, resource_id: i32, iterations
                         &mut result,
                     ) {
                         //log::info!("---- Regen success");
-                        for (_, count) in req_resources {
+                        for count in req_resources.values() {
                             if missing_count <= *count as i32 && !ignore_target_count {
                                 break 'outer_loop;
                             }
@@ -158,7 +158,7 @@ fn admin_resource_force_regen(ctx: &ReducerContext, resource_id: i32, iterations
         }
     }
 
-    if result.len() > 0 {
+    if !result.is_empty() {
         let resources_to_delete_count = resources_to_delete.iter().group_by_and_count(|r| r.1);
         for (entity_id, resource_id) in resources_to_delete {
             ResourceState::despawn(ctx, entity_id, resource_id);
@@ -169,7 +169,7 @@ fn admin_resource_force_regen(ctx: &ReducerContext, resource_id: i32, iterations
                 .db
                 .resource_count()
                 .resource_id()
-                .find(&resource_id)
+                .find(resource_id)
                 .unwrap_or_else(|| panic!("No ResourceCount for resource_id: {}", resource_id));
             count.num_in_world -= delete_count as i32;
             ctx.db.resource_count().resource_id().update(count);

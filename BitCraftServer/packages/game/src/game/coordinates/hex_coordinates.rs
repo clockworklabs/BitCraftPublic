@@ -104,11 +104,11 @@ impl HexCoordinates {
     }
 
     pub fn hashcode(&self) -> i64 {
-        return OffsetCoordinates::from(self).hashcode();
+        OffsetCoordinates::from(self).hashcode()
     }
 
     pub fn hashcode_long(&self) -> i128 {
-        return OffsetCoordinates::from(self).hashcode_long();
+        OffsetCoordinates::from(self).hashcode_long()
     }
 
     pub fn scale(&self, s: f32) -> Self {
@@ -185,7 +185,7 @@ impl HexCoordinates {
     }
 
     pub fn distance_to(&self, other: HexCoordinates) -> i32 {
-        return ((other.x - self.x).abs() + (other.y() - self.y()).abs() + (other.z - self.z).abs()) / 2;
+        ((other.x - self.x).abs() + (other.y() - self.y()).abs() + (other.z - self.z).abs()) / 2
     }
 
     pub fn get_terrain_coordinates(&self) -> [HexCoordinates; 3] {
@@ -248,7 +248,7 @@ impl HexCoordinates {
         }
 
         let c = self.scale(1. / 3.);
-        return [c, c, c];
+        [c, c, c]
     }
 
     pub fn is_corner(&self) -> bool {
@@ -256,7 +256,7 @@ impl HexCoordinates {
         x = (x + 3) % 3; //This handles negative numbers without branching
         let mut z = self.z % 3;
         z = (z + 3) % 3; //This handles negative numbers without branching
-        return (x == z) & (x != 0);
+        (x == z) & (x != 0)
     }
 
     pub fn approximate_direction(&self, coordinates: HexCoordinates) -> HexDirection {
@@ -306,8 +306,7 @@ impl HexCoordinates {
         //DOES include center
         (1..=radius)
             .into_iter()
-            .map(move |i| HexCoordinates::ring_iter(center, i))
-            .flatten()
+            .flat_map(move |i| HexCoordinates::ring_iter(center, i))
             .chain(std::iter::once(center))
     }
 
@@ -330,7 +329,7 @@ impl HexCoordinates {
     }
 
     pub fn ring_iter(center: HexCoordinates, radius: i32) -> impl Iterator<Item = HexCoordinates> {
-        return HexCoordinatesRingIter::new(center, radius);
+        HexCoordinatesRingIter::new(center, radius)
     }
 
     pub fn closest(&self, locations: &Vec<HexCoordinates>) -> Option<HexCoordinates> {
@@ -343,11 +342,11 @@ impl HexCoordinates {
                 closest = Some(*coordinates);
             }
         }
-        return closest;
+        closest
     }
 
     pub fn is_center(&self) -> bool {
-        return self.x % 3 == 0 && self.z % 3 == 0;
+        self.x % 3 == 0 && self.z % 3 == 0
     }
 
     pub fn to_offset_coordinates(&self) -> OffsetCoordinates {
@@ -355,11 +354,11 @@ impl HexCoordinates {
     }
 
     pub fn from_offset_coordinates(x: i32, z: i32, dimension: u32) -> HexCoordinates {
-        return HexCoordinates {
+        HexCoordinates {
             x: x - z / 2,
-            z: z,
+            z,
             dimension,
-        };
+        }
     }
 
     pub fn to_center_position_xz(&self, terrain: bool) -> Vector2 {
@@ -371,7 +370,7 @@ impl HexCoordinates {
 
         let x = 2.0f32 * i_x * inner_radius + i_z * inner_radius;
         let z = 1.5f32 * i_z * outer_radius;
-        return Vector2 { x, y: z };
+        Vector2 { x, y: z }
     }
 
     pub fn from_position(position: Vector2, terrain: bool, dimension: u32) -> HexCoordinates {
@@ -401,7 +400,7 @@ impl HexCoordinates {
             }
         }
 
-        return HexCoordinates { x: ix, z: iz, dimension };
+        HexCoordinates { x: ix, z: iz, dimension }
     }
 }
 
@@ -488,6 +487,6 @@ impl Iterator for HexCoordinatesRingIter {
         }
 
         self.coordinate = self.coordinate.neighbor(self.direction);
-        return Some(self.coordinate);
+        Some(self.coordinate)
     }
 }

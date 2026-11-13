@@ -27,7 +27,7 @@ impl Discovery {
     }
 
     pub fn has_player_acquired_lore(ctx: &ReducerContext, player_entity_id: u64, lore_id: i32) -> bool {
-        if let Some(knowledge) = ctx.db.knowledge_lore_state().entity_id().find(&player_entity_id) {
+        if let Some(knowledge) = ctx.db.knowledge_lore_state().entity_id().find(player_entity_id) {
             if let Some(entry) = knowledge.entries.iter().find(|e| e.id == lore_id) {
                 return entry.state == KnowledgeState::Acquired;
             }

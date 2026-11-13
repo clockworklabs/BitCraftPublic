@@ -61,7 +61,7 @@ pub fn send_message(
         teleport_energy_cost,
     });
 
-    return Ok(());
+    Ok(())
 }
 
 #[spacetimedb::table(accessor = transfer_player_timer, scheduled(transfer_player_delayed, at = scheduled_at))]
@@ -80,7 +80,7 @@ pub struct TransferPlayerTimer {
 #[spacetimedb::reducer]
 #[shared_table_reducer]
 fn transfer_player_delayed(ctx: &ReducerContext, timer: TransferPlayerTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         spacetimedb::log::error!("Unauthorized access to transfer_player_delayed");
         return;
     }
@@ -262,7 +262,7 @@ fn transfer_player_delayed(ctx: &ReducerContext, timer: TransferPlayerTimer) {
     //ctx.db.alert_state().entity_id().delete(entity_id);
     ctx.db.signed_in_player_state().entity_id().delete(entity_id);
     ctx.db.starving_player_state().entity_id().delete(entity_id);
-    ctx.db.end_grace_period_timer().identity().delete(&identity);
+    ctx.db.end_grace_period_timer().identity().delete(identity);
 
     //Delete transfered components
     ctx.db.player_state().entity_id().delete(entity_id);
@@ -335,8 +335,8 @@ fn transfer_player_delayed(ctx: &ReducerContext, timer: TransferPlayerTimer) {
 }
 
 pub fn process_message_on_destination(ctx: &ReducerContext, _sender: u8, mut msg: TransferPlayerMsgV5) -> Result<(), String> {
-    let loc = msg.destination_location.clone();
-    let prev_loc = msg.original_location.clone();
+    let loc = msg.destination_location;
+    let prev_loc = msg.original_location;
     let identity = msg.user_state.identity;
     let allow_cancel = msg.allow_cancel;
     let with_vehicle = msg.vehicle.is_some();
@@ -358,13 +358,13 @@ pub fn process_message_on_destination(ctx: &ReducerContext, _sender: u8, mut msg
         } //Upsert sort of
     }
 
-    return user_update_region::send_message(ctx, identity);
+    user_update_region::send_message(ctx, identity)
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: TransferPlayerMsgV5, error: Option<String>) {
     if error.is_some() {
-        let loc = request.original_location.clone();
-        insert_player(ctx, request, loc.clone(), loc);
+        let loc = request.original_location;
+        insert_player(ctx, request, loc, loc);
     }
 }
 

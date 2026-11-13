@@ -11,7 +11,7 @@ use crate::{
 
 impl QuestChainDesc {
     pub fn give_rewards(&self, ctx: &ReducerContext, player_entity_id: u64) -> Result<(), String> {
-        if self.rewards.len() == 0 {
+        if self.rewards.is_empty() {
             return Ok(());
         }
 
@@ -22,7 +22,7 @@ impl QuestChainDesc {
                 QuestReward::PaddingNone(_) => {}
 
                 QuestReward::ItemStack(stack) => {
-                    let player_coord = ctx.db.mobile_entity_state().entity_id().find(&player_entity_id).unwrap().coordinates();
+                    let player_coord = ctx.db.mobile_entity_state().entity_id().find(player_entity_id).unwrap().coordinates();
                     InventoryState::deposit_to_player_inventory_and_nearby_deployables(
                         ctx,
                         player_entity_id,
@@ -51,7 +51,7 @@ impl QuestChainDesc {
     }
 
     pub fn check_requirements(&self, ctx: &ReducerContext, player_entity_id: u64) -> Result<(), String> {
-        if self.requirements.len() == 0 {
+        if self.requirements.is_empty() {
             return Ok(());
         }
 

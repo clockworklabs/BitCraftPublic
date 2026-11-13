@@ -19,6 +19,7 @@ use crate::{
 // ============================================================================
 
 #[spacetimedb::reducer]
+#[expect(clippy::too_many_arguments, reason = "reducer arguments are part of the client API")]
 pub fn admin_update_moderation_enforcement_config(
     ctx: &ReducerContext,
     moderation_enforcement_active: bool,
@@ -39,7 +40,7 @@ pub fn admin_update_moderation_enforcement_config(
     }
 
     // Upsert pattern: delete existing, insert new
-    ctx.db.mod_enforcement_config_state().id().delete(&0);
+    ctx.db.mod_enforcement_config_state().id().delete(0);
     ctx.db.mod_enforcement_config_state().insert(ModEnforcementConfigState {
         id: 0,
         moderation_enforcement_active,
@@ -92,7 +93,7 @@ pub fn admin_add_or_update_moderation_threshold(
         });
         log::info!("[Admin] Added moderation threshold");
     } else {
-        let existing = ctx.db.mod_threshold_state().id().find(&id).ok_or("Threshold not found")?;
+        let existing = ctx.db.mod_threshold_state().id().find(id).ok_or("Threshold not found")?;
         for row in ctx.db.mod_threshold_state().threshold_type().filter(&threshold_type) {
             if row.id != existing.id && row.category == category {
                 return Err("A threshold with this category already exists for this type.".into());
@@ -115,7 +116,7 @@ pub fn admin_remove_moderation_threshold(ctx: &ReducerContext, id: u64) -> Resul
         return Err("Unauthorized".into());
     }
 
-    if ctx.db.mod_threshold_state().id().delete(&id) {
+    if ctx.db.mod_threshold_state().id().delete(id) {
         log::info!("[Admin] Removed moderation threshold id={}", id);
         Ok(())
     } else {
@@ -146,7 +147,7 @@ pub fn admin_add_or_update_flagged_word(ctx: &ReducerContext, id: u64, word_type
         });
         log::info!("[Admin] Added flagged word");
     } else {
-        let existing = ctx.db.mod_flagged_word_state().id().find(&id).ok_or("Flagged word not found")?;
+        let existing = ctx.db.mod_flagged_word_state().id().find(id).ok_or("Flagged word not found")?;
         for row in ctx.db.mod_flagged_word_state().word_type().filter(&word_type) {
             if row.id != existing.id && row.word == word {
                 return Err("This word already exists for this type.".into());
@@ -168,7 +169,7 @@ pub fn admin_remove_flagged_word(ctx: &ReducerContext, id: u64) -> Result<(), St
         return Err("Unauthorized".into());
     }
 
-    if ctx.db.mod_flagged_word_state().id().delete(&id) {
+    if ctx.db.mod_flagged_word_state().id().delete(id) {
         log::info!("[Admin] Removed flagged word id={}", id);
         Ok(())
     } else {
@@ -204,7 +205,7 @@ pub fn admin_add_or_update_word_replacement(
             .db
             .mod_word_replacement_state()
             .id()
-            .find(&id)
+            .find(id)
             .ok_or("Word replacement not found")?;
         ctx.db.mod_word_replacement_state().id().update(ModWordReplacementState {
             id: existing.id,
@@ -223,7 +224,7 @@ pub fn admin_remove_word_replacement(ctx: &ReducerContext, id: u64) -> Result<()
         return Err("Unauthorized".into());
     }
 
-    if ctx.db.mod_word_replacement_state().id().delete(&id) {
+    if ctx.db.mod_word_replacement_state().id().delete(id) {
         log::info!("[Admin] Removed word replacement id={}", id);
         Ok(())
     } else {
@@ -243,7 +244,7 @@ pub fn admin_add_or_update_replacement_text(ctx: &ReducerContext, text_type: u8,
     }
 
     // Upsert: delete existing if present, then insert
-    ctx.db.mod_replacement_text_state().text_type().delete(&text_type);
+    ctx.db.mod_replacement_text_state().text_type().delete(text_type);
     ctx.db
         .mod_replacement_text_state()
         .insert(ModReplacementTextState { text_type, text });
@@ -258,7 +259,7 @@ pub fn admin_remove_replacement_text(ctx: &ReducerContext, text_type: u8) -> Res
         return Err("Unauthorized".into());
     }
 
-    if ctx.db.mod_replacement_text_state().text_type().delete(&text_type) {
+    if ctx.db.mod_replacement_text_state().text_type().delete(text_type) {
         log::info!("[Admin] Removed replacement text type={}", text_type);
         Ok(())
     } else {
@@ -271,6 +272,7 @@ pub fn admin_remove_replacement_text(ctx: &ReducerContext, text_type: u8) -> Res
 // ============================================================================
 
 #[spacetimedb::reducer]
+#[expect(clippy::too_many_arguments, reason = "reducer arguments are part of the client API")]
 pub fn admin_update_report_moderation_config(
     ctx: &ReducerContext,
     model: String,
@@ -286,7 +288,7 @@ pub fn admin_update_report_moderation_config(
         return Err("Unauthorized".into());
     }
 
-    ctx.db.mod_report_config_state().id().delete(&0);
+    ctx.db.mod_report_config_state().id().delete(0);
     ctx.db.mod_report_config_state().insert(ModReportConfigState {
         id: 0,
         model,
@@ -331,7 +333,7 @@ pub fn admin_add_or_update_moderation_consequence(
         });
         log::info!("[Admin] Added moderation consequence");
     } else {
-        let existing = ctx.db.mod_consequence_state().id().find(&id).ok_or("Consequence not found")?;
+        let existing = ctx.db.mod_consequence_state().id().find(id).ok_or("Consequence not found")?;
         ctx.db.mod_consequence_state().id().update(ModConsequenceState {
             id: existing.id,
             point_threshold,
@@ -350,7 +352,7 @@ pub fn admin_remove_moderation_consequence(ctx: &ReducerContext, id: u64) -> Res
         return Err("Unauthorized".into());
     }
 
-    if ctx.db.mod_consequence_state().id().delete(&id) {
+    if ctx.db.mod_consequence_state().id().delete(id) {
         log::info!("[Admin] Removed moderation consequence id={}", id);
         Ok(())
     } else {
@@ -373,7 +375,7 @@ pub fn admin_add_or_update_moderation_violation(
     }
 
     // Upsert: delete existing if present, then insert
-    ctx.db.mod_violation_state().violation_type().delete(&violation_type);
+    ctx.db.mod_violation_state().violation_type().delete(violation_type);
     ctx.db.mod_violation_state().insert(ModViolationState {
         violation_type,
         point_value_min,
@@ -390,7 +392,7 @@ pub fn admin_remove_moderation_violation(ctx: &ReducerContext, violation_type: u
         return Err("Unauthorized".into());
     }
 
-    if ctx.db.mod_violation_state().violation_type().delete(&violation_type) {
+    if ctx.db.mod_violation_state().violation_type().delete(violation_type) {
         log::info!("[Admin] Removed moderation violation type={}", violation_type);
         Ok(())
     } else {
@@ -412,7 +414,7 @@ pub fn admin_add_or_update_moderation_flag_level_threshold(
     }
 
     // Upsert: delete existing if present, then insert
-    ctx.db.mod_flag_level_threshold_state().flag_level().delete(&flag_level);
+    ctx.db.mod_flag_level_threshold_state().flag_level().delete(flag_level);
     ctx.db.mod_flag_level_threshold_state().insert(ModFlagLevelThresholdState {
         flag_level,
         point_threshold,
@@ -428,7 +430,7 @@ pub fn admin_remove_moderation_flag_level_threshold(ctx: &ReducerContext, flag_l
         return Err("Unauthorized".into());
     }
 
-    if ctx.db.mod_flag_level_threshold_state().flag_level().delete(&flag_level) {
+    if ctx.db.mod_flag_level_threshold_state().flag_level().delete(flag_level) {
         log::info!("[Admin] Removed moderation flag level threshold level={}", flag_level);
         Ok(())
     } else {
@@ -454,7 +456,7 @@ pub fn admin_update_playtime_threshold(ctx: &ReducerContext, metric: u8, thresho
     }
 
     // Upsert: delete existing if present, then insert
-    ctx.db.mod_playtime_threshold_state().metric().delete(&metric);
+    ctx.db.mod_playtime_threshold_state().metric().delete(metric);
     ctx.db.mod_playtime_threshold_state().insert(ModPlaytimeThresholdState {
         metric,
         threshold_hours,

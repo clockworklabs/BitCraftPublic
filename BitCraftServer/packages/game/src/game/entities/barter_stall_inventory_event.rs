@@ -12,6 +12,7 @@ pub type InventoryChange<'a> = (&'a InventoryState, &'a InventoryState);
 impl BarterStallInventoryEvent {
     /// Emits a Sale event for a trade order accepted `trade_amount` times.
     /// `changes` are the stall's own inventories.
+    #[expect(clippy::too_many_arguments, reason = "pre-existing signature, left as is when clippy was enabled")]
     pub fn emit_sale<'a>(
         ctx: &ReducerContext,
         actor_entity_id: u64,

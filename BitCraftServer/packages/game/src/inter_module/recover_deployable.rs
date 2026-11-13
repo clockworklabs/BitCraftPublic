@@ -56,7 +56,7 @@ pub fn process_message_on_destination(ctx: &ReducerContext, sender: u8, msg: Rec
                         deployable_entity_id: deployable.entity_id,
                         deployable_desc_id: msg.deployable_desc_id,
                         deployable_state: deployable,
-                        trade_orders: trade_orders,
+                        trade_orders,
                     },
                 ),
                 super::InterModuleDestination::Region(sender),
@@ -68,11 +68,11 @@ pub fn process_message_on_destination(ctx: &ReducerContext, sender: u8, msg: Rec
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: RecoverDeployableMsg, error: Option<String>) {
-    if error.is_some() && !error.as_ref().unwrap().starts_with('~') {
+    if let Some(error) = error.filter(|e| !e.starts_with('~')) {
         PlayerNotificationEvent::new_event(
             ctx,
             request.player_entity_id,
-            error.unwrap(),
+            error,
             crate::messages::components::NotificationSeverity::ReducerError,
         );
     }

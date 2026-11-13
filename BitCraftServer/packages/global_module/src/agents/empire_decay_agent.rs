@@ -18,7 +18,7 @@ pub struct EmpireDecayLoopTimer {
 }
 
 pub fn update_timer(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().empire_decay_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().empire_decay_tick_millis as u64;
     let mut count = 0;
     for mut timer in ctx.db.empire_decay_loop_timer().iter() {
         count += 1;
@@ -32,7 +32,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 }
 
 pub fn init(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().empire_decay_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().empire_decay_tick_millis as u64;
     ctx.db
         .empire_decay_loop_timer()
         .try_insert(EmpireDecayLoopTimer {
@@ -46,7 +46,7 @@ pub fn init(ctx: &ReducerContext) {
 #[spacetimedb::reducer]
 #[shared_table_reducer]
 fn empire_decay_agent_loop(ctx: &ReducerContext, _timer: EmpireDecayLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to empire_decay agent");
         return;
     }

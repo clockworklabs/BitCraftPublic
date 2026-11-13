@@ -7,7 +7,7 @@ use crate::{
 
 pub fn process_message_on_destination(ctx: &ReducerContext, request: EmpireSiegeAddSuppliesMsg) -> Result<(), String> {
     let mut siege = unwrap_or_err!(
-        ctx.db.empire_node_siege_state().entity_id().find(&request.siege_entity_id),
+        ctx.db.empire_node_siege_state().entity_id().find(request.siege_entity_id),
         "Siege doesn't exist"
     );
     siege.energy += request.supplies;

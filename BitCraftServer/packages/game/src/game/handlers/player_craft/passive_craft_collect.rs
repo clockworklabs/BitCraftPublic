@@ -15,13 +15,13 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("craft")]
 pub fn passive_craft_collect(ctx: &ReducerContext, passive_craft_entity_id: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let passive_craft = unwrap_or_err!(
-        ctx.db.passive_craft_state().entity_id().find(&passive_craft_entity_id),
+        ctx.db.passive_craft_state().entity_id().find(passive_craft_entity_id),
         "This project no longer exists"
     );
 
@@ -34,7 +34,7 @@ pub fn passive_craft_collect(ctx: &ReducerContext, passive_craft_entity_id: u64)
     }
 
     let building_state = unwrap_or_err!(
-        ctx.db.building_state().entity_id().find(&passive_craft.building_entity_id),
+        ctx.db.building_state().entity_id().find(passive_craft.building_entity_id),
         "Invalid building"
     );
 
@@ -48,7 +48,7 @@ pub fn passive_craft_collect(ctx: &ReducerContext, passive_craft_entity_id: u64)
     }
 
     let crafting_recipe_desc = unwrap_or_err!(
-        ctx.db.crafting_recipe_desc().id().find(&passive_craft.recipe_id),
+        ctx.db.crafting_recipe_desc().id().find(passive_craft.recipe_id),
         "Invalid crafting recipe"
     );
 
@@ -62,7 +62,7 @@ pub fn passive_craft_collect(ctx: &ReducerContext, passive_craft_entity_id: u64)
         false,
     )?;
 
-    ctx.db.passive_craft_state().entity_id().delete(&passive_craft.entity_id);
+    ctx.db.passive_craft_state().entity_id().delete(passive_craft.entity_id);
     player_action_helpers::post_reducer_update_cargo(ctx, actor_id);
 
     Ok(())

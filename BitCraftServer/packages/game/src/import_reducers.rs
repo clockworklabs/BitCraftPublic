@@ -31,17 +31,17 @@ pub fn import_skill_desc(ctx: &ReducerContext, records: Vec<SkillDesc>) -> Resul
 }
 fn import_skill_desc_internal(ctx: &ReducerContext, records: Vec<SkillDesc>) -> Result<(), String> {
     for id in ctx.db.skill_desc().iter().map(|item| item.id) {
-        ctx.db.skill_desc().id().delete(&id);
+        ctx.db.skill_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type SkillDesc", len);
     for record in records {
         let record_skill = SkillType::to_enum(record.skill_type);
         if record_skill == SkillType::None {
-            return Err(format!("Skill '{}' (id {}) has type 'None'", record.name, record.id).into());
+            return Err(format!("Skill '{}' (id {}) has type 'None'", record.name, record.id));
         }
         if record_skill as i32 != record.id {
-            return Err(format!("Skill '{}' id doesn't match type", record.name).into());
+            return Err(format!("Skill '{}' id doesn't match type", record.name));
         }
         let id = record.id;
         if let Err(err) = ctx.db.skill_desc().try_insert(record) {
@@ -62,7 +62,7 @@ pub fn import_achievement_desc(ctx: &ReducerContext, records: Vec<AchievementDes
 }
 fn import_achievement_desc_internal(ctx: &ReducerContext, records: Vec<AchievementDesc>) -> Result<(), String> {
     for id in ctx.db.achievement_desc().iter().map(|item| item.id) {
-        ctx.db.achievement_desc().id().delete(&id);
+        ctx.db.achievement_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type AchievementDesc", len);
@@ -86,7 +86,7 @@ pub fn import_knowledge_stat_modifier_desc(ctx: &ReducerContext, records: Vec<Kn
 }
 fn import_knowledge_stat_modifier_desc_internal(ctx: &ReducerContext, records: Vec<KnowledgeStatModifierDesc>) -> Result<(), String> {
     for id in ctx.db.knowledge_stat_modifier_desc().iter().map(|item| item.secondary_knowledge_id) {
-        ctx.db.knowledge_stat_modifier_desc().secondary_knowledge_id().delete(&id);
+        ctx.db.knowledge_stat_modifier_desc().secondary_knowledge_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type KnowledgeStatModifierDesc", len);
@@ -112,7 +112,7 @@ pub fn import_active_buff_state(ctx: &ReducerContext, records: Vec<ActiveBuffSta
 }
 fn import_active_buff_state_internal(ctx: &ReducerContext, records: Vec<ActiveBuffState>) -> Result<(), String> {
     for id in ctx.db.active_buff_state().iter().map(|item| item.entity_id) {
-        ctx.db.active_buff_state().entity_id().delete(&id);
+        ctx.db.active_buff_state().entity_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ActiveBuffState", len);
@@ -132,7 +132,7 @@ fn import_active_buff_state_internal(ctx: &ReducerContext, records: Vec<ActiveBu
 pub fn import_admin_broadcast(ctx: &ReducerContext, records: Vec<AdminBroadcast>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type AdminBroadcast", records.len());
     let len = records.len();
@@ -152,7 +152,7 @@ pub fn import_alert_desc(ctx: &ReducerContext, records: Vec<AlertDesc>) -> Resul
 }
 fn import_alert_desc_internal(ctx: &ReducerContext, records: Vec<AlertDesc>) -> Result<(), String> {
     for id in ctx.db.alert_desc().iter().map(|item| item.alert_type) {
-        ctx.db.alert_desc().alert_type().delete(&id);
+        ctx.db.alert_desc().alert_type().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type AlertDesc", len);
@@ -173,7 +173,7 @@ fn import_alert_desc_internal(ctx: &ReducerContext, records: Vec<AlertDesc>) -> 
 pub fn import_alert_state(ctx: &ReducerContext, records: Vec<AlertState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type AlertState", records.len());
     let len = records.len();
@@ -186,7 +186,7 @@ pub fn import_alert_state(ctx: &ReducerContext, records: Vec<AlertState>) {
 pub fn import_attack_outcome_state(ctx: &ReducerContext, records: Vec<AttackOutcomeState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type AttackOutcomeState", records.len());
     let len = records.len();
@@ -206,7 +206,7 @@ pub fn import_biome_desc(ctx: &ReducerContext, records: Vec<BiomeDesc>) -> Resul
 }
 fn import_biome_desc_internal(ctx: &ReducerContext, records: Vec<BiomeDesc>) -> Result<(), String> {
     for id in ctx.db.biome_desc().iter().map(|item| item.biome_type) {
-        ctx.db.biome_desc().biome_type().delete(&id);
+        ctx.db.biome_desc().biome_type().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BiomeDesc", len);
@@ -233,7 +233,7 @@ pub fn import_buff_type_desc(ctx: &ReducerContext, records: Vec<BuffTypeDesc>) -
 }
 fn import_buff_type_desc_internal(ctx: &ReducerContext, records: Vec<BuffTypeDesc>) -> Result<(), String> {
     for id in ctx.db.buff_type_desc().iter().map(|item| item.id) {
-        ctx.db.buff_type_desc().id().delete(&id);
+        ctx.db.buff_type_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuffTypeDesc", len);
@@ -277,7 +277,7 @@ pub fn import_buff_desc(ctx: &ReducerContext, records: Vec<BuffDesc>) -> Result<
 }
 fn import_buff_desc_internal(ctx: &ReducerContext, records: Vec<BuffDesc>) -> Result<(), String> {
     for id in ctx.db.buff_desc().iter().map(|item| item.id) {
-        ctx.db.buff_desc().id().delete(&id);
+        ctx.db.buff_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuffDesc", len);
@@ -301,7 +301,7 @@ pub fn import_building_claim_desc(ctx: &ReducerContext, records: Vec<BuildingCla
 }
 fn import_building_claim_desc_internal(ctx: &ReducerContext, records: Vec<BuildingClaimDesc>) -> Result<(), String> {
     for id in ctx.db.building_claim_desc().iter().map(|item| item.building_id) {
-        ctx.db.building_claim_desc().building_id().delete(&id);
+        ctx.db.building_claim_desc().building_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingClaimDesc", len);
@@ -327,8 +327,8 @@ pub fn import_building_desc(ctx: &ReducerContext, records: Vec<BuildingDesc>) ->
 }
 fn import_building_desc_internal(ctx: &ReducerContext, records: Vec<BuildingDesc>) -> Result<(), String> {
     let old_descs: HashMap<i32, BuildingDesc> = ctx.db.building_desc().iter().map(|d| (d.id, d)).collect();
-    for (&id, _) in &old_descs {
-        ctx.db.building_desc().id().delete(&id);
+    for &id in old_descs.keys() {
+        ctx.db.building_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingDesc", len);
@@ -353,7 +353,7 @@ pub fn import_building_map_icon_desc(ctx: &ReducerContext, records: Vec<Building
 }
 fn import_building_map_icon_desc_internal(ctx: &ReducerContext, records: Vec<BuildingMapIconDesc>) -> Result<(), String> {
     for id in ctx.db.building_map_icon_desc().iter().map(|item| item.building_id) {
-        ctx.db.building_map_icon_desc().building_id().delete(&id);
+        ctx.db.building_map_icon_desc().building_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingMapIconDesc", len);
@@ -379,7 +379,7 @@ pub fn import_building_portal_desc(ctx: &ReducerContext, records: Vec<BuildingPo
 }
 fn import_building_portal_desc_internal(ctx: &ReducerContext, records: Vec<BuildingPortalDesc>) -> Result<(), String> {
     for id in ctx.db.building_portal_desc().iter().map(|item| item.id) {
-        ctx.db.building_portal_desc().id().delete(&id);
+        ctx.db.building_portal_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingPortalDesc", len);
@@ -405,7 +405,7 @@ pub fn import_building_repairs_desc(ctx: &ReducerContext, records: Vec<BuildingR
 }
 fn import_building_repairs_desc_internal(ctx: &ReducerContext, records: Vec<BuildingRepairsDesc>) -> Result<(), String> {
     for id in ctx.db.building_repairs_desc().iter().map(|item| item.cargo_id) {
-        ctx.db.building_repairs_desc().cargo_id().delete(&id);
+        ctx.db.building_repairs_desc().cargo_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingRepairsDesc", len);
@@ -431,7 +431,7 @@ pub fn import_building_spawn_desc(ctx: &ReducerContext, records: Vec<BuildingSpa
 }
 fn import_building_spawn_desc_internal(ctx: &ReducerContext, records: Vec<BuildingSpawnDesc>) -> Result<(), String> {
     for id in ctx.db.building_spawn_desc().iter().map(|item| item.id) {
-        ctx.db.building_spawn_desc().id().delete(&id);
+        ctx.db.building_spawn_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingSpawnDesc", len);
@@ -451,7 +451,7 @@ fn import_building_spawn_desc_internal(ctx: &ReducerContext, records: Vec<Buildi
 pub fn import_building_state(ctx: &ReducerContext, records: Vec<BuildingState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type BuildingState", records.len());
     let len = records.len();
@@ -471,7 +471,7 @@ pub fn import_building_type_desc(ctx: &ReducerContext, records: Vec<BuildingType
 }
 fn import_building_type_desc_internal(ctx: &ReducerContext, records: Vec<BuildingTypeDesc>) -> Result<(), String> {
     for id in ctx.db.building_type_desc().iter().map(|item| item.id) {
-        ctx.db.building_type_desc().id().delete(&id);
+        ctx.db.building_type_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingTypeDesc", len);
@@ -497,7 +497,7 @@ pub fn import_cargo_desc(ctx: &ReducerContext, records: Vec<CargoDesc>) -> Resul
 }
 fn import_cargo_desc_internal(ctx: &ReducerContext, records: Vec<CargoDesc>) -> Result<(), String> {
     for id in ctx.db.cargo_desc().iter().map(|item| item.id) {
-        ctx.db.cargo_desc().id().delete(&id);
+        ctx.db.cargo_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type CargoDesc", len);
@@ -521,7 +521,7 @@ pub fn import_character_stat_desc(ctx: &ReducerContext, records: Vec<CharacterSt
 }
 fn import_character_stat_desc_internal(ctx: &ReducerContext, records: Vec<CharacterStatDesc>) -> Result<(), String> {
     for id in ctx.db.character_stat_desc().iter().map(|item: CharacterStatDesc| item.stat_type) {
-        ctx.db.character_stat_desc().stat_type().delete(&id);
+        ctx.db.character_stat_desc().stat_type().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type CharacterStatDesc", len);
@@ -544,7 +544,7 @@ fn import_character_stat_desc_internal(ctx: &ReducerContext, records: Vec<Charac
 pub fn import_character_stats_state(ctx: &ReducerContext, records: Vec<CharacterStatsState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type CharacterStatsState", records.len());
     let len = records.len();
@@ -558,7 +558,7 @@ pub fn import_character_stats_state(ctx: &ReducerContext, records: Vec<Character
 pub fn import_chat_message_state(ctx: &ReducerContext, records: Vec<ChatMessageState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ChatMessageState", records.len());
     let len = records.len();
@@ -578,7 +578,7 @@ pub fn import_chest_rarity_desc(ctx: &ReducerContext, records: Vec<ChestRarityDe
 }
 fn import_chest_rarity_desc_internal(ctx: &ReducerContext, records: Vec<ChestRarityDesc>) -> Result<(), String> {
     for id in ctx.db.chest_rarity_desc().iter().map(|item| item.id) {
-        ctx.db.chest_rarity_desc().id().delete(&id);
+        ctx.db.chest_rarity_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ChestRarityDesc", len);
@@ -596,7 +596,7 @@ fn import_chest_rarity_desc_internal(ctx: &ReducerContext, records: Vec<ChestRar
 pub fn import_claim_state(ctx: &ReducerContext, records: Vec<ClaimState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ClaimState", records.len());
     let len = records.len();
@@ -610,7 +610,7 @@ pub fn import_claim_state(ctx: &ReducerContext, records: Vec<ClaimState>) {
 pub fn import_claim_local_state(ctx: &ReducerContext, records: Vec<ClaimLocalState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ClaimLocalState", records.len());
     let len = records.len();
@@ -624,7 +624,7 @@ pub fn import_claim_local_state(ctx: &ReducerContext, records: Vec<ClaimLocalSta
 pub fn import_claim_recruitment_state(ctx: &ReducerContext, records: Vec<ClaimRecruitmentState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ClaimRecruitmentState", records.len());
     let len = records.len();
@@ -644,7 +644,7 @@ pub fn import_claim_tech_desc(ctx: &ReducerContext, records: Vec<ClaimTechDesc>)
 }
 fn import_claim_tech_desc_internal(ctx: &ReducerContext, records: Vec<ClaimTechDesc>) -> Result<(), String> {
     for id in ctx.db.claim_tech_desc().iter().map(|item| item.id) {
-        ctx.db.claim_tech_desc().id().delete(&id);
+        ctx.db.claim_tech_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ClaimTechDesc", len);
@@ -662,7 +662,7 @@ fn import_claim_tech_desc_internal(ctx: &ReducerContext, records: Vec<ClaimTechD
 pub fn import_claim_tech_state(ctx: &ReducerContext, records: Vec<ClaimTechState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ClaimTechState", records.len());
     let len = records.len();
@@ -682,7 +682,7 @@ pub fn import_claim_tile_cost(ctx: &ReducerContext, records: Vec<ClaimTileCost>)
 }
 fn import_claim_tile_cost_internal(ctx: &ReducerContext, records: Vec<ClaimTileCost>) -> Result<(), String> {
     for id in ctx.db.claim_tile_cost().iter().map(|item| item.tile_count) {
-        ctx.db.claim_tile_cost().tile_count().delete(&id);
+        ctx.db.claim_tile_cost().tile_count().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ClaimTileCost", len);
@@ -702,7 +702,7 @@ fn import_claim_tile_cost_internal(ctx: &ReducerContext, records: Vec<ClaimTileC
 pub fn import_claim_tile_state(ctx: &ReducerContext, records: Vec<ClaimTileState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ClaimTileState", records.len());
     let len = records.len();
@@ -722,7 +722,7 @@ pub fn import_climb_requirement_desc(ctx: &ReducerContext, records: Vec<ClimbReq
 }
 fn import_climb_requirement_desc_internal(ctx: &ReducerContext, records: Vec<ClimbRequirementDesc>) -> Result<(), String> {
     for id in ctx.db.climb_requirement_desc().iter().map(|item| item.id) {
-        ctx.db.climb_requirement_desc().id().delete(&id);
+        ctx.db.climb_requirement_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ClimbRequirementDesc", len);
@@ -748,7 +748,7 @@ pub fn import_clothing_desc(ctx: &ReducerContext, records: Vec<ClothingDesc>) ->
 }
 fn import_clothing_desc_internal(ctx: &ReducerContext, records: Vec<ClothingDesc>) -> Result<(), String> {
     for id in ctx.db.clothing_desc().iter().map(|item| item.item_id) {
-        ctx.db.clothing_desc().item_id().delete(&id);
+        ctx.db.clothing_desc().item_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ClothingDesc", len);
@@ -774,7 +774,7 @@ pub fn import_collectible_desc(ctx: &ReducerContext, records: Vec<CollectibleDes
 }
 fn import_collectible_desc_internal(ctx: &ReducerContext, records: Vec<CollectibleDesc>) -> Result<(), String> {
     for id in ctx.db.collectible_desc().iter().map(|item| item.id) {
-        ctx.db.collectible_desc().id().delete(&id);
+        ctx.db.collectible_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type CollectibleDesc", len);
@@ -798,7 +798,7 @@ pub fn import_combat_action_desc(ctx: &ReducerContext, records: Vec<CombatAction
 }
 fn import_combat_action_desc_internal(ctx: &ReducerContext, records: Vec<CombatActionDesc>) -> Result<(), String> {
     for id in ctx.db.combat_action_desc().iter().map(|item| item.id) {
-        ctx.db.combat_action_desc().id().delete(&id);
+        ctx.db.combat_action_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type CombatActionDesc", len);
@@ -824,7 +824,7 @@ pub fn import_combat_action_multi_hit_desc(ctx: &ReducerContext, records: Vec<Co
 }
 fn import_combat_action_multi_hit_desc_internal(ctx: &ReducerContext, records: Vec<CombatActionMultiHitDesc>) -> Result<(), String> {
     for id in ctx.db.combat_action_multi_hit_desc().iter().map(|item| item.id) {
-        ctx.db.combat_action_multi_hit_desc().id().delete(&id);
+        ctx.db.combat_action_multi_hit_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type CombatActionMultiHitDesc", len);
@@ -844,7 +844,7 @@ fn import_combat_action_multi_hit_desc_internal(ctx: &ReducerContext, records: V
 pub fn import_combat_state(ctx: &ReducerContext, records: Vec<CombatState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type CombatState", records.len());
     let len = records.len();
@@ -858,7 +858,7 @@ pub fn import_combat_state(ctx: &ReducerContext, records: Vec<CombatState>) {
 pub fn import_config(ctx: &ReducerContext, records: Vec<Config>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type Config", records.len());
     let len = records.len();
@@ -878,7 +878,7 @@ pub fn import_construction_recipe_desc(ctx: &ReducerContext, records: Vec<Constr
 }
 fn import_construction_recipe_desc_internal(ctx: &ReducerContext, records: Vec<ConstructionRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.construction_recipe_desc().iter().map(|item| item.id) {
-        ctx.db.construction_recipe_desc().id().delete(&id);
+        ctx.db.construction_recipe_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ConstructionRecipeDesc", len);
@@ -951,7 +951,7 @@ pub fn import_crafting_recipe_desc(ctx: &ReducerContext, records: Vec<CraftingRe
 }
 fn import_crafting_recipe_desc_internal(ctx: &ReducerContext, records: Vec<CraftingRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.crafting_recipe_desc().iter().map(|item| item.id) {
-        ctx.db.crafting_recipe_desc().id().delete(&id);
+        ctx.db.crafting_recipe_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type CraftingRecipeDesc", len);
@@ -1028,7 +1028,7 @@ pub fn import_deconstruction_recipe_desc(ctx: &ReducerContext, records: Vec<Deco
 }
 fn import_deconstruction_recipe_desc_internal(ctx: &ReducerContext, records: Vec<DeconstructionRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.deconstruction_recipe_desc().iter().map(|item| item.id) {
-        ctx.db.deconstruction_recipe_desc().id().delete(&id);
+        ctx.db.deconstruction_recipe_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type DeconstructionRecipeDesc", len);
@@ -1048,7 +1048,7 @@ fn import_deconstruction_recipe_desc_internal(ctx: &ReducerContext, records: Vec
 pub fn import_dimension_description_state(ctx: &ReducerContext, records: Vec<DimensionDescriptionState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type DimensionDescriptionState", records.len());
     let len = records.len();
@@ -1062,7 +1062,7 @@ pub fn import_dimension_description_state(ctx: &ReducerContext, records: Vec<Dim
 pub fn import_dimension_network_description_state(ctx: &ReducerContext, records: Vec<DimensionNetworkState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type DimensionNetworkDescriptionState", records.len());
     let len = records.len();
@@ -1082,7 +1082,7 @@ pub fn import_emote_desc(ctx: &ReducerContext, records: Vec<EmoteDesc>) -> Resul
 }
 fn import_emote_desc_internal(ctx: &ReducerContext, records: Vec<EmoteDesc>) -> Result<(), String> {
     for id in ctx.db.emote_desc().iter().map(|item| item.id) {
-        ctx.db.emote_desc().id().delete(&id);
+        ctx.db.emote_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EmoteDesc", len);
@@ -1106,7 +1106,7 @@ pub fn import_furniture_emote_desc(ctx: &ReducerContext, records: Vec<FurnitureE
 }
 fn import_furniture_emote_desc_internal(ctx: &ReducerContext, records: Vec<FurnitureEmoteDesc>) -> Result<(), String> {
     for id in ctx.db.furniture_emote_desc().iter().map(|item| item.emote_id) {
-        ctx.db.furniture_emote_desc().emote_id().delete(&id);
+        ctx.db.furniture_emote_desc().emote_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type FurnitureEmoteDesc", len);
@@ -1130,7 +1130,7 @@ pub fn import_enemy_ai_params_desc(ctx: &ReducerContext, records: Vec<EnemyAiPar
 }
 fn import_enemy_ai_params_desc_internal(ctx: &ReducerContext, records: Vec<EnemyAiParamsDesc>) -> Result<(), String> {
     for id in ctx.db.enemy_ai_params_desc().iter().map(|item| item.id) {
-        ctx.db.enemy_ai_params_desc().id().delete(&id);
+        ctx.db.enemy_ai_params_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EnemyAiParamsDesc", len);
@@ -1156,7 +1156,7 @@ pub fn import_enemy_desc(ctx: &ReducerContext, records: Vec<EnemyDesc>) -> Resul
 }
 fn import_enemy_desc_internal(ctx: &ReducerContext, records: Vec<EnemyDesc>) -> Result<(), String> {
     for id in ctx.db.enemy_desc().iter().map(|item: EnemyDesc| item.enemy_type) {
-        ctx.db.enemy_desc().enemy_type().delete(&id);
+        ctx.db.enemy_desc().enemy_type().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EnemyDesc", len);
@@ -1177,7 +1177,7 @@ fn import_enemy_desc_internal(ctx: &ReducerContext, records: Vec<EnemyDesc>) -> 
 pub fn import_enemy_state(ctx: &ReducerContext, records: Vec<EnemyState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type EnemyState", records.len());
     let len = records.len();
@@ -1197,7 +1197,7 @@ pub fn import_environment_debuff_desc(ctx: &ReducerContext, records: Vec<Environ
 }
 fn import_environment_debuff_desc_internal(ctx: &ReducerContext, records: Vec<EnvironmentDebuffDesc>) -> Result<(), String> {
     for id in ctx.db.environment_debuff_desc().iter().map(|item| item.buff_id) {
-        ctx.db.environment_debuff_desc().buff_id().delete(&id);
+        ctx.db.environment_debuff_desc().buff_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EnvironmentDebuffDesc", len);
@@ -1223,7 +1223,7 @@ pub fn import_equipment_desc(ctx: &ReducerContext, records: Vec<EquipmentDesc>) 
 }
 fn import_equipment_desc_internal(ctx: &ReducerContext, records: Vec<EquipmentDesc>) -> Result<(), String> {
     for id in ctx.db.equipment_desc().iter().map(|item| item.item_id) {
-        ctx.db.equipment_desc().item_id().delete(&id);
+        ctx.db.equipment_desc().item_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EquipmentDesc", len);
@@ -1243,7 +1243,7 @@ fn import_equipment_desc_internal(ctx: &ReducerContext, records: Vec<EquipmentDe
 pub fn import_equipment_state(ctx: &ReducerContext, records: Vec<EquipmentState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type EquipmentState", records.len());
     let len = records.len();
@@ -1257,7 +1257,7 @@ pub fn import_equipment_state(ctx: &ReducerContext, records: Vec<EquipmentState>
 pub fn import_experience_state(ctx: &ReducerContext, records: Vec<ExperienceState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ExperienceState", records.len());
     let len = records.len();
@@ -1271,7 +1271,7 @@ pub fn import_experience_state(ctx: &ReducerContext, records: Vec<ExperienceStat
 pub fn import_exploration_chunks_state(ctx: &ReducerContext, records: Vec<ExplorationChunksStateV2>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ExplorationChunksStateV2", records.len());
     let len = records.len();
@@ -1291,7 +1291,7 @@ pub fn import_extraction_recipe_desc(ctx: &ReducerContext, records: Vec<Extracti
 }
 fn import_extraction_recipe_desc_internal(ctx: &ReducerContext, records: Vec<ExtractionRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.extraction_recipe_desc().iter().map(|item| item.id) {
-        ctx.db.extraction_recipe_desc().id().delete(&id);
+        ctx.db.extraction_recipe_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ExtractionRecipeDesc", len);
@@ -1317,7 +1317,7 @@ pub fn import_food_desc(ctx: &ReducerContext, records: Vec<FoodDesc>) -> Result<
 }
 fn import_food_desc_internal(ctx: &ReducerContext, records: Vec<FoodDesc>) -> Result<(), String> {
     for id in ctx.db.food_desc().iter().map(|item| item.item_id) {
-        ctx.db.food_desc().item_id().delete(&id);
+        ctx.db.food_desc().item_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type FoodDesc", len);
@@ -1335,7 +1335,7 @@ fn import_food_desc_internal(ctx: &ReducerContext, records: Vec<FoodDesc>) -> Re
 pub fn import_footprint_tile_state(ctx: &ReducerContext, records: Vec<FootprintTileState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type FootprintTileState", records.len());
     let len = records.len();
@@ -1349,7 +1349,7 @@ pub fn import_footprint_tile_state(ctx: &ReducerContext, records: Vec<FootprintT
 pub fn import_globals(ctx: &ReducerContext, records: Vec<Globals>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type Globals", records.len());
     let len = records.len();
@@ -1363,7 +1363,7 @@ pub fn import_globals(ctx: &ReducerContext, records: Vec<Globals>) {
 pub fn import_world_region_state(ctx: &ReducerContext, records: Vec<WorldRegionState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type WorldRegionState", records.len());
     let len = records.len();
@@ -1377,7 +1377,7 @@ pub fn import_world_region_state(ctx: &ReducerContext, records: Vec<WorldRegionS
 pub fn import_world_region_name_state(ctx: &ReducerContext, records: Vec<WorldRegionNameState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type WorldRegionNameState", records.len());
     let len = records.len();
@@ -1391,7 +1391,7 @@ pub fn import_world_region_name_state(ctx: &ReducerContext, records: Vec<WorldRe
 pub fn import_growth_state(ctx: &ReducerContext, records: Vec<GrowthState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type GrowthState", records.len());
     let len = records.len();
@@ -1405,7 +1405,7 @@ pub fn import_growth_state(ctx: &ReducerContext, records: Vec<GrowthState>) {
 pub fn import_health_state(ctx: &ReducerContext, records: Vec<HealthState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type HealthState", records.len());
     let len = records.len();
@@ -1419,7 +1419,7 @@ pub fn import_health_state(ctx: &ReducerContext, records: Vec<HealthState>) {
 pub fn import_herd_cache(ctx: &ReducerContext, records: Vec<HerdState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type HerdCache", records.len());
     let len = records.len();
@@ -1433,7 +1433,7 @@ pub fn import_herd_cache(ctx: &ReducerContext, records: Vec<HerdState>) {
 pub fn import_satiation_state(ctx: &ReducerContext, records: Vec<SatiationState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type SatiationState", records.len());
     let len = records.len();
@@ -1447,7 +1447,7 @@ pub fn import_satiation_state(ctx: &ReducerContext, records: Vec<SatiationState>
 pub fn import_identity_role(ctx: &ReducerContext, records: Vec<IdentityRole>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type IdentityRole", records.len());
     let len = records.len();
@@ -1461,7 +1461,7 @@ pub fn import_identity_role(ctx: &ReducerContext, records: Vec<IdentityRole>) {
 pub fn import_interior_collapse_trigger_state(ctx: &ReducerContext, records: Vec<InteriorCollapseTriggerState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type InteriorCollapseTriggerState", records.len());
     let len = records.len();
@@ -1481,7 +1481,7 @@ pub fn import_interior_instance_desc(ctx: &ReducerContext, records: Vec<Interior
 }
 fn import_interior_instance_desc_internal(ctx: &ReducerContext, records: Vec<InteriorInstanceDesc>) -> Result<(), String> {
     for id in ctx.db.interior_instance_desc().iter().map(|item| item.id) {
-        ctx.db.interior_instance_desc().id().delete(&id);
+        ctx.db.interior_instance_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type InteriorInstanceDesc", len);
@@ -1507,7 +1507,7 @@ pub fn import_interior_environment_desc(ctx: &ReducerContext, records: Vec<Inter
 }
 fn import_interior_environment_desc_internal(ctx: &ReducerContext, records: Vec<InteriorEnvironmentDesc>) -> Result<(), String> {
     for id in ctx.db.interior_environment_desc().iter().map(|item| item.id) {
-        ctx.db.interior_environment_desc().id().delete(&id);
+        ctx.db.interior_environment_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type InteriorEnvironmentDesc", len);
@@ -1533,7 +1533,7 @@ pub fn import_interior_network_desc(ctx: &ReducerContext, records: Vec<InteriorN
 }
 fn import_interior_network_desc_internal(ctx: &ReducerContext, records: Vec<InteriorNetworkDesc>) -> Result<(), String> {
     for id in ctx.db.interior_network_desc().iter().map(|item| item.building_id) {
-        ctx.db.interior_network_desc().building_id().delete(&id);
+        ctx.db.interior_network_desc().building_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type InteriorNetworkDesc", len);
@@ -1562,7 +1562,7 @@ fn import_interior_portal_connections_desc_internal(
     records: Vec<InteriorPortalConnectionsDesc>,
 ) -> Result<(), String> {
     for id in ctx.db.interior_portal_connections_desc().iter().map(|item| item.id) {
-        ctx.db.interior_portal_connections_desc().id().delete(&id);
+        ctx.db.interior_portal_connections_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type InteriorPortalConnectionsDesc", len);
@@ -1588,7 +1588,7 @@ pub fn import_interior_shape_desc(ctx: &ReducerContext, records: Vec<InteriorSha
 }
 fn import_interior_shape_desc_internal(ctx: &ReducerContext, records: Vec<InteriorShapeDesc>) -> Result<(), String> {
     for id in ctx.db.interior_shape_desc().iter().map(|item| item.id) {
-        ctx.db.interior_shape_desc().id().delete(&id);
+        ctx.db.interior_shape_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type InteriorShapeDesc", len);
@@ -1614,7 +1614,7 @@ pub fn import_interior_spawn_desc(ctx: &ReducerContext, records: Vec<InteriorSpa
 }
 fn import_interior_spawn_desc_internal(ctx: &ReducerContext, records: Vec<InteriorSpawnDesc>) -> Result<(), String> {
     for id in ctx.db.interior_spawn_desc().iter().map(|item| item.id) {
-        ctx.db.interior_spawn_desc().id().delete(&id);
+        ctx.db.interior_spawn_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type InteriorSpawnDesc", len);
@@ -1646,7 +1646,7 @@ fn import_interior_spawn_random_group_desc_internal(
     records: Vec<InteriorSpawnRandomGroupDesc>,
 ) -> Result<(), String> {
     for id in ctx.db.interior_spawn_random_group_desc().iter().map(|item| item.id) {
-        ctx.db.interior_spawn_random_group_desc().id().delete(&id);
+        ctx.db.interior_spawn_random_group_desc().id().delete(id);
     }
     let len = records.len();
     log::info!("Will insert {} records of type InteriorSpawnRandomGroupDesc", len);
@@ -1681,7 +1681,7 @@ fn import_interior_spawn_destroy_trigger_desc_internal(
     records: Vec<InteriorSpawnDestroyTriggerDesc>,
 ) -> Result<(), String> {
     for id in ctx.db.interior_spawn_destroy_trigger_desc().iter().map(|item| item.id) {
-        ctx.db.interior_spawn_destroy_trigger_desc().id().delete(&id);
+        ctx.db.interior_spawn_destroy_trigger_desc().id().delete(id);
     }
     let len = records.len();
     log::info!("Will insert {} records of type InteriorSpawnDestroyTriggerDesc", len);
@@ -1743,7 +1743,7 @@ fn import_interior_spawn_destroy_trigger_desc_internal(
 pub fn import_inventory_state(ctx: &ReducerContext, records: Vec<InventoryState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type InventoryState", records.len());
     let len = records.len();
@@ -1763,7 +1763,7 @@ pub fn import_item_conversion_recipe_desc(ctx: &ReducerContext, records: Vec<Ite
 }
 fn import_item_conversion_recipe_desc_internal(ctx: &ReducerContext, records: Vec<ItemConversionRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.item_conversion_recipe_desc().iter().map(|item| item.id) {
-        ctx.db.item_conversion_recipe_desc().id().delete(&id);
+        ctx.db.item_conversion_recipe_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ItemConversionRecipeDesc", len);
@@ -1789,7 +1789,7 @@ pub fn import_item_desc(ctx: &ReducerContext, records: Vec<ItemDesc>) -> Result<
 }
 fn import_item_desc_internal(ctx: &ReducerContext, records: Vec<ItemDesc>) -> Result<(), String> {
     for id in ctx.db.item_desc().iter().map(|item| item.id) {
-        ctx.db.item_desc().id().delete(&id);
+        ctx.db.item_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ItemDesc", len);
@@ -1813,7 +1813,7 @@ pub fn import_item_list_desc(ctx: &ReducerContext, records: Vec<ItemListDesc>) -
 }
 fn import_item_list_desc_internal(ctx: &ReducerContext, records: Vec<ItemListDesc>) -> Result<(), String> {
     for id in ctx.db.item_list_desc().iter().map(|item| item.id) {
-        ctx.db.item_list_desc().id().delete(&id);
+        ctx.db.item_list_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ItemListDesc", len);
@@ -1831,7 +1831,7 @@ fn import_item_list_desc_internal(ctx: &ReducerContext, records: Vec<ItemListDes
 pub fn import_dropped_inventory_state(ctx: &ReducerContext, records: Vec<DroppedInventoryState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type DroppedInventoryState", records.len());
     let len = records.len();
@@ -1845,7 +1845,7 @@ pub fn import_dropped_inventory_state(ctx: &ReducerContext, records: Vec<Dropped
 pub fn import_knowledge_achievement_state(ctx: &ReducerContext, records: Vec<KnowledgeAchievementState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeAchievementState", records.len());
     let len = records.len();
@@ -1859,7 +1859,7 @@ pub fn import_knowledge_achievement_state(ctx: &ReducerContext, records: Vec<Kno
 pub fn import_knowledge_battle_action_state(ctx: &ReducerContext, records: Vec<KnowledgeBattleActionState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeBattleActionState", records.len());
     let len = records.len();
@@ -1873,7 +1873,7 @@ pub fn import_knowledge_battle_action_state(ctx: &ReducerContext, records: Vec<K
 pub fn import_knowledge_building_state(ctx: &ReducerContext, records: Vec<KnowledgeBuildingState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeBuildingState", records.len());
     let len = records.len();
@@ -1887,7 +1887,7 @@ pub fn import_knowledge_building_state(ctx: &ReducerContext, records: Vec<Knowle
 pub fn import_knowledge_cargo_state(ctx: &ReducerContext, records: Vec<KnowledgeCargoState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeCargoState", records.len());
     let len = records.len();
@@ -1901,7 +1901,7 @@ pub fn import_knowledge_cargo_state(ctx: &ReducerContext, records: Vec<Knowledge
 pub fn import_knowledge_construction_state(ctx: &ReducerContext, records: Vec<KnowledgeConstructionState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeConstructionState", records.len());
     let len = records.len();
@@ -1915,7 +1915,7 @@ pub fn import_knowledge_construction_state(ctx: &ReducerContext, records: Vec<Kn
 pub fn import_knowledge_craft_state(ctx: &ReducerContext, records: Vec<KnowledgeCraftState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeCraftState", records.len());
     let len = records.len();
@@ -1929,7 +1929,7 @@ pub fn import_knowledge_craft_state(ctx: &ReducerContext, records: Vec<Knowledge
 pub fn import_knowledge_enemy_state(ctx: &ReducerContext, records: Vec<KnowledgeEnemyState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeEnemyState", records.len());
     let len = records.len();
@@ -1943,7 +1943,7 @@ pub fn import_knowledge_enemy_state(ctx: &ReducerContext, records: Vec<Knowledge
 pub fn import_knowledge_extract_state(ctx: &ReducerContext, records: Vec<KnowledgeExtractState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeExtractState", records.len());
     let len = records.len();
@@ -1957,7 +1957,7 @@ pub fn import_knowledge_extract_state(ctx: &ReducerContext, records: Vec<Knowled
 pub fn import_knowledge_item_state(ctx: &ReducerContext, records: Vec<KnowledgeItemState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeItemState", records.len());
     let len = records.len();
@@ -1971,7 +1971,7 @@ pub fn import_knowledge_item_state(ctx: &ReducerContext, records: Vec<KnowledgeI
 pub fn import_knowledge_lore_state(ctx: &ReducerContext, records: Vec<KnowledgeLoreState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeLoreState", records.len());
     let len = records.len();
@@ -1985,7 +1985,7 @@ pub fn import_knowledge_lore_state(ctx: &ReducerContext, records: Vec<KnowledgeL
 pub fn import_knowledge_npc_state(ctx: &ReducerContext, records: Vec<KnowledgeNpcState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeNpcState", records.len());
     let len = records.len();
@@ -1999,7 +1999,7 @@ pub fn import_knowledge_npc_state(ctx: &ReducerContext, records: Vec<KnowledgeNp
 pub fn import_knowledge_pillar_shaping_state(ctx: &ReducerContext, records: Vec<KnowledgePillarShapingState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgePillarShapingState", records.len());
     let len = records.len();
@@ -2013,7 +2013,7 @@ pub fn import_knowledge_pillar_shaping_state(ctx: &ReducerContext, records: Vec<
 pub fn import_knowledge_paving_state(ctx: &ReducerContext, records: Vec<KnowledgePavingState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgePavingState", records.len());
     let len = records.len();
@@ -2027,7 +2027,7 @@ pub fn import_knowledge_paving_state(ctx: &ReducerContext, records: Vec<Knowledg
 pub fn import_knowledge_resource_placement_state(ctx: &ReducerContext, records: Vec<KnowledgeResourcePlacementState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeResourcePlacementState", records.len());
     let len = records.len();
@@ -2041,7 +2041,7 @@ pub fn import_knowledge_resource_placement_state(ctx: &ReducerContext, records: 
 pub fn import_knowledge_resource_state(ctx: &ReducerContext, records: Vec<KnowledgeResourceState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeResourceState", records.len());
     let len = records.len();
@@ -2055,7 +2055,7 @@ pub fn import_knowledge_resource_state(ctx: &ReducerContext, records: Vec<Knowle
 pub fn import_knowledge_ruins_state(ctx: &ReducerContext, records: Vec<KnowledgeRuinsState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeRuinsState", records.len());
     let len = records.len();
@@ -2075,7 +2075,7 @@ pub fn import_knowledge_scroll_desc(ctx: &ReducerContext, records: Vec<Knowledge
 }
 fn import_knowledge_scroll_desc_internal(ctx: &ReducerContext, records: Vec<KnowledgeScrollDesc>) -> Result<(), String> {
     for id in ctx.db.knowledge_scroll_desc().iter().map(|item| item.item_id) {
-        ctx.db.knowledge_scroll_desc().item_id().delete(&id);
+        ctx.db.knowledge_scroll_desc().item_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type KnowledgeScrollDesc", len);
@@ -2101,7 +2101,7 @@ pub fn import_knowledge_scroll_type_desc(ctx: &ReducerContext, records: Vec<Know
 }
 fn import_knowledge_scroll_type_desc_internal(ctx: &ReducerContext, records: Vec<KnowledgeScrollTypeDesc>) -> Result<(), String> {
     for id in ctx.db.knowledge_scroll_type_desc().iter().map(|item| item.id) {
-        ctx.db.knowledge_scroll_type_desc().id().delete(&id);
+        ctx.db.knowledge_scroll_type_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type KnowledgeScrollTypeDesc", len);
@@ -2121,7 +2121,7 @@ fn import_knowledge_scroll_type_desc_internal(ctx: &ReducerContext, records: Vec
 pub fn import_knowledge_secondary_state(ctx: &ReducerContext, records: Vec<KnowledgeSecondaryState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeSecondaryState", records.len());
     let len = records.len();
@@ -2135,7 +2135,7 @@ pub fn import_knowledge_secondary_state(ctx: &ReducerContext, records: Vec<Knowl
 pub fn import_knowledge_vault_state(ctx: &ReducerContext, records: Vec<KnowledgeVaultState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeVaultState", records.len());
     let len = records.len();
@@ -2149,7 +2149,7 @@ pub fn import_knowledge_vault_state(ctx: &ReducerContext, records: Vec<Knowledge
 pub fn import_knowledge_deployable_state(ctx: &ReducerContext, records: Vec<KnowledgeDeployableState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type KnowledgeDeployableState", records.len());
     let len = records.len();
@@ -2163,7 +2163,7 @@ pub fn import_knowledge_deployable_state(ctx: &ReducerContext, records: Vec<Know
 pub fn import_location_cache(ctx: &ReducerContext, records: Vec<LocationCache>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type LocationCache", records.len());
     let len = records.len();
@@ -2177,7 +2177,7 @@ pub fn import_location_cache(ctx: &ReducerContext, records: Vec<LocationCache>) 
 pub fn import_location_state(ctx: &ReducerContext, records: Vec<LocationState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type LocationState", records.len());
     let len = records.len();
@@ -2197,7 +2197,7 @@ pub fn import_loot_chest_desc(ctx: &ReducerContext, records: Vec<LootChestDesc>)
 }
 fn import_loot_chest_desc_internal(ctx: &ReducerContext, records: Vec<LootChestDesc>) -> Result<(), String> {
     for id in ctx.db.loot_chest_desc().iter().map(|item| item.id) {
-        ctx.db.loot_chest_desc().id().delete(&id);
+        ctx.db.loot_chest_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type LootChestDesc", len);
@@ -2215,7 +2215,7 @@ fn import_loot_chest_desc_internal(ctx: &ReducerContext, records: Vec<LootChestD
 pub fn import_loot_chest_state(ctx: &ReducerContext, records: Vec<LootChestState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type LootChestState", records.len());
     let len = records.len();
@@ -2235,7 +2235,7 @@ pub fn import_loot_rarity_desc(ctx: &ReducerContext, records: Vec<LootRarityDesc
 }
 fn import_loot_rarity_desc_internal(ctx: &ReducerContext, records: Vec<LootRarityDesc>) -> Result<(), String> {
     for id in ctx.db.loot_rarity_desc().iter().map(|item| item.id) {
-        ctx.db.loot_rarity_desc().id().delete(&id);
+        ctx.db.loot_rarity_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type LootRarityDesc", len);
@@ -2259,7 +2259,7 @@ pub fn import_loot_table_desc(ctx: &ReducerContext, records: Vec<LootTableDesc>)
 }
 fn import_loot_table_desc_internal(ctx: &ReducerContext, records: Vec<LootTableDesc>) -> Result<(), String> {
     for id in ctx.db.loot_table_desc().iter().map(|item| item.id) {
-        ctx.db.loot_table_desc().id().delete(&id);
+        ctx.db.loot_table_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type LootTableDesc", len);
@@ -2277,7 +2277,7 @@ fn import_loot_table_desc_internal(ctx: &ReducerContext, records: Vec<LootTableD
 pub fn import_mobile_entity_state(ctx: &ReducerContext, records: Vec<MobileEntityState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type MobileEntityState", records.len());
     let len = records.len();
@@ -2291,7 +2291,7 @@ pub fn import_mobile_entity_state(ctx: &ReducerContext, records: Vec<MobileEntit
 pub fn import_mounting_state(ctx: &ReducerContext, records: Vec<MountingState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type MountingState", records.len());
     let len = records.len();
@@ -2311,7 +2311,7 @@ pub fn import_npc_desc(ctx: &ReducerContext, records: Vec<NpcDesc>) -> Result<()
 }
 fn import_npc_desc_internal(ctx: &ReducerContext, records: Vec<NpcDesc>) -> Result<(), String> {
     for id in ctx.db.npc_desc().iter().map(|item| item.npc_type) {
-        ctx.db.npc_desc().npc_type().delete(&id);
+        ctx.db.npc_desc().npc_type().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type NpcDesc", len);
@@ -2332,7 +2332,7 @@ fn import_npc_desc_internal(ctx: &ReducerContext, records: Vec<NpcDesc>) -> Resu
 pub fn import_npc_state(ctx: &ReducerContext, records: Vec<NpcState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type NpcState", records.len());
     let len = records.len();
@@ -2352,7 +2352,7 @@ pub fn import_onboarding_reward_desc(ctx: &ReducerContext, records: Vec<Onboardi
 }
 fn import_onboarding_reward_desc_internal(ctx: &ReducerContext, records: Vec<OnboardingRewardDesc>) -> Result<(), String> {
     for id in ctx.db.onboarding_reward_desc().iter().map(|item| item.state_id) {
-        ctx.db.onboarding_reward_desc().state_id().delete(&id);
+        ctx.db.onboarding_reward_desc().state_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type OnboardingRewardDesc", len);
@@ -2372,7 +2372,7 @@ fn import_onboarding_reward_desc_internal(ctx: &ReducerContext, records: Vec<Onb
 pub fn import_onboarding_state(ctx: &ReducerContext, records: Vec<OnboardingState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type OnboardingState", records.len());
     let len = records.len();
@@ -2392,10 +2392,10 @@ pub fn import_parameters_desc(ctx: &ReducerContext, records: Vec<ParametersDesc>
 }
 fn import_parameters_desc_internal(ctx: &ReducerContext, records: Vec<ParametersDesc>) -> Result<(), String> {
     for id in ctx.db.parameters_desc().iter().map(|item| item.version) {
-        ctx.db.parameters_desc().version().delete(&id);
+        ctx.db.parameters_desc().version().delete(id);
     }
     for id in ctx.db.parameters_player_move_desc().iter().map(|item| item.version) {
-        ctx.db.parameters_player_move_desc().version().delete(&id);
+        ctx.db.parameters_player_move_desc().version().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ParametersDesc", len);
@@ -2429,7 +2429,7 @@ pub fn import_private_parameters_desc(ctx: &ReducerContext, records: Vec<Private
 }
 fn import_private_parameters_desc_internal(ctx: &ReducerContext, records: Vec<PrivateParametersDesc>) -> Result<(), String> {
     for id in ctx.db.private_parameters_desc().iter().map(|item| item.version) {
-        ctx.db.private_parameters_desc().version().delete(&id);
+        ctx.db.private_parameters_desc().version().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PrivateParametersDesc", len);
@@ -2449,7 +2449,7 @@ fn import_private_parameters_desc_internal(ctx: &ReducerContext, records: Vec<Pr
 pub fn import_paved_tile_state(ctx: &ReducerContext, records: Vec<PavedTileState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type PavedTileState", records.len());
     let len = records.len();
@@ -2469,7 +2469,7 @@ pub fn import_pathfinding_desc(ctx: &ReducerContext, records: Vec<PathfindingDes
 
 pub fn import_pathfinding_desc_internal(ctx: &ReducerContext, records: Vec<PathfindingDesc>) -> Result<(), String> {
     for id in ctx.db.pathfinding_desc().iter().map(|item| item.id) {
-        ctx.db.pathfinding_desc().id().delete(&id);
+        ctx.db.pathfinding_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PathfindingDesc", len);
@@ -2495,7 +2495,7 @@ pub fn import_pillar_shaping_desc(ctx: &ReducerContext, records: Vec<PillarShapi
 
 fn import_pillar_shaping_desc_internal(ctx: &ReducerContext, records: Vec<PillarShapingDesc>) -> Result<(), String> {
     for id in ctx.db.pillar_shaping_desc().iter().map(|item| item.id) {
-        ctx.db.pillar_shaping_desc().id().delete(&id);
+        ctx.db.pillar_shaping_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PillarShapingDesc", len);
@@ -2581,7 +2581,7 @@ pub fn import_paving_tile_desc(ctx: &ReducerContext, records: Vec<PavingTileDesc
 }
 fn import_paving_tile_desc_internal(ctx: &ReducerContext, records: Vec<PavingTileDesc>) -> Result<(), String> {
     for id in ctx.db.paving_tile_desc().iter().map(|item| item.id) {
-        ctx.db.paving_tile_desc().id().delete(&id);
+        ctx.db.paving_tile_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PavingTileDesc", len);
@@ -2643,7 +2643,7 @@ fn import_paving_tile_desc_internal(ctx: &ReducerContext, records: Vec<PavingTil
 pub fn import_player_action_state(ctx: &ReducerContext, records: Vec<PlayerActionState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type PlayerActionState", records.len());
     let len = records.len();
@@ -2657,7 +2657,7 @@ pub fn import_player_action_state(ctx: &ReducerContext, records: Vec<PlayerActio
 pub fn import_player_prefs_state(ctx: &ReducerContext, records: Vec<PlayerPrefsState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type PlayerPrefsState", records.len());
     let len = records.len();
@@ -2671,7 +2671,7 @@ pub fn import_player_prefs_state(ctx: &ReducerContext, records: Vec<PlayerPrefsS
 pub fn import_player_state(ctx: &ReducerContext, records: Vec<PlayerState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type PlayerState", records.len());
     let len = records.len();
@@ -2685,7 +2685,7 @@ pub fn import_player_state(ctx: &ReducerContext, records: Vec<PlayerState>) {
 pub fn import_portal_state(ctx: &ReducerContext, records: Vec<PortalState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type PortalState", records.len());
     let len = records.len();
@@ -2699,7 +2699,7 @@ pub fn import_portal_state(ctx: &ReducerContext, records: Vec<PortalState>) {
 pub fn import_progressive_action_state(ctx: &ReducerContext, records: Vec<ProgressiveActionState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ProgressiveActionState", records.len());
     let len = records.len();
@@ -2713,7 +2713,7 @@ pub fn import_progressive_action_state(ctx: &ReducerContext, records: Vec<Progre
 pub fn import_project_site_state(ctx: &ReducerContext, records: Vec<ProjectSiteState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ProjectSiteState", records.len());
     let len = records.len();
@@ -2727,7 +2727,7 @@ pub fn import_project_site_state(ctx: &ReducerContext, records: Vec<ProjectSiteS
 pub fn import_rent_state(ctx: &ReducerContext, records: Vec<RentState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type RentState", records.len());
     let len = records.len();
@@ -2748,10 +2748,10 @@ pub fn import_resource_clump_desc(ctx: &ReducerContext, records: Vec<ResourceClu
 
 fn import_resource_clump_desc_internal(ctx: &ReducerContext, records: Vec<ResourceClumpDesc>) -> Result<(), String> {
     for id in ctx.db.resource_clump_desc().iter().map(|item| item.id) {
-        ctx.db.resource_clump_desc().id().delete(&id);
+        ctx.db.resource_clump_desc().id().delete(id);
     }
     for id in ctx.db.single_resource_to_clump_desc().iter().map(|item| item.resource_id) {
-        ctx.db.single_resource_to_clump_desc().resource_id().delete(&id);
+        ctx.db.single_resource_to_clump_desc().resource_id().delete(id);
     }
 
     let len: usize = records.len();
@@ -2783,7 +2783,7 @@ fn import_resource_clump_desc_internal(ctx: &ReducerContext, records: Vec<Resour
 pub fn import_resource_count(ctx: &ReducerContext, records: Vec<ResourceCount>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ResourceCount", records.len());
     let len = records.len();
@@ -2803,7 +2803,7 @@ pub fn import_resource_desc(ctx: &ReducerContext, records: Vec<ResourceDesc>) ->
 }
 fn import_resource_desc_internal(ctx: &ReducerContext, records: Vec<ResourceDesc>) -> Result<(), String> {
     for id in ctx.db.resource_desc().iter().map(|item| item.id) {
-        ctx.db.resource_desc().id().delete(&id);
+        ctx.db.resource_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ResourceDesc", len);
@@ -2827,7 +2827,7 @@ pub fn import_resource_growth_recipe_desc(ctx: &ReducerContext, records: Vec<Res
 }
 fn import_resource_growth_recipe_desc_internal(ctx: &ReducerContext, records: Vec<ResourceGrowthRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.resource_growth_recipe_desc().iter().map(|item| item.id) {
-        ctx.db.resource_growth_recipe_desc().id().delete(&id);
+        ctx.db.resource_growth_recipe_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ResourceGrowthRecipeDesc", len);
@@ -2853,7 +2853,7 @@ pub fn import_resource_placement_recipe_desc(ctx: &ReducerContext, records: Vec<
 }
 fn import_resource_placement_recipe_desc_internal(ctx: &ReducerContext, records: Vec<ResourcePlacementRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.resource_placement_recipe_desc().iter().map(|item| item.id) {
-        ctx.db.resource_placement_recipe_desc().id().delete(&id);
+        ctx.db.resource_placement_recipe_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ResourcePlacementRecipeDesc", len);
@@ -2929,7 +2929,7 @@ fn import_resource_placement_recipe_desc_internal(ctx: &ReducerContext, records:
 pub fn import_resource_state(ctx: &ReducerContext, records: Vec<ResourceState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ResourceState", records.len());
     let len = records.len();
@@ -2943,7 +2943,7 @@ pub fn import_resource_state(ctx: &ReducerContext, records: Vec<ResourceState>) 
 pub fn import_resources_log(ctx: &ReducerContext, records: Vec<ResourcesLog>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ResourcesLog", records.len());
     let len = records.len();
@@ -2963,7 +2963,7 @@ pub fn import_secondary_knowledge_desc(ctx: &ReducerContext, records: Vec<Second
 }
 fn import_secondary_knowledge_desc_internal(ctx: &ReducerContext, records: Vec<SecondaryKnowledgeDesc>) -> Result<(), String> {
     for id in ctx.db.secondary_knowledge_desc().iter().map(|item| item.id) {
-        ctx.db.secondary_knowledge_desc().id().delete(&id);
+        ctx.db.secondary_knowledge_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type SecondaryKnowledgeDesc", len);
@@ -2990,7 +2990,7 @@ pub fn import_skill_level_knowledge_desc(ctx: &ReducerContext, records: Vec<Skil
 
 fn import_skill_level_knowledge_desc_internal(ctx: &ReducerContext, records: Vec<SkillLevelKnowledgeDesc>) -> Result<(), String> {
     for id in ctx.db.skill_level_knowledge_desc().iter().map(|item| item.id) {
-        ctx.db.skill_level_knowledge_desc().id().delete(&id);
+        ctx.db.skill_level_knowledge_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type SkillLevelKnowledgeDesc", len);
@@ -3010,7 +3010,7 @@ fn import_skill_level_knowledge_desc_internal(ctx: &ReducerContext, records: Vec
 pub fn import_server_identity(ctx: &ReducerContext, records: Vec<ServerIdentity>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type ServerIdentity", records.len());
     let len = records.len();
@@ -3024,7 +3024,7 @@ pub fn import_server_identity(ctx: &ReducerContext, records: Vec<ServerIdentity>
 pub fn import_signed_in_player_state(ctx: &ReducerContext, records: Vec<SignedInPlayerState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type SignedInPlayerState", records.len());
     let len = records.len();
@@ -3038,7 +3038,7 @@ pub fn import_signed_in_player_state(ctx: &ReducerContext, records: Vec<SignedIn
 pub fn import_stamina_state(ctx: &ReducerContext, records: Vec<StaminaState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type StaminaState", records.len());
     let len = records.len();
@@ -3052,7 +3052,7 @@ pub fn import_stamina_state(ctx: &ReducerContext, records: Vec<StaminaState>) {
 pub fn import_target_state(ctx: &ReducerContext, records: Vec<TargetState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type TargetState", records.len());
     let len = records.len();
@@ -3066,7 +3066,7 @@ pub fn import_target_state(ctx: &ReducerContext, records: Vec<TargetState>) {
 pub fn import_targetable_state(ctx: &ReducerContext, records: Vec<TargetableState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type TargetableState", records.len());
     let len = records.len();
@@ -3086,7 +3086,7 @@ pub fn import_targeting_matrix_desc(ctx: &ReducerContext, records: Vec<Targeting
 }
 fn import_targeting_matrix_desc_internal(ctx: &ReducerContext, records: Vec<TargetingMatrixDesc>) -> Result<(), String> {
     for id in ctx.db.targeting_matrix_desc().iter().map(|item| item.id) {
-        ctx.db.targeting_matrix_desc().id().delete(&id);
+        ctx.db.targeting_matrix_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type TargetingMatrixDesc", len);
@@ -3112,7 +3112,7 @@ pub fn import_teleport_item_desc(ctx: &ReducerContext, records: Vec<TeleportItem
 }
 fn import_teleport_item_desc_internal(ctx: &ReducerContext, records: Vec<TeleportItemDesc>) -> Result<(), String> {
     for id in ctx.db.teleport_item_desc().iter().map(|item| item.id) {
-        ctx.db.teleport_item_desc().id().delete(&id);
+        ctx.db.teleport_item_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type TeleportItemDesc", len);
@@ -3138,7 +3138,7 @@ pub fn import_terraform_recipe_desc(ctx: &ReducerContext, records: Vec<Terraform
 }
 fn import_terraform_recipe_desc_internal(ctx: &ReducerContext, records: Vec<TerraformRecipeDesc>) -> Result<(), String> {
     for id in ctx.db.terraform_recipe_desc().iter().map(|item| item.difference) {
-        ctx.db.terraform_recipe_desc().difference().delete(&id);
+        ctx.db.terraform_recipe_desc().difference().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type TerraformRecipeDesc", len);
@@ -3158,7 +3158,7 @@ fn import_terraform_recipe_desc_internal(ctx: &ReducerContext, records: Vec<Terr
 pub fn import_terrain_chunk_state(ctx: &ReducerContext, records: Vec<TerrainChunkState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type TerrainChunkState", records.len());
     let len = records.len();
@@ -3178,7 +3178,7 @@ pub fn import_tool_desc(ctx: &ReducerContext, records: Vec<ToolDesc>) -> Result<
 }
 fn import_tool_desc_internal(ctx: &ReducerContext, records: Vec<ToolDesc>) -> Result<(), String> {
     for id in ctx.db.tool_desc().iter().map(|item| item.id) {
-        ctx.db.tool_desc().id().delete(&id);
+        ctx.db.tool_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ToolDesc", len);
@@ -3202,7 +3202,7 @@ pub fn import_tool_type_desc(ctx: &ReducerContext, records: Vec<ToolTypeDesc>) -
 }
 fn import_tool_type_desc_internal(ctx: &ReducerContext, records: Vec<ToolTypeDesc>) -> Result<(), String> {
     for id in ctx.db.tool_type_desc().iter().map(|item| item.id) {
-        ctx.db.tool_type_desc().id().delete(&id);
+        ctx.db.tool_type_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ToolTypeDesc", len);
@@ -3220,7 +3220,7 @@ fn import_tool_type_desc_internal(ctx: &ReducerContext, records: Vec<ToolTypeDes
 pub fn import_trade_order_state(ctx: &ReducerContext, records: Vec<TradeOrderState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type TradeOrderState", records.len());
     let len = records.len();
@@ -3234,7 +3234,7 @@ pub fn import_trade_order_state(ctx: &ReducerContext, records: Vec<TradeOrderSta
 pub fn import_trade_session_state(ctx: &ReducerContext, records: Vec<TradeSessionState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type TradeSessionState", records.len());
     let len = records.len();
@@ -3254,7 +3254,7 @@ pub fn import_traveler_trade_order_desc(ctx: &ReducerContext, records: Vec<Trave
 }
 fn import_traveler_trade_order_desc_internal(ctx: &ReducerContext, records: Vec<TravelerTradeOrderDesc>) -> Result<(), String> {
     for id in ctx.db.traveler_trade_order_desc().iter().map(|item| item.id) {
-        ctx.db.traveler_trade_order_desc().id().delete(&id);
+        ctx.db.traveler_trade_order_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type TravelerTradeOrderDesc", len);
@@ -3281,7 +3281,7 @@ pub fn import_traveler_task_desc(ctx: &ReducerContext, records: Vec<TravelerTask
 
 fn import_traveler_task_desc_internal(ctx: &ReducerContext, records: Vec<TravelerTaskDesc>) -> Result<(), String> {
     for id in ctx.db.traveler_task_desc().iter().map(|item| item.id) {
-        ctx.db.traveler_task_desc().id().delete(&id);
+        ctx.db.traveler_task_desc().id().delete(id);
     }
 
     let len: usize = records.len();
@@ -3320,7 +3320,7 @@ fn import_traveler_task_knowledge_requirement_desc_internal(
         .iter()
         .map(|item| item.traveler_task_id)
     {
-        ctx.db.traveler_task_knowledge_requirement_desc().traveler_task_id().delete(&id);
+        ctx.db.traveler_task_knowledge_requirement_desc().traveler_task_id().delete(id);
     }
 
     let len: usize = records.len();
@@ -3341,7 +3341,7 @@ fn import_traveler_task_knowledge_requirement_desc_internal(
 pub fn import_user_moderation_state(ctx: &ReducerContext, records: Vec<UserModerationState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type UserModerationState", records.len());
     let len = records.len();
@@ -3355,7 +3355,7 @@ pub fn import_user_moderation_state(ctx: &ReducerContext, records: Vec<UserModer
 pub fn import_user_state(ctx: &ReducerContext, records: Vec<UserState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type UserState", records.len());
     let len = records.len();
@@ -3369,7 +3369,7 @@ pub fn import_user_state(ctx: &ReducerContext, records: Vec<UserState>) {
 pub fn import_vault_state(ctx: &ReducerContext, records: Vec<VaultState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type VaultState", records.len());
     let len = records.len();
@@ -3389,7 +3389,7 @@ pub fn import_deployable_desc(ctx: &ReducerContext, records: Vec<DeployableDesc>
 }
 fn import_deployable_desc_internal(ctx: &ReducerContext, records: Vec<DeployableDesc>) -> Result<(), String> {
     for id in ctx.db.deployable_desc().iter().map(|item| item.id) {
-        ctx.db.deployable_desc().id().delete(&id);
+        ctx.db.deployable_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type DeployableDesc", len);
@@ -3419,7 +3419,7 @@ fn import_deployable_appearance_override_desc_internal(
     records: Vec<DeployableAppearanceOverrideDesc>,
 ) -> Result<(), String> {
     for id in ctx.db.deployable_appearance_override_desc().iter().map(|item| item.id) {
-        ctx.db.deployable_appearance_override_desc().id().delete(&id);
+        ctx.db.deployable_appearance_override_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type DeployableAppearanceOverrideDesc", len);
@@ -3439,7 +3439,7 @@ fn import_deployable_appearance_override_desc_internal(
 pub fn import_deployable_state(ctx: &ReducerContext, records: Vec<DeployableState>) {
     if !has_role(ctx, &ctx.sender(), Role::Admin) {
         log::error!("Invalid permissions");
-        return ();
+        return ;
     }
     log::info!("Will insert {} records of type DeployableState", records.len());
     let len = records.len();
@@ -3459,7 +3459,7 @@ pub fn import_weapon_desc(ctx: &ReducerContext, records: Vec<WeaponDesc>) -> Res
 }
 fn import_weapon_desc_internal(ctx: &ReducerContext, records: Vec<WeaponDesc>) -> Result<(), String> {
     for id in ctx.db.weapon_desc().iter().map(|item| item.item_id) {
-        ctx.db.weapon_desc().item_id().delete(&id);
+        ctx.db.weapon_desc().item_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type WeaponDesc", len);
@@ -3483,7 +3483,7 @@ pub fn import_weapon_type_desc(ctx: &ReducerContext, records: Vec<WeaponTypeDesc
 }
 fn import_weapon_type_desc_internal(ctx: &ReducerContext, records: Vec<WeaponTypeDesc>) -> Result<(), String> {
     for id in ctx.db.weapon_type_desc().iter().map(|item| item.id) {
-        ctx.db.weapon_type_desc().id().delete(&id);
+        ctx.db.weapon_type_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type WeaponTypeDesc", len);
@@ -3507,7 +3507,7 @@ pub fn import_empire_rank_desc(ctx: &ReducerContext, records: Vec<EmpireRankDesc
 }
 fn import_empire_rank_desc_internal(ctx: &ReducerContext, records: Vec<EmpireRankDesc>) -> Result<(), String> {
     for id in ctx.db.empire_rank_desc().iter().map(|item| item.rank) {
-        ctx.db.empire_rank_desc().rank().delete(&id);
+        ctx.db.empire_rank_desc().rank().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EmpireRankDesc", len);
@@ -3533,7 +3533,7 @@ pub fn import_empire_supplies_desc(ctx: &ReducerContext, records: Vec<EmpireSupp
 }
 fn import_empire_supplies_desc_internal(ctx: &ReducerContext, records: Vec<EmpireSuppliesDesc>) -> Result<(), String> {
     for id in ctx.db.empire_supplies_desc().iter().map(|item| item.cargo_id) {
-        ctx.db.empire_supplies_desc().cargo_id().delete(&id);
+        ctx.db.empire_supplies_desc().cargo_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EmpireSuppliesDesc", len);
@@ -3559,7 +3559,7 @@ pub fn import_empire_notification_desc(ctx: &ReducerContext, records: Vec<Empire
 }
 fn import_empire_notification_desc_internal(ctx: &ReducerContext, records: Vec<EmpireNotificationDesc>) -> Result<(), String> {
     for id in ctx.db.empire_notification_desc().iter().map(|item| item.id) {
-        ctx.db.empire_notification_desc().id().delete(&id);
+        ctx.db.empire_notification_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EmpireNotificationDesc", len);
@@ -3585,7 +3585,7 @@ pub fn import_empire_territory_desc(ctx: &ReducerContext, records: Vec<EmpireTer
 }
 fn import_empire_territory_desc_internal(ctx: &ReducerContext, records: Vec<EmpireTerritoryDesc>) -> Result<(), String> {
     for id in ctx.db.empire_territory_desc().iter().map(|item| item.id) {
-        ctx.db.empire_territory_desc().id().delete(&id);
+        ctx.db.empire_territory_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EmpireTerritoryDesc", len);
@@ -3611,7 +3611,7 @@ pub fn import_empire_colors_desc(ctx: &ReducerContext, records: Vec<EmpireColorD
 }
 fn import_empire_colors_desc_internal(ctx: &ReducerContext, records: Vec<EmpireColorDesc>) -> Result<(), String> {
     for id in ctx.db.empire_color_desc().iter().map(|item| item.id) {
-        ctx.db.empire_color_desc().id().delete(&id);
+        ctx.db.empire_color_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EmpireColorDesc", len);
@@ -3635,7 +3635,7 @@ pub fn import_empire_icon_desc(ctx: &ReducerContext, records: Vec<EmpireIconDesc
 }
 fn import_empire_icon_desc_internal(ctx: &ReducerContext, records: Vec<EmpireIconDesc>) -> Result<(), String> {
     for id in ctx.db.empire_icon_desc().iter().map(|item| item.id) {
-        ctx.db.empire_icon_desc().id().delete(&id);
+        ctx.db.empire_icon_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EmpireIconDesc", len);
@@ -3659,7 +3659,7 @@ pub fn import_wall_desc(ctx: &ReducerContext, records: Vec<WallDesc>) -> Result<
 }
 fn import_wall_desc_internal(ctx: &ReducerContext, records: Vec<WallDesc>) -> Result<(), String> {
     for id in ctx.db.wall_desc().iter().map(|item| item.building_id) {
-        ctx.db.wall_desc().building_id().delete(&id);
+        ctx.db.wall_desc().building_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type WallDesc", len);
@@ -3683,7 +3683,7 @@ pub fn import_gate_desc(ctx: &ReducerContext, records: Vec<GateDesc>) -> Result<
 }
 fn import_gate_desc_internal(ctx: &ReducerContext, records: Vec<GateDesc>) -> Result<(), String> {
     for id in ctx.db.gate_desc().iter().map(|item| item.building_id) {
-        ctx.db.gate_desc().building_id().delete(&id);
+        ctx.db.gate_desc().building_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type WallDesc", len);
@@ -3705,7 +3705,7 @@ fn import_static_data_post_processing(ctx: &ReducerContext) -> Result<(), String
 
         if item_list_id > 0 {
             let item_stack = ItemStack {
-                item_id: item_id,
+                item_id,
                 quantity: 1,
                 item_type: ItemType::Item,
                 durability: None,
@@ -3747,7 +3747,7 @@ pub fn import_elevator_desc(ctx: &ReducerContext, records: Vec<ElevatorDesc>) ->
 }
 fn import_elevator_desc_internal(ctx: &ReducerContext, records: Vec<ElevatorDesc>) -> Result<(), String> {
     for id in ctx.db.elevator_desc().iter().map(|item| item.building_id) {
-        ctx.db.elevator_desc().building_id().delete(&id);
+        ctx.db.elevator_desc().building_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ElevatorDesc", len);
@@ -3771,7 +3771,7 @@ pub fn import_floating_platform_desc(ctx: &ReducerContext, records: Vec<Floating
 }
 fn import_floating_platform_desc_internal(ctx: &ReducerContext, records: Vec<FloatingPlatformDesc>) -> Result<(), String> {
     for id in ctx.db.floating_platform_desc().iter().map(|item| item.building_id) {
-        ctx.db.floating_platform_desc().building_id().delete(&id);
+        ctx.db.floating_platform_desc().building_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type FloatingPlatformDesc", len);
@@ -3788,13 +3788,13 @@ fn import_floating_platform_desc_internal(ctx: &ReducerContext, records: Vec<Flo
 
 fn generate_building_function_mappings(ctx: &ReducerContext) -> Result<(), String> {
     for id in ctx.db.building_function_type_mapping_desc().iter().map(|item| item.type_id) {
-        ctx.db.building_function_type_mapping_desc().type_id().delete(&id);
+        ctx.db.building_function_type_mapping_desc().type_id().delete(id);
     }
 
     for building_desc in ctx.db.building_desc().iter() {
         for function in building_desc.functions {
             let function_type = function.function_type;
-            let mut mapping = match ctx.db.building_function_type_mapping_desc().type_id().find(&function_type) {
+            let mut mapping = match ctx.db.building_function_type_mapping_desc().type_id().find(function_type) {
                 Some(f) => f,
                 None => ctx
                     .db
@@ -3823,7 +3823,7 @@ pub fn import_player_action_desc(ctx: &ReducerContext, records: Vec<PlayerAction
 }
 fn import_player_action_desc_internal(ctx: &ReducerContext, records: Vec<PlayerActionDesc>) -> Result<(), String> {
     for id in ctx.db.player_action_desc().iter().map(|item| item.action_type_id) {
-        ctx.db.player_action_desc().action_type_id().delete(&id);
+        ctx.db.player_action_desc().action_type_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PlayerActionDesc", len);
@@ -3849,7 +3849,7 @@ pub fn import_distant_visible_entity_desc(ctx: &ReducerContext, records: Vec<Dis
 }
 fn import_distant_visible_entity_desc_internal(ctx: &ReducerContext, records: Vec<DistantVisibleEntityDesc>) -> Result<(), String> {
     for id in ctx.db.distant_visible_entity_desc().iter().map(|item| item.id) {
-        ctx.db.distant_visible_entity_desc().id().delete(&id);
+        ctx.db.distant_visible_entity_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type DistantVisibleEntityDesc", len);
@@ -3875,7 +3875,7 @@ pub fn import_player_housing_desc(ctx: &ReducerContext, records: Vec<PlayerHousi
 }
 fn import_player_housing_desc_internal(ctx: &ReducerContext, records: Vec<PlayerHousingDesc>) -> Result<(), String> {
     for id in ctx.db.player_housing_desc().iter().map(|item| item.secondary_knowledge_id) {
-        ctx.db.player_housing_desc().secondary_knowledge_id().delete(&id);
+        ctx.db.player_housing_desc().secondary_knowledge_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PlayerHousingDesc", len);
@@ -3901,7 +3901,7 @@ pub fn import_hexite_exchange_entry_desc(ctx: &ReducerContext, records: Vec<Hexi
 }
 fn import_hexite_exchange_entry_desc_internal(ctx: &ReducerContext, records: Vec<HexiteExchangeEntryDesc>) -> Result<(), String> {
     for id in ctx.db.hexite_exchange_entry_desc().iter().map(|item| item.id) {
-        ctx.db.hexite_exchange_entry_desc().id().delete(&id);
+        ctx.db.hexite_exchange_entry_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type HexiteExchangeEntryDesc", len);
@@ -3951,7 +3951,7 @@ pub fn import_contribution_loot_desc(ctx: &ReducerContext, records: Vec<Contribu
 }
 fn import_contribution_loot_desc_internal(ctx: &ReducerContext, records: Vec<ContributionLootDesc>) -> Result<(), String> {
     for id in ctx.db.contribution_loot_desc().iter().map(|item: ContributionLootDesc| item.id) {
-        ctx.db.contribution_loot_desc().id().delete(&id);
+        ctx.db.contribution_loot_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ContributionLootDesc", len);
@@ -3978,7 +3978,7 @@ pub fn import_wind_params_desc(ctx: &ReducerContext, records: Vec<WindParamsDesc
 }
 fn import_wind_params_desc_internal(ctx: &ReducerContext, records: Vec<WindParamsDesc>) -> Result<(), String> {
     for id in ctx.db.wind_params_desc().iter().map(|item: WindParamsDesc| item.id) {
-        ctx.db.wind_params_desc().id().delete(&id);
+        ctx.db.wind_params_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type WindParamsDesc", len);
@@ -4005,7 +4005,7 @@ pub fn import_enemy_scaling_desc(ctx: &ReducerContext, records: Vec<EnemyScaling
 }
 fn import_enemy_scaling_desc_internal(ctx: &ReducerContext, records: Vec<EnemyScalingDesc>) -> Result<(), String> {
     for id in ctx.db.enemy_scaling_desc().iter().map(|item: EnemyScalingDesc| item.id) {
-        ctx.db.enemy_scaling_desc().id().delete(&id);
+        ctx.db.enemy_scaling_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EnemyScalingDesc", len);
@@ -4032,7 +4032,7 @@ pub fn import_premium_item_desc(ctx: &ReducerContext, records: Vec<PremiumItemDe
 }
 fn import_premium_item_desc_internal(ctx: &ReducerContext, records: Vec<PremiumItemDesc>) -> Result<(), String> {
     for id in ctx.db.premium_item_desc().iter().map(|item: PremiumItemDesc| item.id) {
-        ctx.db.premium_item_desc().id().delete(&id);
+        ctx.db.premium_item_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PremiumItemDesc", len);
@@ -4059,7 +4059,7 @@ pub fn import_premium_service_desc(ctx: &ReducerContext, records: Vec<PremiumSer
 }
 fn import_premium_service_desc_internal(ctx: &ReducerContext, records: Vec<PremiumServiceDesc>) -> Result<(), String> {
     for id in ctx.db.premium_service_desc().iter().map(|item: PremiumServiceDesc| item.id) {
-        ctx.db.premium_service_desc().id().delete(&id);
+        ctx.db.premium_service_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PremiumServiceDesc", len);
@@ -4086,7 +4086,7 @@ pub fn import_ability_unlock_desc(ctx: &ReducerContext, records: Vec<AbilityUnlo
 }
 fn import_ability_unlock_desc_internal(ctx: &ReducerContext, records: Vec<AbilityUnlockDesc>) -> Result<(), String> {
     for id in ctx.db.ability_unlock_desc().iter().map(|item: AbilityUnlockDesc| item.id) {
-        ctx.db.ability_unlock_desc().id().delete(&id);
+        ctx.db.ability_unlock_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type AbilityUnlockDesc", len);
@@ -4113,7 +4113,7 @@ pub fn import_ability_custom_desc(ctx: &ReducerContext, records: Vec<AbilityCust
 }
 fn import_ability_custom_desc_internal(ctx: &ReducerContext, records: Vec<AbilityCustomDesc>) -> Result<(), String> {
     for id in ctx.db.ability_custom_desc().iter().map(|item: AbilityCustomDesc| item.id) {
-        ctx.db.ability_custom_desc().id().delete(&id);
+        ctx.db.ability_custom_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type AbilityCustomDesc", len);
@@ -4140,7 +4140,7 @@ pub fn import_prospecting_desc(ctx: &ReducerContext, records: Vec<ProspectingDes
 }
 fn import_prospecting_desc_internal(ctx: &ReducerContext, records: Vec<ProspectingDesc>) -> Result<(), String> {
     for id in ctx.db.prospecting_desc().iter().map(|item: ProspectingDesc| item.id) {
-        ctx.db.prospecting_desc().id().delete(&id);
+        ctx.db.prospecting_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type ProspectingDesc", len);
@@ -4167,7 +4167,7 @@ pub fn import_quest_chain_desc(ctx: &ReducerContext, records: Vec<QuestChainDesc
 }
 fn import_quest_chain_desc_internal(ctx: &ReducerContext, records: Vec<QuestChainDesc>) -> Result<(), String> {
     for id in ctx.db.quest_chain_desc().iter().map(|item: QuestChainDesc| item.id) {
-        ctx.db.quest_chain_desc().id().delete(&id);
+        ctx.db.quest_chain_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type QuestChainDesc", len);
@@ -4194,7 +4194,7 @@ pub fn import_stage_rewards_desc(ctx: &ReducerContext, records: Vec<StageRewards
 }
 fn import_stage_rewards_desc_internal(ctx: &ReducerContext, records: Vec<StageRewardsDesc>) -> Result<(), String> {
     for id in ctx.db.stage_rewards_desc().iter().map(|item: StageRewardsDesc| item.id) {
-        ctx.db.stage_rewards_desc().id().delete(&id);
+        ctx.db.stage_rewards_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type StageRewardsDesc", len);
@@ -4221,7 +4221,7 @@ pub fn import_quest_stage_desc(ctx: &ReducerContext, records: Vec<QuestStageDesc
 }
 fn import_quest_stage_desc_internal(ctx: &ReducerContext, records: Vec<QuestStageDesc>) -> Result<(), String> {
     for id in ctx.db.quest_stage_desc().iter().map(|item: QuestStageDesc| item.id) {
-        ctx.db.quest_stage_desc().id().delete(&id);
+        ctx.db.quest_stage_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type QuestStageDesc", len);
@@ -4253,7 +4253,7 @@ fn import_equipment_preset_knowledge_desc_internal(ctx: &ReducerContext, records
         .iter()
         .map(|item: EquipmentPresetKnowledgeDesc| item.knowledge_id)
     {
-        ctx.db.equipment_preset_knowledge_desc().knowledge_id().delete(&id);
+        ctx.db.equipment_preset_knowledge_desc().knowledge_id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type EquipmentPresetKnowledgeDesc", len);
@@ -4280,7 +4280,7 @@ pub fn import_building_buff_desc(ctx: &ReducerContext, records: Vec<BuildingBuff
 }
 fn import_building_buff_desc_internal(ctx: &ReducerContext, records: Vec<BuildingBuffDesc>) -> Result<(), String> {
     for id in ctx.db.building_buff_desc().iter().map(|item: BuildingBuffDesc| item.id) {
-        ctx.db.building_buff_desc().id().delete(&id);
+        ctx.db.building_buff_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type BuildingBuffDesc", len);
@@ -4307,7 +4307,7 @@ pub fn import_quest_drop_desc(ctx: &ReducerContext, records: Vec<QuestDropDesc>)
 }
 fn import_quest_drop_desc_internal(ctx: &ReducerContext, records: Vec<QuestDropDesc>) -> Result<(), String> {
     for id in ctx.db.quest_drop_desc().iter().map(|item: QuestDropDesc| item.id) {
-        ctx.db.quest_drop_desc().id().delete(&id);
+        ctx.db.quest_drop_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type QuestDropDesc", len);
@@ -4334,7 +4334,7 @@ pub fn import_placeable_desc(ctx: &ReducerContext, records: Vec<PlaceableDesc>) 
 }
 fn import_placeable_desc_internal(ctx: &ReducerContext, records: Vec<PlaceableDesc>) -> Result<(), String> {
     for id in ctx.db.placeable_desc().iter().map(|item| item.id) {
-        ctx.db.placeable_desc().id().delete(&id);
+        ctx.db.placeable_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PlaceableDesc", len);
@@ -4358,7 +4358,7 @@ pub fn import_placeable_group_desc(ctx: &ReducerContext, records: Vec<PlaceableG
 }
 fn import_placeable_group_desc_internal(ctx: &ReducerContext, records: Vec<PlaceableGroupDesc>) -> Result<(), String> {
     for id in ctx.db.placeable_group_desc().iter().map(|item| item.id) {
-        ctx.db.placeable_group_desc().id().delete(&id);
+        ctx.db.placeable_group_desc().id().delete(id);
     }
     let len: usize = records.len();
     log::info!("Will insert {} records of type PlaceableGroupDesc", len);
@@ -4384,7 +4384,7 @@ pub fn import_placeable_growth_desc(ctx: &ReducerContext, records: Vec<Placeable
 }
 fn import_placeable_growth_desc_internal(ctx: &ReducerContext, records: Vec<PlaceableGrowthDesc>) -> Result<(), String> {
     for id in ctx.db.placeable_growth_desc().iter().map(|item| item.id) {
-        ctx.db.placeable_growth_desc().id().delete(&id);
+        ctx.db.placeable_growth_desc().id().delete(id);
     }
 
     let len: usize = records.len();
@@ -4411,7 +4411,7 @@ pub fn import_placeable_placement_desc(ctx: &ReducerContext, records: Vec<Placea
 }
 fn import_placeable_placement_desc_internal(ctx: &ReducerContext, records: Vec<PlaceablePlacementDesc>) -> Result<(), String> {
     for id in ctx.db.placeable_placement_desc().iter().map(|item| item.id) {
-        ctx.db.placeable_placement_desc().id().delete(&id);
+        ctx.db.placeable_placement_desc().id().delete(id);
     }
 
     let len: usize = records.len();
@@ -4438,7 +4438,7 @@ pub fn import_placeable_interaction_desc(ctx: &ReducerContext, records: Vec<Plac
 }
 fn import_placeable_interaction_desc_internal(ctx: &ReducerContext, records: Vec<PlaceableInteractionDesc>) -> Result<(), String> {
     for id in ctx.db.placeable_interaction_desc().iter().map(|item| item.id) {
-        ctx.db.placeable_interaction_desc().id().delete(&id);
+        ctx.db.placeable_interaction_desc().id().delete(id);
     }
 
     let len: usize = records.len();
@@ -4456,7 +4456,7 @@ fn import_placeable_interaction_desc_internal(ctx: &ReducerContext, records: Vec
 }
 
 fn collect_table<T: spacetimedb::Table>(table: &T) -> Vec<T::Row> {
-    return table.iter().collect();
+    table.iter().collect()
 }
 
 fn refresh_traveler_trade_orders_if_changed(

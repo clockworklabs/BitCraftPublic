@@ -21,7 +21,7 @@ pub struct EnemyRegenLoopTimer {
 }
 
 pub fn update_timer(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().enemy_regen_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().enemy_regen_tick_millis as u64;
     let mut count = 0;
     for mut timer in ctx.db.enemy_regen_loop_timer().iter() {
         count += 1;
@@ -35,7 +35,7 @@ pub fn update_timer(ctx: &ReducerContext) {
 }
 
 pub fn init(ctx: &ReducerContext) {
-    let tick_length = ctx.db.parameters_desc().version().find(&0).unwrap().enemy_regen_tick_millis as u64;
+    let tick_length = ctx.db.parameters_desc().version().find(0).unwrap().enemy_regen_tick_millis as u64;
     ctx.db
         .enemy_regen_loop_timer()
         .try_insert(EnemyRegenLoopTimer {
@@ -48,7 +48,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn enemy_regen_agent_loop(ctx: &ReducerContext, _timer: EnemyRegenLoopTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to enemy_regen agent");
         return;
     }
@@ -57,7 +57,7 @@ fn enemy_regen_agent_loop(ctx: &ReducerContext, _timer: EnemyRegenLoopTimer) {
         return;
     }
 
-    let params = unwrap_or_return!(ctx.db.parameters_desc().version().find(&0), "Failed to get ParametersDesc");
+    let params = unwrap_or_return!(ctx.db.parameters_desc().version().find(0), "Failed to get ParametersDesc");
     let min_seconds_to_passive_regen_health = params.min_seconds_to_passive_regen_health as u64;
 
     regen_enemies(ctx, min_seconds_to_passive_regen_health);
@@ -70,8 +70,8 @@ fn regen_enemies(ctx: &ReducerContext, min_seconds_to_passive_regen_health: u64)
     let mut regen_buffs_values = Vec::new();
 
     // Collect all buff ids and regen values of any buff with a "ActiveHealthRegenRate" stat update
-    for (buff_id, buff_value) in ctx.db.buff_desc().iter().filter_map(|buff| {
-        Some((
+    for (buff_id, buff_value) in ctx.db.buff_desc().iter().map(|buff| {
+        (
             buff.id,
             buff.stats
                 .iter()
@@ -84,7 +84,7 @@ fn regen_enemies(ctx: &ReducerContext, min_seconds_to_passive_regen_health: u64)
                 })
                 .next()
                 .unwrap_or(0.0),
-        ))
+        )
     }) {
         if buff_value != 0.0 {
             regen_buffs.push(buff_id);
@@ -109,11 +109,11 @@ fn regen_health(
     min_seconds_to_passive_regen_health: u64,
     enemy_entity_id: u64,
     enemy_desc: &EnemyDesc,
-    regen_buffs: &Vec<i32>,
-    regen_buffs_values: &Vec<f32>,
+    regen_buffs: &[i32],
+    regen_buffs_values: &[f32],
 ) {
     let mut health_state = unwrap_or_return!(
-        ctx.db.health_state().entity_id().find(&enemy_entity_id),
+        ctx.db.health_state().entity_id().find(enemy_entity_id),
         "Failed to get HealthState for enemy with id {}",
         enemy_entity_id
     );

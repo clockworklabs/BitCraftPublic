@@ -24,7 +24,7 @@ macro_rules! log {
 #[spacetimedb::reducer]
 #[feature_gate("prospecting")]
 pub fn prospect_start(ctx: &ReducerContext, prospecting_id: i32, timestamp: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     let target = None;
@@ -53,7 +53,7 @@ pub fn prospect_start(ctx: &ReducerContext, prospecting_id: i32, timestamp: u64)
 #[spacetimedb::reducer]
 #[feature_gate("prospecting")]
 pub fn prospect(ctx: &ReducerContext, prospecting_id: i32, timestamp: u64) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
     let mut terrain_cache = TerrainChunkCache::empty();
     player_action_helpers::schedule_clear_player_action(
@@ -66,7 +66,7 @@ pub fn prospect(ctx: &ReducerContext, prospecting_id: i32, timestamp: u64) -> Re
 #[spacetimedb::reducer]
 #[feature_gate("prospecting")]
 pub fn prospect_cancel(ctx: &ReducerContext) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     PlayerTimestampState::refresh(ctx, actor_id, ctx.timestamp);
 
     ctx.db.prospecting_state().entity_id().delete(actor_id);
@@ -134,7 +134,7 @@ fn reduce(
     let prospecting_desc = unwrap_or_err!(ctx.db.prospecting_desc().id().find(prospecting_id), "Invalid prospecting entry");
 
     // Verify distance to paving target
-    let location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(&actor_id), "Invalid player");
+    let location = unwrap_or_err!(ctx.db.mobile_entity_state().entity_id().find(actor_id), "Invalid player");
     let player_coord = location.coordinates();
 
     let terrain = terrain_cache.get_terrain_cell(ctx, &player_coord.parent_large_tile()).unwrap();
@@ -176,7 +176,7 @@ fn reduce(
         .map(|i| ItemStack::new(ctx, i.item_id, i.item_type, i.quantity))
         .collect();
 
-    if consumed_item_stacks.len() > 0 {
+    if !consumed_item_stacks.is_empty() {
         if dry_run {
             if !item_inventory.has(&consumed_item_stacks) {
                 return Err("You don't have the required items.".into());
@@ -338,8 +338,8 @@ fn reduce(
     log!("**********************************************");
 
     let mut updated_trail = false;
-    if !is_heading_torwards_reward {
-        if target_location.distance_to(player_location) < crumb_trail.crumb_radiuses[step] {
+    if !is_heading_torwards_reward
+        && target_location.distance_to(player_location) < crumb_trail.crumb_radiuses[step] {
             if step as i32 == crumb_trail.active_step {
                 crumb_trail.active_step += 1;
 
@@ -394,7 +394,6 @@ fn reduce(
                 post_reducer_update_cargo(ctx, actor_id);
             }
         }
-    }
     player_prospecting.last_prospection_timestamp = ctx.timestamp;
     player_prospecting.next_crumb_angle = crumb_trail.angles_to_destination(player_location, player_prospecting.ongoing_step);
     player_prospecting.to_next_node = crumb_trail.distance_to_destination(location.coordinates_float(), player_prospecting.ongoing_step);

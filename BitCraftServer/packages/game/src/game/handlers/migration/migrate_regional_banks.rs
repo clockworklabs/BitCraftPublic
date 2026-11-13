@@ -31,7 +31,7 @@ pub fn migrate_regional_banks(ctx: &ReducerContext) -> Result<(), String> {
                 .unwrap_or(BankState {
                     building_entity_id: building.entity_id,
                     claim_entity_id: building.claim_entity_id,
-                    coordinates: location.into(),
+                    coordinates: location,
                 });
             ctx.db.regional_bank_state().insert(bank);
         }

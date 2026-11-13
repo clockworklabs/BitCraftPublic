@@ -25,5 +25,5 @@ pub fn cheat_warp(ctx: &ReducerContext, request: CheatWarpRequest) -> Result<(),
 
 pub fn reduce(ctx: &ReducerContext, entity_id: u64, coordinates: OffsetCoordinatesSmall) -> Result<(), String> {
     let ofc: OffsetCoordinatesFloat = coordinates.into();
-    return game_state_filters::teleport_to(ctx, entity_id, ofc, true, 0.0);
+    game_state_filters::teleport_to(ctx, entity_id, ofc, true, 0.0)
 }

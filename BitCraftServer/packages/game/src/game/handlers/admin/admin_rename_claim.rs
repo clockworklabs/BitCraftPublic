@@ -15,7 +15,7 @@ pub fn admin_rename_claim(ctx: &ReducerContext, claim_name: String, new_name: St
 
     let name_lower = claim_name.to_lowercase();
     let entity_id = unwrap_or_err!(
-        ctx.db.claim_state().iter().filter(|d| d.name.to_lowercase() == name_lower).next(),
+        ctx.db.claim_state().iter().find(|d| d.name.to_lowercase() == name_lower),
         "Claim not found"
     )
     .entity_id;

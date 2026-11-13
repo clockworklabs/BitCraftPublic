@@ -15,7 +15,7 @@ impl ResourceDefinition {
     }
 
     pub fn get_biome(&self, index: i32) -> Option<&ResourceBiome> {
-        if self.biomes.len() == 0 {
+        if self.biomes.is_empty() {
             return None;
         }
         let index = index.clamp(0, self.biomes.len() as i32 - 1);
@@ -23,7 +23,7 @@ impl ResourceDefinition {
     }
 
     pub fn get_biome_mut(&mut self, index: i32) -> Option<&mut ResourceBiome> {
-        if self.biomes.len() == 0 {
+        if self.biomes.is_empty() {
             return None;
         }
         let index = index.clamp(0, self.biomes.len() as i32 - 1);
@@ -51,13 +51,13 @@ pub struct ResourceBiome {
 
 impl ResourceBiome {
     pub fn get(&self, x: f32, y: f32) -> f32 {
-        return noise_helper::get(
+        noise_helper::get(
             Vector2 { x, y },
             self.noise_specs.scale,
             self.noise_specs.octaves,
             self.noise_specs.persistance,
             self.noise_specs.lacunarity,
             self.noise_specs.offset,
-        );
+        )
     }
 }

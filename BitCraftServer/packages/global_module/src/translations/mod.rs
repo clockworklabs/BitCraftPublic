@@ -27,7 +27,7 @@ pub struct TranslationCorrections {
 #[spacetimedb::reducer]
 pub fn correct_translation(ctx: &ReducerContext, string_index: u32, lang: String, translation: String) -> Result<(), String> {
     // insert or update translation if the caller is an official translator for the lang
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
     if !ctx
         .db
         .official_translators()
@@ -72,7 +72,7 @@ pub fn add_official_translator(ctx: &ReducerContext, username: String, lang: Str
         .db
         .player_lowercase_username_state()
         .username_lowercase()
-        .find(&username.to_lowercase())
+        .find(username.to_lowercase())
     {
         if ctx
             .db

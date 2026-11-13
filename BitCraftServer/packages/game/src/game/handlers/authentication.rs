@@ -10,7 +10,7 @@ use crate::messages::{
 pub fn is_authenticated(ctx: &ReducerContext, identity: &Identity) -> bool {
     const SECONDS_IN_A_DAY: u64 = 24 * 60 * 60;
 
-    match ctx.db.config().version().find(&0) {
+    match ctx.db.config().version().find(0) {
         Some(config) => {
             if config.env == "dev" {
                 return true; // dev config allows all operations
@@ -28,7 +28,7 @@ pub fn is_authenticated(ctx: &ReducerContext, identity: &Identity) -> bool {
 }
 
 pub fn has_role(ctx: &ReducerContext, identity: &Identity, role: Role) -> bool {
-    match ctx.db.config().version().find(&0) {
+    match ctx.db.config().version().find(0) {
         Some(config) => {
             if config.env == "dev" {
                 return true; // dev config allows all operations
@@ -36,15 +36,9 @@ pub fn has_role(ctx: &ReducerContext, identity: &Identity, role: Role) -> bool {
         }
         None => return true, // no config yet allows all operation
     }
-    match ctx.db.identity_role().identity().find(identity) {
-        Some(entry) if entry.role as i32 >= role as i32 => true,
-        _ => false,
-    }
+    matches!(ctx.db.identity_role().identity().find(identity), Some(entry) if entry.role as i32 >= role as i32)
 }
 
 pub fn has_role_no_dev(ctx: &ReducerContext, identity: &Identity, role: Role) -> bool {
-    match ctx.db.identity_role().identity().find(identity) {
-        Some(entry) if entry.role as i32 >= role as i32 => true,
-        _ => false,
-    }
+    matches!(ctx.db.identity_role().identity().find(identity), Some(entry) if entry.role as i32 >= role as i32)
 }

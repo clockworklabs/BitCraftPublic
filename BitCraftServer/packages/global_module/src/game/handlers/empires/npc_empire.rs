@@ -53,7 +53,7 @@ pub fn get_or_create_npc_empire(ctx: &ReducerContext, name: &str, icon_id: i32, 
             let mut updated = empire;
             updated.name = name.to_string();
             EmpireState::update_shared(ctx, updated, crate::inter_module::InterModuleDestination::AllOtherRegions);
-            if let Some(mut lower) = ctx.db.empire_lowercase_name_state().entity_id().find(&entity_id) {
+            if let Some(mut lower) = ctx.db.empire_lowercase_name_state().entity_id().find(entity_id) {
                 lower.name_lowercase = name.to_lowercase();
                 ctx.db.empire_lowercase_name_state().entity_id().update(lower);
             }
@@ -67,7 +67,7 @@ pub fn get_or_create_npc_empire(ctx: &ReducerContext, name: &str, icon_id: i32, 
             color1_id,
             color2_id,
         };
-        if ctx.db.empire_emblem_state().entity_id().find(&entity_id).is_some() {
+        if ctx.db.empire_emblem_state().entity_id().find(entity_id).is_some() {
             ctx.db.empire_emblem_state().entity_id().update(emblem);
         } else {
             ctx.db.empire_emblem_state().insert(emblem);
@@ -152,7 +152,7 @@ pub fn is_npc_empire(ctx: &ReducerContext, empire_entity_id: u64) -> bool {
     ctx.db
         .empire_state()
         .entity_id()
-        .find(&empire_entity_id)
+        .find(empire_entity_id)
         .map(|e| e.owner_type == EmpireOwnerType::Npc)
         .unwrap_or(false)
 }
@@ -203,11 +203,11 @@ pub fn world_clear_npc_empire(ctx: &ReducerContext) -> Result<(), String> {
     }
 
     // Delete the empire itself
-    if let Some(empire) = ctx.db.empire_state().entity_id().find(&npc_empire_id) {
+    if let Some(empire) = ctx.db.empire_state().entity_id().find(npc_empire_id) {
         let entity_id = empire.entity_id;
         EmpireState::delete_shared(ctx, empire, crate::inter_module::InterModuleDestination::AllOtherRegions);
         ctx.db.empire_lowercase_name_state().entity_id().delete(entity_id);
-        ctx.db.empire_log_state().entity_id().delete(&entity_id);
+        ctx.db.empire_log_state().entity_id().delete(entity_id);
         ctx.db.empire_emblem_state().entity_id().delete(entity_id);
     }
 
@@ -234,7 +234,7 @@ pub fn admin_change_empire_emblem(
         .db
         .empire_emblem_state()
         .entity_id()
-        .find(&empire_entity_id)
+        .find(empire_entity_id)
         .ok_or_else(|| format!("Empire emblem not found for entity_id {{0}}|~{}", empire_entity_id))?;
 
     emblem.icon_id = icon_id;
@@ -267,14 +267,14 @@ pub fn admin_assign_empire_chunks(ctx: &ReducerContext, chunk_indexes: Vec<u64>,
         .db
         .empire_node_state()
         .entity_id()
-        .find(&watchtower_entity_id)
+        .find(watchtower_entity_id)
         .ok_or_else(|| format!("Watchtower node {{0}} not found|~{}", watchtower_entity_id))?;
 
     let empire_entity_id = node.empire_entity_id;
     let mut count = 0u64;
 
     for chunk_index in chunk_indexes {
-        if let Some(existing) = ctx.db.empire_chunk_state().chunk_index().find(&chunk_index) {
+        if let Some(existing) = ctx.db.empire_chunk_state().chunk_index().find(chunk_index) {
             // Update existing chunk
             let mut updated = existing;
             updated.empire_entity_id = empire_entity_id;
@@ -316,7 +316,7 @@ pub fn admin_unassign_empire_chunks(ctx: &ReducerContext, chunk_indexes: Vec<u64
 
     let mut count = 0u64;
     for chunk_index in chunk_indexes {
-        if let Some(chunk) = ctx.db.empire_chunk_state().chunk_index().find(&chunk_index) {
+        if let Some(chunk) = ctx.db.empire_chunk_state().chunk_index().find(chunk_index) {
             EmpireChunkState::delete_shared(ctx, chunk, crate::inter_module::InterModuleDestination::AllOtherRegions);
             count += 1;
         }
@@ -351,7 +351,7 @@ pub fn world_form_npc_empire(
     };
 
     // Validate color IDs against the static data table (same check as empire_form)
-    if ctx.db.empire_color_desc().id().find(&color1_id).is_none() || ctx.db.empire_color_desc().id().find(&color2_id).is_none() {
+    if ctx.db.empire_color_desc().id().find(color1_id).is_none() || ctx.db.empire_color_desc().id().find(color2_id).is_none() {
         return Err(format!(
             "Invalid empire colors: color1_id={{0}}, color2_id={{1}}. Must be valid EmpireColorDesc IDs.|~{}|~{}",
             color1_id, color2_id

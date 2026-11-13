@@ -9,7 +9,7 @@ pub fn admin_reset_onboarding_completely(ctx: &ReducerContext, entity_id: u64) -
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![],
         current_quests: vec![],
         completed_quests: vec![],
@@ -28,7 +28,7 @@ pub fn admin_alpha3_reset_onboarding_to_first_temple_quest(ctx: &ReducerContext,
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232,
@@ -51,7 +51,7 @@ pub fn admin_alpha3_reset_onboarding_to_first_expand_quest(ctx: &ReducerContext,
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51,
@@ -75,7 +75,7 @@ pub fn admin_alpha3_reset_onboarding_to_second_temple_quest(ctx: &ReducerContext
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72,
@@ -99,7 +99,7 @@ pub fn admin_alpha3_reset_onboarding_to_second_expand_quest(ctx: &ReducerContext
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72, 26712, 18883, 19728,
@@ -123,7 +123,7 @@ pub fn admin_alpha3_reset_onboarding_to_third_temple_quest(ctx: &ReducerContext,
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72, 26712, 18883, 19728, 52918, 33460, 16084,
@@ -147,7 +147,7 @@ pub fn admin_alpha3_reset_onboarding_to_third_expand_quest(ctx: &ReducerContext,
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72, 26712, 18883, 19728, 52918, 33460, 16084,
@@ -171,7 +171,7 @@ pub fn admin_alpha3_reset_onboarding_to_fourth_temple_quest(ctx: &ReducerContext
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72, 26712, 18883, 19728, 52918, 33460, 16084,
@@ -195,7 +195,7 @@ pub fn admin_alpha3_reset_onboarding_to_fourth_expand_quest(ctx: &ReducerContext
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72, 26712, 18883, 19728, 52918, 33460, 16084,
@@ -219,7 +219,7 @@ pub fn admin_alpha3_reset_onboarding_to_fifth_temple_quest(ctx: &ReducerContext,
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72, 26712, 18883, 19728, 52918, 33460, 16084,
@@ -243,7 +243,7 @@ pub fn admin_alpha3_complete_onboarding(ctx: &ReducerContext, entity_id: u64) ->
     }
 
     let new_state = OnboardingState {
-        entity_id: entity_id,
+        entity_id,
         completed_states: vec![
             75, 52, 68, 81, 13, 53, 2, 74, 33, 96, 48038, 61, 54414, 6, 61693, 38, 88, 32, 51732, 22888, 7219, 4623, 46006, 44068, 12368,
             28135, 62232, 27, 84, 11, 0, 18, 63, 51, 72, 26712, 18883, 19728, 52918, 33460, 16084, 7503,

@@ -37,7 +37,7 @@ pub fn update_health_and_check_death(
 
     // Ignore this function if still alive or if this new death occurs before respawning
     if !health_state.is_incapacitated_self()
-        || m < health_state.died_timestamp + ctx.db.parameters_desc().version().find(&0).unwrap().respawn_seconds
+        || m < health_state.died_timestamp + ctx.db.parameters_desc().version().find(0).unwrap().respawn_seconds
     {
         // We still need to do the update for any preceding health update
         ctx.db.health_state().entity_id().update(health_state);
@@ -60,9 +60,9 @@ pub fn update_health_and_check_death(
 
     // Player death specifics. We will leave unsigned players as well to be safe and avoid some zombie case
     let mut long_term_debuffs: Vec<BuffDesc> = BuffDesc::filter_by_buff_category(ctx, BuffCategory::RezSicknessLongTerm).collect();
-    long_term_debuffs.sort_by(|a, b| a.priority.cmp(&b.priority));
+    long_term_debuffs.sort_by_key(|a| a.priority);
 
-    if ctx.db.player_state().entity_id().find(&entity_id).is_some() {
+    if ctx.db.player_state().entity_id().find(entity_id).is_some() {
         let mut apply_debuffs = true;
 
         if let Some(mut duel) = DuelState::get_for_player(ctx, entity_id) {
@@ -118,12 +118,12 @@ pub fn update_health_and_check_death(
     }
 
     // Enemy death specifics - enemies can only die if there is an attacker (slight optimization to avoid an enemy state filter)
-    if attacker_entity_id.is_some() {
+    if let Some(attacker_entity_id) = attacker_entity_id {
         if let Some(enemy) = ctx.db.enemy_state().entity_id().find(entity_id) {
             let enemy_type = enemy.enemy_type as i32;
             // Grant discovery to everyone engaged in the fight
             for player_entity_id in ctx.db.threat_state().target_entity_id().filter(entity_id).filter_map(|t| {
-                match ctx.db.player_state().entity_id().find(&t.owner_entity_id) {
+                match ctx.db.player_state().entity_id().find(t.owner_entity_id) {
                     Some(p) => Some(p.entity_id),
                     None => None,
                 }
@@ -134,7 +134,7 @@ pub fn update_health_and_check_death(
             }
 
             // Collapse interiors if herd reaches 0 population
-            if let Some(collapse_trigger) = ctx.db.interior_collapse_trigger_state().entity_id().find(&enemy.herd_entity_id) {
+            if let Some(collapse_trigger) = ctx.db.interior_collapse_trigger_state().entity_id().find(enemy.herd_entity_id) {
                 // Check if all remaining herd entities have 0 hp - at the very least, this one has 0 hp since it hasn't been despawned
                 // (it's possible that an AOE attack kills multiple enemies before they have time to despawn, so we can't check only for this one)
                 if ctx
@@ -159,11 +159,10 @@ pub fn update_health_and_check_death(
                     scheduled_id: 0,
                     scheduled_at: now_plus_secs(3, ctx.timestamp),
                     entity_id,
-                    attacker_entity_id: attacker_entity_id.unwrap(),
+                    attacker_entity_id,
                 })
                 .ok()
                 .unwrap();
-            return;
         } else {
             // Despawn building IN A DIFFERENT TRANSACTION so the AttackOutput stays available.
             ctx.db

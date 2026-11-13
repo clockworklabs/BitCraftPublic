@@ -46,7 +46,7 @@ pub fn init(ctx: &ReducerContext) {
 
 #[spacetimedb::reducer]
 fn duel_agent_timer_loop(ctx: &ReducerContext, _timer: DuelAgentTimer) {
-    if ServerIdentity::validate_server_or_admin(&ctx).is_err() {
+    if ServerIdentity::validate_server_or_admin(ctx).is_err() {
         log::error!("Unauthorized access to duel agent");
         return;
     }
@@ -82,13 +82,12 @@ fn duel_agent_timer_loop(ctx: &ReducerContext, _timer: DuelAgentTimer) {
             let out_of_range = coord.dimension != duel_coord.dimension || coord.distance_to(duel_coord) > duel_range;
 
             updated |= duel.update_out_of_range_timestamp(ctx, i, out_of_range);
-            if out_of_range {
-                if duel.timed_out(ctx, i, timeout_millis) {
+            if out_of_range
+                && duel.timed_out(ctx, i, timeout_millis) {
                     updated = true;
                     duel.set_loser(ctx, i);
                     break;
                 }
-            }
         }
         if updated {
             ctx.db.duel_state().entity_id().update(duel);

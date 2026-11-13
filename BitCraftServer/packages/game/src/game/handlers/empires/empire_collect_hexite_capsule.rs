@@ -13,7 +13,7 @@ use crate::{
 #[spacetimedb::reducer]
 #[feature_gate("empire")]
 pub fn empire_collect_hexite_capsule(ctx: &ReducerContext, request: EmpireCollectHexiteCapsuleRequest) -> Result<(), String> {
-    let actor_id = game_state::actor_id(&ctx, true)?;
+    let actor_id = game_state::actor_id(ctx, true)?;
 
     HealthState::check_incapacitated(ctx, actor_id, true)?;
 
@@ -33,11 +33,11 @@ pub fn empire_collect_hexite_capsule(ctx: &ReducerContext, request: EmpireCollec
     }
 
     if InventoryState::get_player_cargo_id(ctx, actor_id) != 0 {
-        let max_distance = ctx.db.parameters_desc().version().find(&0).unwrap().withdraw_from_deployables_range;
+        let max_distance = ctx.db.parameters_desc().version().find(0).unwrap().withdraw_from_deployables_range;
         let deployable_inventories =
             InventoryState::get_nearby_deployable_inventories(ctx, actor_id, |x| foundry_location.distance_to(x), max_distance);
 
-        if deployable_inventories.len() == 0 {
+        if deployable_inventories.is_empty() {
             return Err("Already carrying a cargo".into());
         }
 
@@ -59,25 +59,26 @@ pub fn empire_collect_hexite_capsule(ctx: &ReducerContext, request: EmpireCollec
 }
 
 pub fn handle_destination_result_on_sender(ctx: &ReducerContext, request: EmpireCollectHexiteCapsuleMsg, error: Option<String>) {
-    if error.is_none() {
-        //Create cargo only if reducer succeeds
-        let item_stack = vec![ItemStack::hexite_capsule()];
-        let player_location = game_state_filters::coordinates_float(ctx, request.player_entity_id).parent_small_tile();
-        let foundry_location = game_state_filters::coordinates(ctx, request.building_entity_id);
+    if let Some(error) = error {
+        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error, NotificationSeverity::ReducerError);
+        return;
+    }
 
-        match InventoryState::deposit_to_player_inventory_and_nearby_deployables(
-            ctx,
-            request.player_entity_id,
-            &item_stack,
-            |x| foundry_location.distance_to(x),
-            true,
-            || vec![player_location],
-            true,
-        ) {
-            Ok(()) => player_action_helpers::post_reducer_update_cargo(ctx, request.player_entity_id),
-            Err(str) => log::error!("{str}"),
-        }
-    } else {
-        PlayerNotificationEvent::new_event(ctx, request.player_entity_id, error.unwrap(), NotificationSeverity::ReducerError);
+    //Create cargo only if reducer succeeds
+    let item_stack = vec![ItemStack::hexite_capsule()];
+    let player_location = game_state_filters::coordinates_float(ctx, request.player_entity_id).parent_small_tile();
+    let foundry_location = game_state_filters::coordinates(ctx, request.building_entity_id);
+
+    match InventoryState::deposit_to_player_inventory_and_nearby_deployables(
+        ctx,
+        request.player_entity_id,
+        &item_stack,
+        |x| foundry_location.distance_to(x),
+        true,
+        || vec![player_location],
+        true,
+    ) {
+        Ok(()) => player_action_helpers::post_reducer_update_cargo(ctx, request.player_entity_id),
+        Err(str) => log::error!("{str}"),
     }
 }

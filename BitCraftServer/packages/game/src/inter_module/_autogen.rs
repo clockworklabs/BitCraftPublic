@@ -132,7 +132,7 @@ pub enum UserStateOp {
     Delete(UserState),
 }
 
-#[derive(SpacetimeType, Clone, Debug)]
+#[derive(SpacetimeType, Clone, Debug, Default)]
 pub struct InterModuleTableUpdates {
     pub blocked_identity: Option<Vec<BlockedIdentityOp>>,
     pub building_nickname_state: Option<Vec<BuildingNicknameStateOp>>,
@@ -385,7 +385,7 @@ impl InterModuleTableUpdates {
     }
 }
 
-#[derive(SpacetimeType, Clone, Debug)]
+#[derive(SpacetimeType, Clone, Debug, Default)]
 pub struct InterModuleTableUpdatesV2 {
     pub blocked_identity: Option<Vec<BlockedIdentityOp>>,
     pub building_nickname_state: Option<Vec<BuildingNicknameStateOp>>,

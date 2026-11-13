@@ -49,11 +49,10 @@ impl ContributionState {
 
     pub fn idle_reset(ctx: &ReducerContext, enemy_entity_id: u64) {
         // Contribution resets as soon as the target is out of combat
-        if ctx.db.enemy_state().entity_id().find(enemy_entity_id).is_some() {
-            if !ThreatState::in_combat(ctx, enemy_entity_id) {
+        if ctx.db.enemy_state().entity_id().find(enemy_entity_id).is_some()
+            && !ThreatState::in_combat(ctx, enemy_entity_id) {
                 Self::clear(ctx, enemy_entity_id);
             }
-        }
     }
 
     pub fn applies(ctx: &ReducerContext, defender_entity_id: u64) -> bool {
@@ -81,9 +80,9 @@ impl ContributionState {
             .filter(enemy_type_id)
             .map(|c| (c.minimum_contribution, c.item_list_id, c.weighted))
             .collect();
-        contribution_prizes.sort_by(|c1, c2| c1.0.cmp(&c2.0));
+        contribution_prizes.sort_by_key(|c1| c1.0);
 
-        if contribution_prizes.len() == 0 {
+        if contribution_prizes.is_empty() {
             log::error!("No contribution available for enemy {enemy_entity_id} (enemy_type_id = {enemy_type_id})");
             return;
         }
@@ -120,14 +119,12 @@ impl ContributionState {
             let mut auto_collected_by_player: HashSet<i32> = HashSet::new();
 
             // Collect auto-collect outputs
-            if rewards.len() > 0 {
+            if !rewards.is_empty() {
                 for j in (0..=rewards.len() - 1).rev() {
                     let mut reward = rewards[j];
                     if reward.item_type == ItemType::Item {
                         // cache any item id so we don't make excessive wasm calls
-                        if !is_auto_collect_item_id.contains_key(&reward.item_id) {
-                            is_auto_collect_item_id.insert(reward.item_id, reward.is_auto_collect(ctx));
-                        }
+                        is_auto_collect_item_id.entry(reward.item_id).or_insert_with(|| reward.is_auto_collect(ctx));
                         if is_auto_collect_item_id[&reward.item_id] {
                             // cache any collected item id (per player) so we don't make excessive wasm calls
                             if !auto_collected_by_player.contains(&reward.item_id) {
